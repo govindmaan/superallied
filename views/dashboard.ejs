@@ -106,17 +106,7 @@
         </thead>
         <tbody>
           <% recent.forEach(q => {
-               const c = { basic_price: q.basic_price, quantity: q.quantity, transit_insurance: q.transit_insurance,
-                           tax_mode: q.tax_mode, cgst_rate: q.cgst_rate, sgst_rate: q.sgst_rate, igst_rate: q.igst_rate,
-                           has_tcs: q.has_tcs, tcs_rate: q.tcs_rate };
-               const total = (() => {
-                 const base = c.basic_price * c.quantity + (c.transit_insurance||2000)*c.quantity;
-                 let tax = 0;
-                 if (c.tax_mode==='IGST') tax = base*(c.igst_rate||18)/100;
-                 else tax = base*(c.cgst_rate||9)/100 + base*(c.sgst_rate||9)/100;
-                 const preTcs = c.basic_price*c.quantity + tax;
-                 return preTcs + (c.has_tcs ? Math.round(preTcs*(c.tcs_rate||1)/100) : 0);
-               })();
+               const total = calcQuotation(q, settings).total;
           %>
           <tr>
             <td><a href="/quotations/<%= q.id %>" class="fw-semibold text-decoration-none"><%= q.quotation_number %></a></td>

@@ -193,7 +193,7 @@ app.get('/', requireLogin, (req, res) => {
     FROM spare_quotations sq LEFT JOIN users u ON u.id=sq.created_by
     ${isAdmin ? '' : 'WHERE sq.created_by=?'} ORDER BY sq.created_at DESC LIMIT 5`
   ).all(...(isAdmin ? [] : [uid]));
-  res.render('dashboard', { title: 'Dashboard', stats, recent, recentSpare, formatINR });
+  res.render('dashboard', { title: 'Dashboard', stats, recent, recentSpare, formatINR, calcQuotation, settings: getSettings() });
 });
 
 // ── My Profile (self-service) ─────────────────────────────────────────────────
@@ -313,15 +313,15 @@ app.get('/quotations/new', requireLogin, requirePerm('quotations'), (req, res) =
   const salespersons = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name').all();
   const prefill      = req.query.customer_id || '';
   const s            = getSettings();
-  res.render('quotation-form', { title: 'New Quotation', quotation: null, machines, customers, salespersons, prefill, formatINR,
+  res.render('quotation-form', { title: 'New Quotation', quotation: null, machines, customers, salespersons, prefill, formatINR, settings: s,
     defaultSalesperson: s.contact_name || '', defaultSalespersonPhone: s.contact_phone || '' });
 });
 
 app.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
   const {
-    customer_id, machine_id, quantity, basic_price, transit_insurance,
+    customer_id, machine_id, quantity, basic_price,
     tax_mode, cgst_rate, sgst_rate, igst_rate,
-    has_tcs, tcs_rate, insurance, trc, hp_with, notes,
+    has_tcs, tcs_rate, insurance_amount, trc, handling_charges, transport_charges, hp_with, notes,
     salesperson_name, salesperson_phone,
   } = req.body;
 
@@ -338,15 +338,15 @@ app.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
   db.prepare(`INSERT INTO quotations
     (quotation_number,financial_year,serial_number,customer_id,machine_id,user_id,
      quantity,basic_price,transit_insurance,tax_mode,cgst_rate,sgst_rate,igst_rate,
-     has_tcs,tcs_rate,insurance,trc,hp_with,notes,salesperson_name,salesperson_phone,tyre_option,salesperson_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+     has_tcs,tcs_rate,insurance_amount,trc,handling_charges,transport_charges,hp_with,notes,salesperson_name,salesperson_phone,tyre_option,salesperson_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(
       quotationNumber, financialYear, serialNumber,
       +customer_id, +machine_id, req.session.userId,
-      +quantity||1, +basic_price, +transit_insurance||2000,
+      +quantity||1, +basic_price, 0,
       tax_mode||'CGST_SGST', +cgst_rate||9, +sgst_rate||9, +igst_rate||18,
       has_tcs === 'on' ? 1 : 0, +tcs_rate||1,
-      insurance||'INCLUSIVE', trc||'INCLUSIVE',
+      +insurance_amount||0, String(+trc||0), +handling_charges||0, +transport_charges||0,
       hp_with||'', notes||'',
       spName3, salesperson_phone||'',
       req.body.tyre_option||'IT', spId3
@@ -388,7 +388,7 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
     : db.prepare('SELECT * FROM customers WHERE created_by=? OR created_by IS NULL ORDER BY name').all(req.session.userId);
   const s         = getSettings();
   const salespersons2 = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name').all();
-  res.render('quotation-form', { title: 'Edit Quotation', quotation, machines, customers, salespersons: salespersons2, prefill: '', formatINR,
+  res.render('quotation-form', { title: 'Edit Quotation', quotation, machines, customers, salespersons: salespersons2, prefill: '', formatINR, settings: s,
     defaultSalesperson: s.contact_name || '', defaultSalespersonPhone: s.contact_phone || '' });
 });
 
@@ -400,22 +400,22 @@ app.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) 
     return res.redirect('/quotations');
   }
   const {
-    customer_id, machine_id, quantity, basic_price, transit_insurance,
+    customer_id, machine_id, quantity, basic_price,
     tax_mode, cgst_rate, sgst_rate, igst_rate,
-    has_tcs, tcs_rate, insurance, trc, hp_with, notes, status,
+    has_tcs, tcs_rate, insurance_amount, trc, handling_charges, transport_charges, hp_with, notes, status,
     salesperson_name, salesperson_phone, tyre_option,
   } = req.body;
   db.prepare(`UPDATE quotations SET
     customer_id=?,machine_id=?,quantity=?,basic_price=?,transit_insurance=?,
     tax_mode=?,cgst_rate=?,sgst_rate=?,igst_rate=?,has_tcs=?,tcs_rate=?,
-    insurance=?,trc=?,hp_with=?,notes=?,status=?,
+    insurance_amount=?,trc=?,handling_charges=?,transport_charges=?,hp_with=?,notes=?,status=?,
     salesperson_name=?,salesperson_phone=?,tyre_option=?
     WHERE id=?`)
     .run(
-      +customer_id, +machine_id, +quantity||1, +basic_price, +transit_insurance||2000,
+      +customer_id, +machine_id, +quantity||1, +basic_price, 0,
       tax_mode||'CGST_SGST', +cgst_rate||9, +sgst_rate||9, +igst_rate||18,
       has_tcs === 'on' ? 1 : 0, +tcs_rate||1,
-      insurance||'INCLUSIVE', trc||'INCLUSIVE',
+      +insurance_amount||0, String(+trc||0), +handling_charges||0, +transport_charges||0,
       hp_with||'', notes||'', status||'draft',
       salesperson_name||'', salesperson_phone||'',
       tyre_option||'IT',

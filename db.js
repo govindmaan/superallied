@@ -149,6 +149,9 @@ db.exec(`CREATE TABLE IF NOT EXISTS stock_availability (
 
 // Machine quotation salesperson link
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_id INTEGER REFERENCES salespersons(id)"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN insurance_amount REAL DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN handling_charges REAL DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN transport_charges REAL DEFAULT 0"); } catch(e) {}
 try { db.exec("ALTER TABLE quotations ADD COLUMN tyre_option TEXT DEFAULT 'IT'"); } catch(e) {}
 
 // Employee profile columns on users
@@ -800,10 +803,11 @@ function numberToWords(n) {
   return w.trim()+' Rupees Only';
 }
 
+// Basic → GST → TCS → roundoff = Ex-Showroom Price; then Insurance, TRC/LTT,
+// Handling and Transport are added on top to reach the Grand Total.
 function calcQuotation(q, settings) {
   const basic = q.basic_price * q.quantity;
-  const ins   = (q.transit_insurance || 2000) * q.quantity;
-  const base  = basic + ins;
+  const base  = basic;
 
   let cgst = 0, sgst = 0, igst = 0;
   if (q.tax_mode === 'IGST') {
@@ -812,20 +816,27 @@ function calcQuotation(q, settings) {
     cgst = base * (q.cgst_rate || 9) / 100;
     sgst = base * (q.sgst_rate || 9) / 100;
   }
-  const preTcs    = base + cgst + sgst + igst;
-  const tcs       = q.has_tcs ? Math.round(preTcs * (q.tcs_rate || 1) / 100) : 0;
-  const subTotal  = preTcs + tcs;
-  const trcAmount = parseFloat(q.trc) || 0;
-  let total       = subTotal + trcAmount;
+  const preTcs   = base + cgst + sgst + igst;
+  const tcs      = q.has_tcs ? Math.round(preTcs * (q.tcs_rate || 1) / 100) : 0;
+  const preRound = preTcs + tcs;
 
-  // Apply upward roundoff if enabled
+  // Upward roundoff (if enabled) lands on the Ex-Showroom Price
+  let exShowroom = preRound;
   if (settings && settings.roundoff_enabled === '1') {
     const roundoffAmount = parseInt(settings.roundoff_amount) || 500;
-    total = Math.ceil(total / roundoffAmount) * roundoffAmount;
+    exShowroom = Math.ceil(preRound / roundoffAmount) * roundoffAmount;
   }
+  const roundoff = exShowroom - preRound;
 
-  return { basic, transitInsurance: ins, base, cgst, sgst, igst, preTcs, tcs,
-           subTotal, trcAmount, total, roundoffApplied: total !== (subTotal + trcAmount),
+  const insuranceAmount = parseFloat(q.insurance_amount) || 0;
+  const trcAmount       = parseFloat(q.trc) || 0;
+  const handling        = parseFloat(q.handling_charges) || 0;
+  const transport       = parseFloat(q.transport_charges) || 0;
+  const total = exShowroom + insuranceAmount + trcAmount + handling + transport;
+
+  return { basic, base, cgst, sgst, igst, preTcs, tcs, preRound,
+           roundoff, roundoffApplied: roundoff > 0, exShowroom,
+           insuranceAmount, trcAmount, handling, transport, total,
            amountWords: numberToWords(Math.round(total)) };
 }
 

@@ -142,12 +142,6 @@
       <tr class="row-bold">
         <td></td><td>Basic Price</td><td></td><td class="col-price"><%= formatINR(calc.basic) %></td>
       </tr>
-      <tr>
-        <td></td><td>Transit Insurance</td><td></td><td class="col-price"><%= formatINR(calc.transitInsurance) %></td>
-      </tr>
-      <tr>
-        <td></td><td>Freight Extra as Actual</td><td></td><td class="col-price"></td>
-      </tr>
 
       <% if(q.tax_mode === 'IGST') { %>
       <tr>
@@ -184,28 +178,40 @@
       </tr>
       <% } %>
 
-      <tr class="row-bold">
-        <td></td><td>Sub Total</td><td></td><td class="col-price"><%= formatINR(calc.subTotal) %></td>
-      </tr>
-      <tr>
-        <td></td><td>Insurance including IMT-23</td><td></td><td class="col-price"><%= q.insurance %></td>
-      </tr>
-      <tr>
-        <td></td><td>TRC / RTO Charges</td><td></td>
-        <td class="col-price"><%= calc.trcAmount > 0 ? formatINR(calc.trcAmount) : 'INCLUSIVE' %></td>
-      </tr>
-
       <% if (calc.roundoffApplied) { %>
       <tr>
         <td></td><td><strong>Roundoff (Up)</strong></td><td></td>
-        <td class="col-price" style="color:#ff9800; font-weight:bold">+ <%= formatINR(calc.total - (calc.subTotal + calc.trcAmount)) %></td>
+        <td class="col-price" style="color:#ff9800; font-weight:bold">+ <%= formatINR(calc.roundoff) %></td>
       </tr>
       <% } %>
 
+      <tr class="row-bold">
+        <td></td><td>Ex-Showroom Price</td><td></td><td class="col-price"><%= formatINR(calc.exShowroom) %></td>
+      </tr>
+      <tr>
+        <td></td><td>Insurance including IMT-23</td><td></td>
+        <td class="col-price"><%= calc.insuranceAmount > 0 ? formatINR(calc.insuranceAmount) : '—' %></td>
+      </tr>
+      <tr>
+        <td></td><td>TRC / LTT</td><td></td>
+        <td class="col-price"><%= calc.trcAmount > 0 ? formatINR(calc.trcAmount) : '—' %></td>
+      </tr>
+      <tr>
+        <td></td><td>Handling Charges</td><td></td>
+        <td class="col-price"><%= calc.handling > 0 ? formatINR(calc.handling) : '—' %></td>
+      </tr>
+      <tr>
+        <td></td><td>Transport</td><td></td>
+        <td class="col-price"><%= calc.transport > 0 ? formatINR(calc.transport) : 'Extra as Actual' %></td>
+      </tr>
+
+      <tr class="row-total">
+        <td></td><td>Grand Total</td><td></td><td class="col-price"><%= formatINR(calc.total) %></td>
+      </tr>
+
       <!-- Amount in words -->
       <tr>
-        <td colspan="3" style="font-size:11.5px"><strong>Amount : <%= calc.amountWords %>.</strong></td>
-        <td class="col-price" style="font-weight:bold; font-size:12px"><%= formatINR(calc.total) %></td>
+        <td colspan="4" style="font-size:11.5px"><strong>Amount : <%= calc.amountWords %>.</strong></td>
       </tr>
     </tbody>
   </table>

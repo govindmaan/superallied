@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-09-30',
     items: [
+      { commit: '', type: 'improved', title: 'New machine quotation price layout',
+        details: ['Transit Insurance removed.',
+                  'Roundoff now comes right after TCS and gives the Ex-Showroom Price (replaces "Sub Total").',
+                  'After Ex-Showroom: Insurance with IMT-23 (₹ amount), TRC / LTT (6% of Ex-Showroom by default, editable), Handling Charges (₹20,000 by default) and Transport, then the Grand Total.'] },
       { commit: '', type: 'new', title: 'Spare Part Orders',
         details: ['Spares → Part Orders: look up a sold machine, add parts from the Parts Master, and place an order.',
                   'Admin confirms or deletes orders; the person who placed an order can cancel it while pending.'] },

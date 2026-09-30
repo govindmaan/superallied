@@ -70,7 +70,6 @@
         <div class="card-body">
           <table class="table table-sm table-bordered mb-0" style="max-width:500px">
             <tr><td>Basic Price (× <%= q.quantity %>)</td><td class="text-end">₹<%= formatINR(calc.basic) %></td></tr>
-            <tr><td>Transit Insurance</td><td class="text-end">₹<%= formatINR(calc.transitInsurance) %></td></tr>
             <% if (q.tax_mode === 'IGST') { %>
             <tr><td>IGST @ <%= q.igst_rate %>%</td><td class="text-end">₹<%= formatINR(calc.igst) %></td></tr>
             <% } else { %>
@@ -81,12 +80,14 @@
             <% if (q.has_tcs) { %>
             <tr><td>TCS @ <%= q.tcs_rate %>%</td><td class="text-end">₹<%= formatINR(calc.tcs) %></td></tr>
             <% } %>
-            <tr class="table-secondary fw-semibold"><td>Sub Total</td><td class="text-end">₹<%= formatINR(calc.subTotal) %></td></tr>
-            <tr><td>Insurance (IMT-23)</td><td class="text-end"><%= q.insurance %></td></tr>
-            <tr><td>TRC / RTO Charges</td><td class="text-end"><%= calc.trcAmount > 0 ? '₹' + formatINR(calc.trcAmount) : 'INCLUSIVE' %></td></tr>
             <% if (calc.roundoffApplied) { %>
-            <tr style="background-color: #fff3cd"><td><strong>Roundoff (Up)</strong></td><td class="text-end text-warning fw-bold">+ ₹<%= formatINR(calc.total - (calc.subTotal + calc.trcAmount)) %></td></tr>
+            <tr style="background-color: #fff3cd"><td><strong>Roundoff (Up)</strong></td><td class="text-end text-warning fw-bold">+ ₹<%= formatINR(calc.roundoff) %></td></tr>
             <% } %>
+            <tr class="table-secondary fw-semibold"><td>Ex-Showroom Price</td><td class="text-end">₹<%= formatINR(calc.exShowroom) %></td></tr>
+            <tr><td>Insurance (with IMT-23)</td><td class="text-end"><%= calc.insuranceAmount > 0 ? '₹' + formatINR(calc.insuranceAmount) : '—' %></td></tr>
+            <tr><td>TRC / LTT</td><td class="text-end"><%= calc.trcAmount > 0 ? '₹' + formatINR(calc.trcAmount) : '—' %></td></tr>
+            <tr><td>Handling Charges</td><td class="text-end"><%= calc.handling > 0 ? '₹' + formatINR(calc.handling) : '—' %></td></tr>
+            <tr><td>Transport</td><td class="text-end"><%= calc.transport > 0 ? '₹' + formatINR(calc.transport) : 'Extra as Actual' %></td></tr>
             <tr class="table-danger fw-bold"><td>Grand Total</td><td class="text-end">₹<%= formatINR(calc.total) %></td></tr>
           </table>
           <p class="mt-3 mb-0 fst-italic text-muted">Amount in words: <strong><%= calc.amountWords %></strong></p>
