@@ -29,6 +29,8 @@ const spareQuotationsRoutes = require('./routes/spare-quotations');
 const salespersonsRoutes    = require('./routes/salespersons');
 const stockRoutes           = require('./routes/stock');
 const form22Routes          = require('./routes/form22');
+const partOrdersRoutes      = require('./routes/part-orders');
+const backupRoutes          = require('./routes/backup');
 
 // Pre-encode images once at startup
 const LOGO_PATH = path.join(__dirname, 'public', 'bull-logo.jpg');
@@ -843,6 +845,8 @@ app.use('/spare-quotations',  requireLogin, requirePerm('spare_quotations'),  sp
 app.use('/salespersons',      requireLogin, requirePerm('salespersons_admin'), salespersonsRoutes);
 app.use('/stock',             requireLogin, requirePerm('stock'),             stockRoutes);
 app.use('/form-22',           requireLogin, requirePerm('quotations'),        form22Routes);
+app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       partOrdersRoutes);
+app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 
 // Today's route: attendance check-in/out + site visits as GPS anchors
 app.get('/my-route', requireLogin, (req, res) => {

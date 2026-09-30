@@ -1,0 +1,179 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'backup', user }) %>
+<div class="main-content">
+
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill me-2 text-danger"></i>Backup & Restore</h4>
+  </div>
+
+  <% if (locals.flash && flash.success) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle-fill me-2"></i><%= flash.success %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <% } %>
+  <% if (locals.flash && flash.error) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><%= flash.error %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <% } %>
+
+  <!-- Create Backup -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold border-bottom">
+      <i class="bi bi-plus-circle-fill text-danger me-2"></i>Create New Backup
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100 d-flex flex-column">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="fs-3 text-primary"><i class="bi bi-database-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Database Backup</div>
+                <small class="text-muted">Snapshot of all app data (SQLite)</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Saves all quotations, customers, HR records, machines and settings into a <code>.db</code> file.</p>
+            <form method="POST" action="/backup/data" class="mt-auto"
+                  onsubmit="return confirm('Create a database backup now?')">
+              <button class="btn btn-primary w-100"><i class="bi bi-download me-1"></i>Backup Database</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100 d-flex flex-column">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="fs-3 text-success"><i class="bi bi-file-zip-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Code Backup</div>
+                <small class="text-muted">Snapshot of the application source</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Zips the entire project source code (excluding node_modules and data) into a <code>.zip</code> file.</p>
+            <form method="POST" action="/backup/code" class="mt-auto"
+                  onsubmit="return confirm('Create a code backup now? This may take a few seconds.')">
+              <button class="btn btn-success w-100"><i class="bi bi-file-zip me-1"></i>Backup Code</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="border rounded p-3 h-100 d-flex flex-column border-danger">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="fs-3 text-danger"><i class="bi bi-archive-fill"></i></span>
+              <div>
+                <div class="fw-semibold">Full Backup</div>
+                <small class="text-muted">Database + source code together</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Creates both a database snapshot and a code archive in one go. Recommended before major updates.</p>
+            <form method="POST" action="/backup/full" class="mt-auto"
+                  onsubmit="return confirm('Create a full backup (DB + code) now? This may take a few seconds.')">
+              <button class="btn btn-danger w-100"><i class="bi bi-archive me-1"></i>Full Backup</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup History -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold border-bottom d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-clock-history text-danger me-2"></i>Backup History</span>
+      <span class="badge bg-secondary"><%= backups.length %> file<%= backups.length !== 1 ? 's' : '' %></span>
+    </div>
+    <div class="card-body p-0">
+      <% if (backups.length === 0) { %>
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+        No backups yet. Create your first backup above.
+      </div>
+      <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>File</th>
+              <th>Type</th>
+              <th>Created</th>
+              <th>Size</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% backups.forEach(b => { %>
+            <%
+              const isDb   = b.name.endsWith('.db');
+              const isZip  = b.name.endsWith('.zip');
+              const isPreRestore = b.name.startsWith('pre-restore-');
+              let typeBadge = isDb
+                ? '<span class="badge bg-primary">Database</span>'
+                : '<span class="badge bg-success">Code ZIP</span>';
+              if (isPreRestore) typeBadge = '<span class="badge bg-warning text-dark">Pre-Restore</span>';
+              const sizeKB = (b.size / 1024).toFixed(1);
+              const sizeMB = (b.size / 1048576).toFixed(2);
+              const sizeStr = b.size > 1048576 ? sizeMB + ' MB' : sizeKB + ' KB';
+              const created = new Date(b.mtime).toLocaleString('en-IN', {
+                day:'2-digit', month:'short', year:'numeric',
+                hour:'2-digit', minute:'2-digit'
+              });
+            %>
+            <tr>
+              <td class="font-monospace small"><i class="bi bi-<%= isZip ? 'file-zip' : 'database' %> me-1 text-muted"></i><%= b.name %></td>
+              <td><%- typeBadge %></td>
+              <td class="text-muted small"><%= created %></td>
+              <td class="text-muted small"><%= sizeStr %></td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+
+                  <!-- Download -->
+                  <a href="/backup/download/<%= encodeURIComponent(b.name) %>"
+                     class="btn btn-sm btn-outline-secondary" title="Download">
+                    <i class="bi bi-download"></i>
+                  </a>
+
+                  <!-- Restore (only for .db files) -->
+                  <% if (isDb) { %>
+                  <form method="POST" action="/backup/restore/<%= encodeURIComponent(b.name) %>"
+                        onsubmit="return confirm('Restore database from <%= b.name %>?\n\nThis will OVERWRITE the current database. The current state will be auto-saved as a pre-restore backup.\n\nRestart the server after restoring for full effect.')">
+                    <button class="btn btn-sm btn-outline-warning" title="Restore to this version">
+                      <i class="bi bi-arrow-counterclockwise"></i> Rollback
+                    </button>
+                  </form>
+                  <% } %>
+
+                  <!-- Delete -->
+                  <form method="POST" action="/backup/delete/<%= encodeURIComponent(b.name) %>"
+                        onsubmit="return confirm('Permanently delete <%= b.name %>?')">
+                    <button class="btn btn-sm btn-outline-danger" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+
+                </div>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Info box -->
+  <div class="alert alert-info border-0 mt-4 small">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    <strong>Note:</strong> After a rollback, restart the server to ensure the restored database is fully applied.
+    A pre-restore safety snapshot is automatically created before every rollback so you can undo a bad restore.
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

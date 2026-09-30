@@ -4,6 +4,17 @@
 
 module.exports = [
   {
+    date: '2026-09-30',
+    items: [
+      { commit: '', type: 'new', title: 'Spare Part Orders',
+        details: ['Spares → Part Orders: look up a sold machine, add parts from the Parts Master, and place an order.',
+                  'Admin confirms or deletes orders; the person who placed an order can cancel it while pending.'] },
+      { commit: '', type: 'new', title: 'Backup & Restore (admin)',
+        details: ['Operations → System → Backup & Restore: one-click database and code backups, with download.',
+                  'Restoring a backup saves the current data first and applies on the next server restart.'] },
+    ],
+  },
+  {
     date: '2026-09-23',
     items: [
       { commit: '', type: 'improved', title: 'Sidebar redesigned into 5 sections',

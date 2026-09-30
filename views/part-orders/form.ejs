@@ -1,0 +1,295 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'part-orders', user }) %>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-plus-fill me-2 text-primary"></i>New Spare Part Order</h4>
+    <a href="/part-orders" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+  </div>
+
+  <% if (flash.error) { %>
+  <div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+  <% } %>
+
+  <form id="orderForm" method="POST" action="/part-orders">
+
+    <!-- Step 1: Machine / Customer -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-primary text-white py-2 fw-semibold">
+        <i class="bi bi-truck me-2"></i>Step 1 — Machine & Customer
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Machine Number</label>
+            <div class="input-group">
+              <input type="text" id="machineNo" name="machine_no" class="form-control"
+                placeholder="Enter machine no." autocomplete="off"
+                oninput="lookupMachine(this.value)">
+              <span class="input-group-text bg-white" id="machineSpinner" style="display:none">
+                <span class="spinner-border spinner-border-sm text-secondary"></span>
+              </span>
+            </div>
+            <div id="machineStatus" class="form-text mt-1"></div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Customer Name</label>
+            <input type="text" id="customerName" name="customer_name" class="form-control" placeholder="Auto-filled or type manually">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Mobile</label>
+            <input type="text" id="customerMobile" name="mobile" class="form-control" placeholder="Auto-filled or type manually">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Address</label>
+            <input type="text" id="customerAddress" name="customer_address" class="form-control" placeholder="Auto-filled or type manually">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Add Parts -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-warning text-dark py-2 fw-semibold">
+        <i class="bi bi-search me-2"></i>Step 2 — Search & Add Parts
+      </div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6 position-relative">
+            <label class="form-label small fw-semibold">Search Part (SAP No / RND No / Description)</label>
+            <input type="text" id="partSearch" class="form-control"
+              placeholder="Start typing…" autocomplete="off"
+              oninput="searchParts(this.value)">
+            <div id="partSuggestions" class="position-absolute bg-white border rounded shadow-sm w-100"
+              style="z-index:1000;display:none;max-height:280px;overflow-y:auto;top:100%"></div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small fw-semibold">Qty</label>
+            <input type="number" id="addQty" class="form-control" value="1" min="1" step="1">
+          </div>
+          <div class="col-md-4">
+            <button type="button" class="btn btn-warning text-dark w-100" onclick="addPart()">
+              <i class="bi bi-plus-lg me-1"></i>Add Part
+            </button>
+          </div>
+        </div>
+        <div id="selectedPartBanner" class="mt-2 p-2 bg-light rounded small d-none">
+          Selected: <strong id="selPartLabel"></strong>
+          <span id="stockBadgeOrder" class="badge bg-secondary ms-2">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Order Items -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-list-check me-2"></i>Step 3 — Order Items</span>
+        <span id="itemCount" class="badge bg-white text-success fw-semibold">0 parts</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>SAP Part No.</th>
+              <th>RND Part No.</th>
+              <th>Description</th>
+              <th style="width:100px">Qty</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsTbody">
+            <tr id="emptyRow"><td colspan="6" class="text-center text-muted py-3">No parts added yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step 4: Confirm -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-secondary text-white py-2 fw-semibold">
+        <i class="bi bi-check2-circle me-2"></i>Step 4 — Remarks & Place Order
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Remarks (optional)</label>
+          <textarea name="remarks" class="form-control" rows="2" placeholder="Any special instructions…"></textarea>
+        </div>
+        <div id="orderSummary" class="alert alert-info d-none mb-3">
+          <strong id="summaryText"></strong>
+        </div>
+        <input type="hidden" name="items" id="itemsJson" value="[]">
+        <button type="button" class="btn btn-primary px-4" onclick="submitOrder()">
+          <i class="bi bi-send-fill me-2"></i>Place Order
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let items = [];
+let selectedPart = null;
+let _suggParts = [];
+let searchTimer = null;
+let machineTimer = null;
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Machine lookup ────────────────────────────────────────────────────────────
+function lookupMachine(val) {
+  clearTimeout(machineTimer);
+  const status = document.getElementById('machineStatus');
+  if (!val || val.length < 3) { status.textContent = ''; return; }
+  machineTimer = setTimeout(async () => {
+    document.getElementById('machineSpinner').style.display = '';
+    try {
+      const r = await fetch('/part-orders/api/machine/' + encodeURIComponent(val.trim()));
+      const d = await r.json();
+      if (d.found) {
+        document.getElementById('customerName').value    = d.customer_name || '';
+        document.getElementById('customerMobile').value  = d.mobile || '';
+        document.getElementById('customerAddress').value = d.customer_address || '';
+        status.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Machine found</span>';
+      } else {
+        status.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i>Machine not found — fill customer details manually</span>';
+      }
+    } catch(e) {}
+    document.getElementById('machineSpinner').style.display = 'none';
+  }, 400);
+}
+
+// ── Part search ───────────────────────────────────────────────────────────────
+function searchParts(q) {
+  clearTimeout(searchTimer);
+  if (q.length < 2) { hideSugg(); return; }
+  searchTimer = setTimeout(async () => {
+    const r = await fetch('/spare-parts/search?q=' + encodeURIComponent(q));
+    const parts = await r.json();
+    _suggParts = parts;
+    showSugg(parts);
+  }, 250);
+}
+
+function showSugg(parts) {
+  const div = document.getElementById('partSuggestions');
+  if (!parts.length) { div.style.display = 'none'; return; }
+  div.innerHTML = parts.map((p, idx) => `
+    <div class="px-3 py-2 border-bottom sugg-item" style="cursor:pointer" data-idx="${idx}">
+      <div class="fw-semibold small">${escHtml(p.material_description)}</div>
+      <div class="text-muted" style="font-size:11px">SAP: ${escHtml(p.sap_part_no||'—')} | RND: ${escHtml(p.rnd_part_no||'—')}</div>
+    </div>
+  `).join('');
+  div.querySelectorAll('.sugg-item').forEach(el => {
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      selectPart(_suggParts[parseInt(el.dataset.idx)]);
+    });
+  });
+  div.style.display = 'block';
+}
+
+function hideSugg() { document.getElementById('partSuggestions').style.display = 'none'; }
+document.addEventListener('click', e => { if (!e.target.closest('#partSearch') && !e.target.closest('#partSuggestions')) hideSugg(); });
+
+async function selectPart(p) {
+  selectedPart = p;
+  document.getElementById('partSearch').value = p.material_description;
+  document.getElementById('selPartLabel').textContent = `${p.sap_part_no||'—'} | ${p.material_description}`;
+  document.getElementById('selectedPartBanner').classList.remove('d-none');
+  hideSugg();
+  document.getElementById('addQty').focus();
+
+  // Stock badge
+  const badge = document.getElementById('stockBadgeOrder');
+  badge.className = 'badge bg-secondary ms-2';
+  badge.textContent = '...';
+  try {
+    const r = await fetch('/stock/api/' + p.id);
+    const d = await r.json();
+    const q = d.stock_quantity || 0;
+    if (q <= 0)       { badge.className = 'badge bg-danger ms-2';             badge.textContent = 'Out of Stock'; }
+    else if (q <= 5)  { badge.className = 'badge bg-warning text-dark ms-2';  badge.textContent = q + ' (Low)'; }
+    else              { badge.className = 'badge bg-success ms-2';             badge.textContent = q + ' In Stock'; }
+  } catch(e) { badge.textContent = '—'; }
+}
+
+// ── Add part to order ─────────────────────────────────────────────────────────
+function addPart() {
+  if (!selectedPart) { alert('Search and select a part first.'); return; }
+  const qty = Math.max(1, Math.round(parseFloat(document.getElementById('addQty').value) || 1));
+
+  // If same part already in list, increase qty
+  const existing = items.find(it => it.part_id === selectedPart.id);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    items.push({
+      part_id:     selectedPart.id,
+      sap_part_no: selectedPart.sap_part_no || '',
+      rnd_part_no: selectedPart.rnd_part_no || '',
+      description: selectedPart.material_description,
+      qty
+    });
+  }
+
+  selectedPart = null;
+  document.getElementById('partSearch').value = '';
+  document.getElementById('addQty').value = '1';
+  document.getElementById('selectedPartBanner').classList.add('d-none');
+  renderItems();
+}
+
+// ── Render items table ────────────────────────────────────────────────────────
+function renderItems() {
+  const tbody = document.getElementById('itemsTbody');
+  document.getElementById('itemCount').textContent = items.length + ' part' + (items.length === 1 ? '' : 's');
+  if (!items.length) {
+    tbody.innerHTML = '<tr id="emptyRow"><td colspan="6" class="text-center text-muted py-3">No parts added yet.</td></tr>';
+    document.getElementById('orderSummary').classList.add('d-none');
+    return;
+  }
+  tbody.innerHTML = items.map((it, i) => `
+    <tr>
+      <td class="text-muted small">${i+1}</td>
+      <td class="font-monospace small">${escHtml(it.sap_part_no||'—')}</td>
+      <td class="font-monospace small">${escHtml(it.rnd_part_no||'—')}</td>
+      <td class="small fw-semibold">${escHtml(it.description)}</td>
+      <td><input type="number" class="form-control form-control-sm" value="${it.qty}" min="1" step="1"
+        onchange="updateQty(${i}, this.value)"></td>
+      <td><button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeItem(${i})">
+        <i class="bi bi-trash"></i></button></td>
+    </tr>
+  `).join('');
+
+  const summary = document.getElementById('orderSummary');
+  document.getElementById('summaryText').textContent =
+    `${items.length} part type(s) — ready to place order`;
+  summary.classList.remove('d-none');
+}
+
+function updateQty(i, val) {
+  items[i].qty = Math.max(1, Math.round(parseFloat(val) || 1));
+}
+
+function removeItem(i) {
+  items.splice(i, 1);
+  renderItems();
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+function submitOrder() {
+  if (!items.length) { alert('Add at least one part before placing the order.'); return; }
+  const cust = document.getElementById('customerName').value.trim();
+  if (!cust) { alert('Please enter a customer name.'); return; }
+  document.getElementById('itemsJson').value = JSON.stringify(items);
+  document.getElementById('orderForm').submit();
+}
+</script>
+<style>
+.sugg-item:hover { background: #f0f8ff; }
+</style>
+</body></html>

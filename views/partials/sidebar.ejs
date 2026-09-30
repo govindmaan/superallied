@@ -30,11 +30,13 @@
       { label: 'System', items: [
         { href: '/users',    icon: 'bi-person-gear', label: 'Users',    show: isAdmin, keys: ['users'] },
         { href: '/settings', icon: 'bi-sliders',     label: 'Settings', show: isAdmin, keys: ['settings'] },
+        { href: '/backup',   icon: 'bi-shield-lock', label: 'Backup & Restore', show: isAdmin, keys: ['backup'] },
       ]},
     ]},
     { id: 'spares', label: 'Spares', icon: 'bi-box-seam-fill', groups: [
       { items: [
         { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',       label: 'Spare Quotations',   show: can('spare_quotations'), keys: ['spare-quotations'] },
+        { href: '/part-orders',                      icon: 'bi-cart-fill',            label: 'Part Orders',        show: can('spare_parts'),      keys: ['part-orders'] },
         { href: '/spare-parts',                      icon: 'bi-boxes',                label: 'Parts Master',       show: can('spare_parts'),      keys: ['spare-parts'] },
         { href: '/stock',                            icon: 'bi-clipboard-data',       label: 'Stock Availability', show: can('stock'),            keys: ['stock'] },
         { href: '/spare-quotations/reports/summary', icon: 'bi-bar-chart-line-fill',  label: 'Parts Reports',      show: can('spare_reports'),    keys: ['spare-reports'] },

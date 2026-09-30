@@ -7,6 +7,14 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'quotation.d
 const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
+// Apply a restore staged from /backup before the database is opened
+const RESTORE_PATH = DB_PATH + '.restore';
+if (fs.existsSync(RESTORE_PATH)) {
+  [DB_PATH + '-wal', DB_PATH + '-shm'].forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
+  fs.renameSync(RESTORE_PATH, DB_PATH);
+  console.log('Database restored from staged backup.');
+}
+
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
@@ -932,6 +940,32 @@ db.exec(`
     line_total REAL DEFAULT 0
   );
   CREATE INDEX IF NOT EXISTS idx_sqi_quotation ON spare_quotation_items(quotation_id);
+
+  CREATE TABLE IF NOT EXISTS part_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_no TEXT UNIQUE NOT NULL,
+    machine_no TEXT DEFAULT '',
+    customer_name TEXT DEFAULT '',
+    customer_address TEXT DEFAULT '',
+    mobile TEXT DEFAULT '',
+    remarks TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending',
+    created_by INTEGER REFERENCES users(id),
+    confirmed_by INTEGER REFERENCES users(id),
+    confirmed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS part_order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES part_orders(id) ON DELETE CASCADE,
+    part_id INTEGER,
+    sap_part_no TEXT DEFAULT '',
+    rnd_part_no TEXT DEFAULT '',
+    description TEXT NOT NULL,
+    qty INTEGER DEFAULT 1
+  );
+  CREATE INDEX IF NOT EXISTS idx_poi_order ON part_order_items(order_id);
 
   CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
