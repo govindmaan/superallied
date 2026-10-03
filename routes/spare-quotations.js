@@ -2,9 +2,9 @@ const express = require('express');
 const router  = express.Router();
 const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog } = require('../db');
 const { generatePDFWithLetterhead } = require('../pdf');
-const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
 const path = require('path');
 const fs   = require('fs');
+const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
 const QRCode = require('qrcode');
 
 // ── List ──────────────────────────────────────────────────────────────────────
