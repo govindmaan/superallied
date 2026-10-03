@@ -134,6 +134,9 @@ try { db.exec("ALTER TABLE spare_quotations ADD COLUMN approved_by INTEGER REFER
 try { db.exec("ALTER TABLE spare_quotations ADD COLUMN approved_at DATETIME"); } catch(e) {}
 try { db.exec("ALTER TABLE spare_quotations ADD COLUMN roundoff_amount REAL DEFAULT 0"); } catch(e) {}
 
+// Sold machines — soft delete
+try { db.exec("ALTER TABLE sold_machines ADD COLUMN is_active INTEGER DEFAULT 1"); } catch(e) {}
+
 // Stock availability
 try { db.exec("ALTER TABLE spare_parts ADD COLUMN category TEXT DEFAULT ''"); } catch(e) {}
 db.exec(`CREATE TABLE IF NOT EXISTS stock_availability (

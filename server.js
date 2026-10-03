@@ -614,7 +614,7 @@ app.get('/api/machines/:id', requireLogin, (req, res) => {
 // ── Spare parts machine lookup ─────────────────────────────────────────────────
 app.get('/api/spare/machine-lookup', requireLogin, (req, res) => {
   const no = req.query.no || '';
-  const m = db.prepare('SELECT * FROM sold_machines WHERE machine_no = ?').get(no.trim());
+  const m = db.prepare('SELECT * FROM sold_machines WHERE machine_no = ? COLLATE NOCASE').get(no.trim());
   res.json(m || {});
 });
 

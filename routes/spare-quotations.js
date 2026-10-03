@@ -33,7 +33,7 @@ router.get('/new', (req, res) => {
   const machine_no = req.query.machine_no || '';
   let machine = null;
   if (machine_no) {
-    machine = db.prepare('SELECT * FROM sold_machines WHERE machine_no=?').get(machine_no);
+    machine = db.prepare('SELECT * FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(machine_no);
   }
   const salespersons = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name ASC').all();
   res.render('spare-quotations/form', {
@@ -77,7 +77,7 @@ router.post('/', (req, res) => {
   // Find sold_machine_id
   let soldMachineId = null;
   if (f.machine_no) {
-    const sm = db.prepare('SELECT id FROM sold_machines WHERE machine_no=?').get(f.machine_no);
+    const sm = db.prepare('SELECT id FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(f.machine_no);
     if (sm) soldMachineId = sm.id;
   }
 
@@ -142,7 +142,7 @@ router.get('/:id/edit', (req, res) => {
   const s = getSettings();
   let machine = null;
   if (quotation.machine_no) {
-    machine = db.prepare('SELECT * FROM sold_machines WHERE machine_no=?').get(quotation.machine_no);
+    machine = db.prepare('SELECT * FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(quotation.machine_no);
   }
   const salespersons = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name ASC').all();
   res.render('spare-quotations/form', {
@@ -171,7 +171,7 @@ router.post('/:id/update', (req, res) => {
 
   let soldMachineId = null;
   if (f.machine_no) {
-    const sm = db.prepare('SELECT id FROM sold_machines WHERE machine_no=?').get(f.machine_no);
+    const sm = db.prepare('SELECT id FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(f.machine_no);
     if (sm) soldMachineId = sm.id;
   }
 

@@ -7,13 +7,16 @@ const XLSX = require('xlsx');
 router.get('/', (req, res) => {
   const q = req.query.q || '';
   let rows;
+  const showInactive = req.query.show_inactive === '1';
+  const activeCond = showInactive ? '' : 'AND COALESCE(sm.is_active,1)=1';
   if (q) {
     rows = db.prepare(`
       SELECT sm.*, COUNT(sq.id) as quotation_count
       FROM sold_machines sm
       LEFT JOIN spare_quotations sq ON sq.sold_machine_id = sm.id
-      WHERE sm.machine_no LIKE ? OR sm.customer_name LIKE ? OR sm.chassis_number LIKE ?
-         OR sm.engine_number LIKE ? OR sm.mobile_1 LIKE ? OR sm.mobile_2 LIKE ?
+      WHERE (sm.machine_no LIKE ? COLLATE NOCASE OR sm.customer_name LIKE ? OR sm.chassis_number LIKE ?
+         OR sm.engine_number LIKE ? OR sm.mobile_1 LIKE ? OR sm.mobile_2 LIKE ?)
+         ${activeCond}
       GROUP BY sm.id ORDER BY sm.created_at DESC
     `).all(...Array(6).fill(`%${q}%`));
   } else {
@@ -21,10 +24,11 @@ router.get('/', (req, res) => {
       SELECT sm.*, COUNT(sq.id) as quotation_count
       FROM sold_machines sm
       LEFT JOIN spare_quotations sq ON sq.sold_machine_id = sm.id
+      WHERE 1=1 ${activeCond}
       GROUP BY sm.id ORDER BY sm.created_at DESC
     `).all();
   }
-  res.render('sold-machines/list', { title: 'Sold Machines Registry', rows, q });
+  res.render('sold-machines/list', { title: 'Sold Machines Registry', rows, q, showInactive });
 });
 
 // ── New form ──────────────────────────────────────────────────────────────────
@@ -39,7 +43,7 @@ router.post('/', (req, res) => {
     req.session.flash = { error: 'Machine No is required.' };
     return res.redirect('/sold-machines/new');
   }
-  if (db.prepare('SELECT id FROM sold_machines WHERE machine_no=?').get(f.machine_no.trim())) {
+  if (db.prepare('SELECT id FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(f.machine_no.trim())) {
     req.session.flash = { error: `Machine No "${f.machine_no.trim()}" already exists.` };
     return res.redirect('/sold-machines/new');
   }
@@ -100,11 +104,26 @@ router.post('/:id/update', (req, res) => {
   res.redirect(`/sold-machines/${req.params.id}`);
 });
 
-// ── Delete ────────────────────────────────────────────────────────────────────
-router.post('/:id/delete', (req, res) => {
-  db.prepare('DELETE FROM sold_machines WHERE id=?').run(req.params.id);
-  req.session.flash = { success: 'Machine record deleted.' };
+// ── Deactivate (admin only) ───────────────────────────────────────────────────
+router.post('/:id/deactivate', (req, res) => {
+  if (req.session.userRole !== 'admin') return res.status(403).send('Forbidden');
+  const machine = db.prepare('SELECT machine_no FROM sold_machines WHERE id=?').get(req.params.id);
+  if (!machine) return res.redirect('/sold-machines');
+  db.prepare('UPDATE sold_machines SET is_active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.params.id);
+  auditLog(req.session.userId, 'MACHINE_DEACTIVATED', 'sold_machines', req.params.id, machine.machine_no);
+  req.session.flash = { success: `Machine ${machine.machine_no} deactivated.` };
   res.redirect('/sold-machines');
+});
+
+// ── Reactivate (admin only) ───────────────────────────────────────────────────
+router.post('/:id/reactivate', (req, res) => {
+  if (req.session.userRole !== 'admin') return res.status(403).send('Forbidden');
+  const machine = db.prepare('SELECT machine_no FROM sold_machines WHERE id=?').get(req.params.id);
+  if (!machine) return res.redirect('/sold-machines');
+  db.prepare('UPDATE sold_machines SET is_active=1, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.params.id);
+  auditLog(req.session.userId, 'MACHINE_REACTIVATED', 'sold_machines', req.params.id, machine.machine_no);
+  req.session.flash = { success: `Machine ${machine.machine_no} reactivated.` };
+  res.redirect('/sold-machines?show_inactive=1');
 });
 
 // ── Parse preview (for field mapping) ────────────────────────────────────────

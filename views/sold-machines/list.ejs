@@ -16,10 +16,24 @@
 
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
-      <form method="get" class="d-flex gap-2">
+      <form method="get" class="d-flex gap-2 flex-wrap">
         <input name="q" value="<%= q %>" class="form-control" placeholder="Search by Machine No, Customer, Chassis, Mobile…" style="max-width:400px">
+        <% if (showInactive) { %>
+        <input type="hidden" name="show_inactive" value="1">
+        <% } %>
         <button class="btn btn-outline-secondary">Search</button>
-        <% if (q) { %><a href="/sold-machines" class="btn btn-outline-secondary">Clear</a><% } %>
+        <% if (q) { %><a href="/sold-machines<%= showInactive?'?show_inactive=1':'' %>" class="btn btn-outline-secondary">Clear</a><% } %>
+        <% if (user && user.role === 'admin') { %>
+          <% if (showInactive) { %>
+          <a href="/sold-machines<%= q?'?q='+encodeURIComponent(q):'' %>" class="btn btn-outline-secondary ms-auto">
+            <i class="bi bi-eye-slash me-1"></i>Hide Inactive
+          </a>
+          <% } else { %>
+          <a href="/sold-machines?show_inactive=1<%= q?'&q='+encodeURIComponent(q):'' %>" class="btn btn-outline-secondary ms-auto text-muted">
+            <i class="bi bi-eye me-1"></i>Show Inactive
+          </a>
+          <% } %>
+        <% } %>
       </form>
     </div>
   </div>
@@ -46,8 +60,12 @@
           <tr><td colspan="7" class="text-center text-muted py-4">No machines found. <a href="/sold-machines/new">Register the first one.</a></td></tr>
           <% } %>
           <% rows.forEach(m => { %>
-          <tr>
-            <td><a href="/sold-machines/<%= m.id %>" class="fw-semibold text-decoration-none"><%= m.machine_no %></a></td>
+          <% const isActive = m.is_active !== 0; %>
+          <tr class="<%= isActive ? '' : 'table-secondary text-muted' %>">
+            <td>
+              <a href="/sold-machines/<%= m.id %>" class="fw-semibold text-decoration-none <%= isActive?'':'text-muted' %>"><%= m.machine_no %></a>
+              <% if (!isActive) { %><span class="badge bg-secondary ms-1" style="font-size:10px">Inactive</span><% } %>
+            </td>
             <td>
               <div class="fw-semibold"><%= m.customer_name %></div>
               <small class="text-muted"><%= m.place_of_supply || m.customer_address?.substring(0,40) %></small>
@@ -55,7 +73,7 @@
             <td><small><%= m.model || '—' %></small></td>
             <td>
               <% if (m.mobile_1) { %>
-              <a href="tel:<%= m.mobile_1 %>" class="text-decoration-none"><i class="bi bi-phone me-1 text-success"></i><%= m.mobile_1 %></a>
+              <a href="tel:<%= m.mobile_1 %>" class="text-decoration-none <%= isActive?'':'text-muted' %>"><i class="bi bi-phone me-1 text-success"></i><%= m.mobile_1 %></a>
               <% } else { %>—<% } %>
             </td>
             <td><small><%= m.date_of_sale ? new Date(m.date_of_sale).toLocaleDateString('en-IN') : '—' %></small></td>
@@ -64,12 +82,24 @@
             </td>
             <td>
               <div class="d-flex gap-1">
+                <% if (isActive) { %>
                 <a href="/spare-quotations/new?machine_no=<%= encodeURIComponent(m.machine_no) %>" class="btn btn-sm btn-success" title="New Spare Quotation">
                   <i class="bi bi-file-plus"></i>
                 </a>
                 <a href="/sold-machines/<%= m.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </a>
+                <% if (user && user.role === 'admin') { %>
+                <form method="POST" action="/sold-machines/<%= m.id %>/deactivate" class="d-inline"
+                  onsubmit="return confirm('Deactivate machine <%= m.machine_no %>?')">
+                  <button class="btn btn-sm btn-outline-danger" title="Deactivate"><i class="bi bi-slash-circle"></i></button>
+                </form>
+                <% } %>
+                <% } else if (user && user.role === 'admin') { %>
+                <form method="POST" action="/sold-machines/<%= m.id %>/reactivate" class="d-inline">
+                  <button class="btn btn-sm btn-outline-success" title="Reactivate"><i class="bi bi-arrow-counterclockwise"></i></button>
+                </form>
+                <% } %>
               </div>
             </td>
           </tr>
