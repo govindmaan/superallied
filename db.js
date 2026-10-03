@@ -470,10 +470,12 @@ db.exec(`
 
 // Seed leave types (only CL and SL active by default)
 const insertLT = db.prepare('INSERT OR IGNORE INTO leave_types (code, name, days_per_year, carry_forward, is_active) VALUES (?,?,?,?,?)');
-[['CL','Casual Leave',12,0,1],['SL','Sick Leave',12,0,1],['EL','Earned Leave',15,1,0],['HD','Half Day',24,0,0]]
+[['CL','Casual Leave',12,0,1],['EL','Earned Leave',15,1,0],['HD','Half Day',24,0,0]]
   .forEach(r => insertLT.run(...r));
 // Ensure EL and HD stay inactive even on existing DBs
-db.prepare("UPDATE leave_types SET is_active=0 WHERE code IN ('EL','HD')").run();
+// Sick leave is not offered by company policy. Deactivated rather than deleted
+// because existing leave records reference it.
+db.prepare("UPDATE leave_types SET is_active=0 WHERE code IN ('EL','HD','SL')").run();
 
 // Seed default role permissions
 const insertPerm = db.prepare('INSERT OR IGNORE INTO role_permissions (role, permission) VALUES (?,?)');
