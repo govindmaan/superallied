@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const fs      = require('fs');
 const path    = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const { db } = require('../db');
 
 const DB_PATH    = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'quotation.db');
@@ -13,7 +13,7 @@ fs.mkdirSync(BACKUP_DIR, { recursive: true });
 // List all backups
 function listBackups() {
   return fs.readdirSync(BACKUP_DIR)
-    .filter(f => f.endsWith('.db') || f.endsWith('.zip'))
+    .filter(f => f.endsWith('.db') || f.endsWith('.zip') || f.endsWith('.tar.gz'))
     .map(f => {
       const stat = fs.statSync(path.join(BACKUP_DIR, f));
       return { name: f, size: stat.size, mtime: stat.mtime };
@@ -42,6 +42,36 @@ function zipSource(destZip) {
       { cwd: root, timeout: 30000 }
     );
   }
+}
+
+function timestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+}
+
+// Database + uploaded files in one .tar.gz, for moving to another server
+function exportAll(destTar, uploadsDir) {
+  const stage = path.join(BACKUP_DIR, `.stage-${Date.now()}`);
+  fs.mkdirSync(stage);
+  try {
+    snapshotDb(path.join(stage, 'quotation.db'));
+    if (fs.existsSync(uploadsDir)) fs.cpSync(uploadsDir, path.join(stage, 'uploads'), { recursive: true });
+    execFileSync('tar', ['-czf', destTar, '-C', stage, '.'], { timeout: 120000 });
+  } finally {
+    fs.rmSync(stage, { recursive: true, force: true });
+  }
+}
+
+// Stage a .db for restore on next start, saving the current state first
+function stageRestore(srcDb) {
+  const header = Buffer.alloc(16);
+  const fd = fs.openSync(srcDb, 'r');
+  fs.readSync(fd, header, 0, 16, 0);
+  fs.closeSync(fd);
+  if (header.toString('latin1') !== 'SQLite format 3\0') throw new Error('Not a valid database file');
+  const safeguard = path.join(BACKUP_DIR, `pre-restore-${timestamp()}.db`);
+  snapshotDb(safeguard);
+  fs.copyFileSync(srcDb, DB_PATH + '.restore');
+  return path.basename(safeguard);
 }
 
 // GET /backup — dashboard
@@ -95,6 +125,31 @@ router.post('/full', (req, res) => {
   res.redirect('/backup');
 });
 
+// POST /backup/export — database + uploaded files, for moving servers
+router.post('/export', (req, res) => {
+  try {
+    const name = `migrate-${timestamp()}.tar.gz`;
+    exportAll(path.join(BACKUP_DIR, name), req.app.locals.UPLOADS_DIR);
+    req.session.flash = { success: `Export created: ${name}. Download it below.` };
+  } catch (e) {
+    req.session.flash = { error: `Export failed: ${e.message}` };
+  }
+  res.redirect('/backup');
+});
+
+// POST /backup/upload?name=... — receive a backup file from another server (raw body)
+router.post('/upload', express.raw({ type: '*/*', limit: '2gb' }), (req, res) => {
+  const original = path.basename(String(req.query.name || ''));
+  const ext = original.endsWith('.tar.gz') ? '.tar.gz' : original.endsWith('.db') ? '.db' : null;
+  if (!ext || !req.body || !req.body.length) {
+    return res.status(400).json({ error: 'Choose a .db or .tar.gz backup file' });
+  }
+  const name = `uploaded-${timestamp()}${ext}`;
+  fs.writeFileSync(path.join(BACKUP_DIR, name), req.body);
+  req.session.flash = { success: `Uploaded as ${name}. Click Restore on it below.` };
+  res.json({ ok: true });
+});
+
 // GET /backup/download/:filename — download a backup file
 router.get('/download/:filename', (req, res) => {
   const filename = path.basename(req.params.filename); // sanitize
@@ -108,8 +163,9 @@ router.get('/download/:filename', (req, res) => {
 // POST /backup/restore/:filename — restore DB from a .db backup
 router.post('/restore/:filename', (req, res) => {
   const filename = path.basename(req.params.filename);
-  if (!filename.endsWith('.db')) {
-    req.session.flash = { error: 'Only .db files can be restored' };
+  const isTar = filename.endsWith('.tar.gz');
+  if (!filename.endsWith('.db') && !isTar) {
+    req.session.flash = { error: 'Only .db or .tar.gz files can be restored' };
     return res.redirect('/backup');
   }
   const src = path.join(BACKUP_DIR, filename);
@@ -118,21 +174,33 @@ router.post('/restore/:filename', (req, res) => {
     return res.redirect('/backup');
   }
 
+  const extract = path.join(BACKUP_DIR, `.extract-${Date.now()}`);
   try {
-    // Snapshot current state before overwriting (safety net)
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const safeguard = path.join(BACKUP_DIR, `pre-restore-${ts}.db`);
-    snapshotDb(safeguard);
-
-    // The live database file can't be replaced while open; stage it and let
-    // db.js swap it in on the next server start.
-    fs.copyFileSync(src, DB_PATH + '.restore');
+    // The live database file can't be replaced while open; stageRestore puts it
+    // aside and db.js swaps it in on the next server start.
+    let safeguard, filesNote = '';
+    if (isTar) {
+      fs.mkdirSync(extract);
+      execFileSync('tar', ['-xzf', src, '-C', extract], { timeout: 120000 });
+      const dbFile = path.join(extract, 'quotation.db');
+      if (!fs.existsSync(dbFile)) throw new Error('Archive has no quotation.db');
+      safeguard = stageRestore(dbFile);
+      const uploads = path.join(extract, 'uploads');
+      if (fs.existsSync(uploads)) {
+        fs.cpSync(uploads, req.app.locals.UPLOADS_DIR, { recursive: true, force: true });
+        filesNote = ' Uploaded photos/files copied.';
+      }
+    } else {
+      safeguard = stageRestore(src);
+    }
 
     req.session.flash = {
-      success: `Restore from ${filename} is staged and will apply when the server restarts. Current state saved as ${path.basename(safeguard)}.`
+      success: `Restore from ${filename} is staged and will apply when the server restarts.${filesNote} Current state saved as ${safeguard}.`
     };
   } catch (e) {
     req.session.flash = { error: `Restore failed: ${e.message}` };
+  } finally {
+    fs.rmSync(extract, { recursive: true, force: true });
   }
   res.redirect('/backup');
 });

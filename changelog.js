@@ -4,6 +4,14 @@
 
 module.exports = [
   {
+    date: '2026-10-03',
+    items: [
+      { commit: '', type: 'new', title: 'Move data to another server',
+        details: ['Backup & Restore → Export Data + Files: one download with all data plus uploaded photos, receipts and documents.',
+                  'Upload Backup on the new server, click Restore, then restart the server to bring everything across.'] },
+    ],
+  },
+  {
     date: '2026-09-30',
     items: [
       { commit: '', type: 'improved', title: 'New machine quotation price layout',
