@@ -5,7 +5,8 @@ const bcrypt   = require('bcryptjs');
 const path     = require('path');
 const fs       = require('fs');
 const { db, getSettings, nextQuotationNumber, calcQuotation, formatINR, numberToWords, createNotification, getUserPermissions, checkFollowupNotifications, auditLog } = require('./db');
-const { generatePDF } = require('./pdf');
+const { generatePDF, generatePDFWithLetterhead } = require('./pdf');
+const LETTERHEAD_PATH = path.join(__dirname, 'Super Allied Letterhead.pdf');
 
 // ── File storage setup ────────────────────────────────────────────────────────
 const DATA_DIR    = path.dirname(process.env.DB_PATH || path.join(__dirname, 'data', 'quotation.db'));
@@ -464,7 +465,7 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
   });
 
   try {
-    const pdfBuffer = await generatePDF(html);
+    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Quotation-${q.quotation_number.replace('/', '-')}.pdf"`);
     res.send(pdfBuffer);

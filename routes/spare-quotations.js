@@ -1,7 +1,8 @@
 const express = require('express');
 const router  = express.Router();
 const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog } = require('../db');
-const { generatePDF } = require('../pdf');
+const { generatePDFWithLetterhead } = require('../pdf');
+const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
 const path = require('path');
 const fs   = require('fs');
 const QRCode = require('qrcode');
@@ -327,7 +328,7 @@ router.get('/:id/pdf', async (req, res) => {
     }, (err, h) => err ? reject(err) : resolve(h)));
 
   try {
-    const pdfBuffer = await generatePDF(html);
+    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${q.quotation_no.replace(/\//g,'-')}.pdf"`);
     res.send(pdfBuffer);

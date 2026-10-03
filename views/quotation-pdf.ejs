@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: #fff; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: transparent; }
   .page { width: 190mm; }
 
   /* ── Header ── */
@@ -59,25 +59,6 @@
 </head>
 <body>
 <div class="page">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div>
-      <div class="company-name"><%= settings.company_name %></div>
-      <div class="company-info">
-        GSTIN : <%= settings.company_gstin %><br>
-        Auth. Dealer - <%= settings.dealer_of %><br>
-        <%= settings.company_address %>
-      </div>
-    </div>
-    <div class="logo-area">
-      <% if (bullLogoB64) { %>
-        <img src="<%= bullLogoB64 %>" class="bull-logo-img" alt="Bull">
-      <% } else { %>
-        <div><div class="bull-logo-text">&#9679; BULL</div><div class="bull-sub">CONSTRUCTION EQUIPMENT</div></div>
-      <% } %>
-    </div>
-  </div>
 
   <!-- CUSTOMER -->
   <div class="customer-block">

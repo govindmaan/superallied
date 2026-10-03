@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; font-size: 10px; color: #000; background: #fff; -webkit-print-color-adjust: exact; }
+  body { font-family: Arial, sans-serif; font-size: 10px; color: #000; background: transparent; -webkit-print-color-adjust: exact; }
   .page { width: 210mm; padding: 4mm 5mm; }
 
   /* ── Main outer bordered container ── */
@@ -121,22 +121,10 @@
   </td>
 </tr>
 
-<!-- ═══ COMPANY + QUOTATION META ═══ -->
+<!-- ═══ QUOTATION META ═══ -->
 <tr>
-  <!-- Company block -->
-  <td class="co-block">
-    <div class="co-name"><%= s.company_name || 'SUPER ALLIED' %></div>
-    <div class="co-dealer"><%= s.dealer_of || 'Authorised Dealer — Bull Construction Equipment Pvt. Ltd.' %></div>
-    <div class="co-line">
-      <b>Address:</b> <%= s.company_address || '' %><br>
-      <% if (s.company_udyam) { %><b>UDYAM:</b> <%= s.company_udyam %><br><% } %>
-      <% if (s.company_phone_sales)   { %><b>Sales:</b> <%= s.company_phone_sales %>&nbsp;&nbsp;<% } %><% if (s.company_phone_service) { %><b>Service:</b> <%= s.company_phone_service %><% } %><% if (s.company_phone_sales || s.company_phone_service) { %><br><% } %>
-      <% if (s.contact_phone && !s.company_phone_sales) { %><b>Ph:</b> <%= s.contact_phone %><br><% } %>
-      <b>GSTIN:</b> <span class="mono"><%= s.company_gstin || '' %></span>&nbsp;&nbsp;
-      <b>State:</b> <%= coState %>, Code: <%= coCode %><br>
-      <% if (s.company_email) { %><b>Email:</b> <%= s.company_email %><br><% } %>
-    </div>
-  </td>
+  <!-- Left spacer (letterhead provides company info) -->
+  <td class="co-block" style="background:transparent;"></td>
 
   <!-- Quotation meta -->
   <td style="padding:0; width:45%;">
