@@ -34,15 +34,6 @@
             <td><span class="badge <%= sp.active ? 'bg-success' : 'bg-secondary' %>"><%= sp.active ? 'Active' : 'Inactive' %></span></td>
             <td>
               <% if (sp.active) { %>
-                <% if (String(defaultSalesperson) === String(sp.id)) { %>
-                  <span class="badge bg-warning text-dark me-2"><i class="bi bi-star-fill"></i> Default</span>
-                <% } else { %>
-                  <form method="POST" action="/salespersons/<%= sp.id %>/set-default" style="display:inline">
-                    <button type="submit" class="btn btn-sm btn-outline-warning me-1" title="Set as default">
-                      <i class="bi bi-star"></i>
-                    </button>
-                  </form>
-                <% } %>
                 <a href="/salespersons/<%= sp.id %>/edit" class="btn btn-sm btn-outline-primary me-1" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </a>

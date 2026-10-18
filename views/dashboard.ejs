@@ -114,7 +114,7 @@
             <td class="text-muted small"><%= q.machine_name %></td>
             <td class="fw-semibold">₹<%= formatINR(total) %></td>
             <td><span class="badge <%= q.status==='sent'?'bg-primary':q.status==='accepted'?'bg-success':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span></td>
-            <td class="text-muted small"><%= new Date(q.created_at).toLocaleDateString('en-IN') %></td>
+            <td class="text-muted small"><%= new Date(q.quotation_date || q.created_at).toLocaleDateString('en-IN') %></td>
             <td>
               <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-pdf"></i></a>
             </td>

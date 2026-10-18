@@ -42,7 +42,7 @@
             <td><%= q.quantity %></td>
             <td class="fw-bold">₹<%= formatINR(calc.total) %></td>
             <td><span class="badge <%= q.status==='sent'?'bg-primary':q.status==='accepted'?'bg-success':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span></td>
-            <td class="text-muted small"><%= new Date(q.created_at).toLocaleDateString('en-IN') %></td>
+            <td class="text-muted small"><%= new Date(q.quotation_date || q.created_at).toLocaleDateString('en-IN') %></td>
             <td class="text-end">
               <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger me-1" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
               <a href="/quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>

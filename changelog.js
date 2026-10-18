@@ -4,6 +4,21 @@
 
 module.exports = [
   {
+    date: '2026-10-18',
+    items: [
+      { commit: '', type: 'new', title: 'Machine quotation: date, validity and additional items',
+        details: ['Choose the quotation date (defaults to today); it is printed on the PDF.',
+                  'PDF shows "valid till" the last day of the quotation\'s month (30th/31st).',
+                  'Additional Items (e.g. Trench Bucket, Extended Warranty) print below Ex-Showroom Price and add to the Grand Total.'] },
+      { commit: '', type: 'improved', title: 'Salesperson must be chosen on every machine quotation',
+        details: ['No default salesperson; the chosen salesperson\'s name and phone are printed.',
+                  'Fixed: editing a quotation now saves the selected salesperson.'] },
+      { commit: '', type: 'new', title: 'Customer PAN and Aadhaar',
+        details: ['PAN fills in automatically from GSTIN; formats are checked.',
+                  'Machine quotations print GSTIN/PAN, or Aadhaar (last 4 digits) when neither is available.'] },
+    ],
+  },
+  {
     date: '2026-10-03',
     items: [
       { commit: '', type: 'new', title: 'Move data to another server',

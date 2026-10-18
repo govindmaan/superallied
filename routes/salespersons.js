@@ -8,13 +8,9 @@ router.get('/', (req, res) => {
     SELECT * FROM salespersons ORDER BY name
   `).all();
 
-  const settings = getSettings();
-  const defaultSalesperson = settings.default_salesperson_id || '';
-
   res.render('salespersons/list', {
     title: 'Salespersons',
-    salespersons,
-    defaultSalesperson
+    salespersons
   });
 });
 
@@ -184,22 +180,6 @@ router.post('/:id/delete', (req, res) => {
     }
   } catch(e) {
     req.session.flash = { error: 'Error updating salesperson status: ' + e.message };
-  }
-  res.redirect('/salespersons');
-});
-
-// ── POST /salespersons/:id/set-default – Set as default salesperson ──────────
-router.post('/:id/set-default', (req, res) => {
-  try {
-    const salesperson = db.prepare('SELECT id, name, phone FROM salespersons WHERE id = ?').get(req.params.id);
-    if (salesperson) {
-      db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('default_salesperson_id', req.params.id);
-      db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('default_salesperson_name', salesperson.name);
-      db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('default_salesperson_phone', salesperson.phone);
-      req.session.flash = { success: `Default salesperson set to "${salesperson.name}".` };
-    }
-  } catch(e) {
-    req.session.flash = { error: 'Error setting default salesperson: ' + e.message };
   }
   res.redirect('/salespersons');
 });

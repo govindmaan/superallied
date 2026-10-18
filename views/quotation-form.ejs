@@ -14,6 +14,34 @@
       <!-- Left Column -->
       <div class="col-lg-7">
         <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-white fw-semibold">Quotation Date & Salesperson</div>
+          <div class="card-body">
+            <div class="row g-2">
+              <div class="col-md-5">
+                <label class="form-label fw-semibold" for="quotation_date">Quotation Date <span class="text-danger">*</span></label>
+                <input type="date" name="quotation_date" id="quotation_date" class="form-control" required
+                       value="<%= quotationDate %>" onchange="showValidity()">
+                <small class="text-muted" id="validity_hint"></small>
+              </div>
+              <div class="col-md-7">
+                <label class="form-label fw-semibold" for="salesperson_id">Salesperson <span class="text-danger">*</span></label>
+                <select name="salesperson_id" id="salesperson_id" class="form-select" required>
+                  <option value="">— Choose salesperson —</option>
+                  <% (salespersons||[]).forEach(sp => { %>
+                  <option value="<%= sp.id %>" <%= String(quotation?.salesperson_id)===String(sp.id)?'selected':'' %>><%= sp.name %></option>
+                  <% }) %>
+                </select>
+                <% if (!(salespersons||[]).length) { %>
+                <small class="text-danger">No salespersons yet. <a href="/salespersons/new" target="_blank">Add a salesperson</a> first.</small>
+                <% } else { %>
+                <small class="text-muted">Name and phone are printed on the quotation.</small>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
           <div class="card-header bg-white fw-semibold">Customer</div>
           <div class="card-body">
             <label class="form-label fw-semibold">Select Customer <span class="text-danger">*</span></label>
@@ -143,6 +171,25 @@
           </div>
         </div>
 
+        <% let extraItems = []; try { extraItems = JSON.parse(quotation?.extra_items || '[]'); } catch (e) {} %>
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+            <span>Additional Items <small class="text-muted fw-normal">— printed below Ex-Showroom Price</small></span>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="addExtraRow()"><i class="bi bi-plus-lg me-1"></i>Add Item</button>
+          </div>
+          <div class="card-body">
+            <div id="extraRows"></div>
+            <small class="text-muted" id="extraEmpty">e.g. Extra Bucket, Trench Bucket, Extended Warranty. Enter the final amount (incl. GST).</small>
+          </div>
+        </div>
+        <template id="extraRowTpl">
+          <div class="row g-2 mb-2 extra-row">
+            <div class="col-7"><input type="text" name="extra_desc" class="form-control form-control-sm" placeholder="Description, e.g. Trench Bucket" maxlength="120"></div>
+            <div class="col-4"><input type="number" name="extra_amount" class="form-control form-control-sm" placeholder="Amount ₹" min="0" step="1" oninput="calcTotals()"></div>
+            <div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary w-100" title="Remove" onclick="this.closest('.extra-row').remove(); calcTotals()"><i class="bi bi-x-lg"></i></button></div>
+          </div>
+        </template>
+
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-header bg-white fw-semibold">Charges after Ex-Showroom</div>
           <div class="card-body">
@@ -187,38 +234,6 @@
           </div>
         </div>
         <% } %>
-
-        <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Salesperson (shown in PDF footer)</div>
-          <div class="card-body">
-            <div class="row g-2">
-              <div class="col-md-6">
-                <label class="form-label small">Select Salesperson</label>
-                <select name="salesperson_id" class="form-select">
-                  <option value="">— Select —</option>
-                  <% (salespersons||[]).forEach(sp => { %>
-                  <option value="<%= sp.id %>"
-                    <%= String(quotation?.salesperson_id)===String(sp.id)?'selected':'' %>>
-                    <%= sp.name %>
-                  </option>
-                  <% }) %>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small">Name (manual override)</label>
-                <input type="text" name="salesperson_name" class="form-control"
-                       value="<%= quotation?.salesperson_name || defaultSalesperson %>"
-                       placeholder="Or type manually">
-              </div>
-              <div class="col-md-3">
-                <label class="form-label small">Phone</label>
-                <input type="text" name="salesperson_phone" class="form-control"
-                       value="<%= quotation?.salesperson_phone || defaultSalespersonPhone %>"
-                       placeholder="Mobile">
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-body">
@@ -277,6 +292,7 @@
               <tr id="row_tcs"><td class="text-muted" id="lbl_tcs">TCS @ 1%</td><td class="text-end" id="c_tcs">—</td></tr>
               <tr id="row_round"><td class="text-muted">Roundoff (Up)</td><td class="text-end" id="c_round">—</td></tr>
               <tr class="table-secondary fw-semibold"><td>Ex-Showroom Price</td><td class="text-end" id="c_exshow">—</td></tr>
+              <tbody id="c_extras"></tbody>
               <tr><td class="text-muted">Insurance (IMT-23)</td><td class="text-end" id="c_insamt">—</td></tr>
               <tr><td class="text-muted">TRC / LTT</td><td class="text-end" id="c_trc">—</td></tr>
               <tr><td class="text-muted">Handling Charges</td><td class="text-end" id="c_handling">—</td></tr>
@@ -366,7 +382,21 @@ function calcTotals(){
   const trcV      = parseFloat(trcEl.value)||0;
   const handling  = parseFloat(document.getElementById('handling_charges').value)||0;
   const transport = parseFloat(document.getElementById('transport_charges').value)||0;
-  const total     = exShowroom + insAmt + trcV + handling + transport;
+  let extrasTotal = 0;
+  const extrasBody = document.getElementById('c_extras');
+  extrasBody.innerHTML = '';
+  document.querySelectorAll('.extra-row').forEach(r => {
+    const desc = r.querySelector('[name=extra_desc]').value.trim();
+    const amt  = parseFloat(r.querySelector('[name=extra_amount]').value) || 0;
+    if (!desc && !amt) return;
+    extrasTotal += amt;
+    const tr = extrasBody.insertRow();
+    tr.insertCell().textContent = desc || 'Additional item';
+    tr.insertCell().textContent = inr(amt);
+    tr.cells[0].className = 'text-muted'; tr.cells[1].className = 'text-end';
+  });
+  document.getElementById('extraEmpty').classList.toggle('d-none', document.querySelectorAll('.extra-row').length > 0);
+  const total     = exShowroom + extrasTotal + insAmt + trcV + handling + transport;
 
   document.getElementById('c_basic').textContent    = inr(basic);
   document.getElementById('lbl_cgst').textContent   = `CGST @ ${cr}%`;
@@ -391,6 +421,26 @@ function calcTotals(){
 }
 
 function resetTrc(){ trcAuto = true; calcTotals(); }
+
+function addExtraRow(desc, amount){
+  const row = document.getElementById('extraRowTpl').content.firstElementChild.cloneNode(true);
+  row.querySelector('[name=extra_desc]').value   = desc || '';
+  row.querySelector('[name=extra_amount]').value = amount || '';
+  row.querySelector('[name=extra_desc]').addEventListener('input', calcTotals);
+  document.getElementById('extraRows').appendChild(row);
+  if (desc === undefined) row.querySelector('[name=extra_desc]').focus();
+  calcTotals();
+}
+
+// Valid till the last day of the quotation's month
+function showValidity(){
+  const v = document.getElementById('quotation_date').value;
+  const hint = document.getElementById('validity_hint');
+  if (!v) { hint.textContent = ''; return; }
+  const [y, m] = v.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m, 0));
+  hint.textContent = 'Valid till ' + last.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric', timeZone:'UTC' });
+}
 
 // Price is always locked to MRP - no markup for any user
 function loadMachine(id){
@@ -460,6 +510,8 @@ function applyReverse() {
 
 // On page load — if a machine is already selected
 window.addEventListener('DOMContentLoaded', () => {
+  <%- JSON.stringify(extraItems).replace(/</g, '\\u003c') %>.forEach(it => addExtraRow(it.description, it.amount));
+  showValidity();
   switchTaxMode();
   calcTotals();
   setMode('forward');
