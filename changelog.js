@@ -6,6 +6,9 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'improved', title: 'Salespersons see only their own customers',
+        details: ['Customer list, quotation customer picker and search show only customers you created.',
+                  'Search also shows only your own enquiries and quotations.'] },
       { commit: '', type: 'new', title: 'Log in with a 6-digit PIN',
         details: ['Set your PIN in My Profile → Login PIN; your password still works.',
                   'Tick "Remember me on this device" to log in with just your PIN next time.'] },

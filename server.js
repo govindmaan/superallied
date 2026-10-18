@@ -422,12 +422,12 @@ app.post('/profile/photo', requireLogin, (req, res) => {
 });
 
 // ── Customers ─────────────────────────────────────────────────────────────────
-// Non-admins only see/manage customers they created themselves (plus legacy
-// customers created before ownership tracking existed, which have no owner).
+// Non-admins only see/manage customers they created themselves. Older customers
+// with no recorded creator are visible to admin only.
 function canAccessCustomer(res, customer) {
   if (res.locals.user?.role === 'admin') return true;
   if (customer.deleted_at) return false;
-  return customer.created_by == null || customer.created_by === res.locals.user?.id;
+  return customer.created_by != null && customer.created_by === res.locals.user?.id;
 }
 
 // Normalise + validate GSTIN / PAN / Aadhaar from the customer form. Blank is allowed.
@@ -503,7 +503,7 @@ app.get('/customers', requireLogin, (req, res) => {
              WHERE c.deleted_at IS ${showDeleted ? 'NOT ' : ''}NULL`;
   const params = [];
   if (q) { sql += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.gstin LIKE ? OR c.pan LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`); }
-  if (!isAdmin) { sql += ' AND (c.created_by=? OR c.created_by IS NULL)'; params.push(req.session.userId); }
+  if (!isAdmin) { sql += ' AND c.created_by=?'; params.push(req.session.userId); }
   sql += ' ORDER BY c.name';
   const customers = db.prepare(sql).all(...params);
   const deletedCount = isAdmin ? db.prepare('SELECT COUNT(*) AS c FROM customers WHERE deleted_at IS NOT NULL').get().c : 0;
@@ -606,7 +606,7 @@ app.get('/quotations/new', requireLogin, requirePerm('quotations'), (req, res) =
   const machines     = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
   const customers    = isAdmin
     ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL ORDER BY name').all()
-    : db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL AND (created_by=? OR created_by IS NULL) ORDER BY name').all(req.session.userId);
+    : db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL AND created_by=? ORDER BY name').all(req.session.userId);
   const salespersons = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name').all();
   const prefill      = req.query.customer_id || '';
   const s            = getSettings();
@@ -692,7 +692,7 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
   const machines  = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
   const customers = isAdmin
     ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL OR id=? ORDER BY name').all(quotation.customer_id)
-    : db.prepare('SELECT * FROM customers WHERE (deleted_at IS NULL OR id=?) AND (created_by=? OR created_by IS NULL) ORDER BY name').all(quotation.customer_id, req.session.userId);
+    : db.prepare('SELECT * FROM customers WHERE (deleted_at IS NULL OR id=?) AND created_by=? ORDER BY name').all(quotation.customer_id, req.session.userId);
   const s         = getSettings();
   // Active salespersons, plus the one already on this quotation even if since deactivated
   const salespersons2 = db.prepare('SELECT id,name FROM salespersons WHERE active=1 OR id=? ORDER BY name').all(quotation.salesperson_id || 0);
@@ -947,7 +947,7 @@ app.get('/api/customers/search', requireLogin, (req, res) => {
   const isAdmin = res.locals.user?.role === 'admin';
   let sql = "SELECT id, name, phone, gstin FROM customers WHERE deleted_at IS NULL AND (name LIKE ? OR phone LIKE ?)";
   const params = [`%${q}%`, `%${q}%`];
-  if (!isAdmin) { sql += ' AND (created_by=? OR created_by IS NULL)'; params.push(req.session.userId); }
+  if (!isAdmin) { sql += ' AND created_by=?'; params.push(req.session.userId); }
   sql += ' LIMIT 10';
   const rows = db.prepare(sql).all(...params);
   res.json(rows);
@@ -962,6 +962,12 @@ app.get('/api/search', requireLogin, (req, res) => {
 
   const results = [];
   const limit = 15;
+  // Each section only returns what this user may see elsewhere in the app
+  const role    = res.locals.user?.role;
+  const uid     = req.session.userId;
+  const isAdmin = role === 'admin';
+  const can     = (p) => isAdmin || res.locals.hasPerm(p);
+  const none    = [];  // result for sections this user can't see
 
   try {
     // Search machines by model_code and display_name
@@ -985,10 +991,11 @@ app.get('/api/search', requireLogin, (req, res) => {
     });
 
     // Search enquiries by number, customer name, or phone
-    const enquiries = db.prepare(`
+    const enquiries = !(can('enquiries') || role === 'manager') ? none : db.prepare(`
       SELECT id, enquiry_number, customer_name, phone, current_stage
       FROM enquiries
-      WHERE LOWER(enquiry_number) LIKE ? OR LOWER(customer_name) LIKE ? OR phone LIKE ?
+      WHERE (LOWER(enquiry_number) LIKE ? OR LOWER(customer_name) LIKE ? OR phone LIKE ?)
+        ${['admin', 'manager'].includes(role) ? '' : `AND assigned_to = ${Number(uid)}`}
       ORDER BY updated_at DESC
       LIMIT ?
     `).all(`%${query}%`, `%${query}%`, `%${query}%`, limit);
@@ -1003,10 +1010,11 @@ app.get('/api/search', requireLogin, (req, res) => {
     });
 
     // Search customers by name or phone
-    const customers = db.prepare(`
+    const customers = !can('customers') ? none : db.prepare(`
       SELECT id, name, phone, gstin
       FROM customers
       WHERE deleted_at IS NULL AND (LOWER(name) LIKE ? OR phone LIKE ?)
+        ${isAdmin ? '' : `AND created_by = ${Number(uid)}`}
       LIMIT ?
     `).all(`%${query}%`, `%${query}%`, limit);
 
@@ -1020,13 +1028,13 @@ app.get('/api/search', requireLogin, (req, res) => {
     });
 
     // Search quotations by quotation_number or customer name
-    const quotations = db.prepare(`
+    const quotations = !can('quotations') ? none : db.prepare(`
       SELECT q.id, q.quotation_number, c.name as customer_name, m.display_name as machine_name
       FROM quotations q
       JOIN customers c ON c.id = q.customer_id
       JOIN machines m ON m.id = q.machine_id
       WHERE (q.quotation_number LIKE ? OR LOWER(c.name) LIKE ?)
-        ${res.locals.user?.role === 'admin' ? '' : 'AND q.cancelled_at IS NULL'}
+        ${isAdmin ? '' : `AND q.cancelled_at IS NULL AND q.user_id = ${Number(uid)}`}
       ORDER BY q.created_at DESC
       LIMIT ?
     `).all(`%${query}%`, `%${query}%`, limit);
@@ -1041,7 +1049,7 @@ app.get('/api/search', requireLogin, (req, res) => {
     });
 
     // Search spare parts by part number or description
-    const spareParts = db.prepare(`
+    const spareParts = !can('spare_parts') ? none : db.prepare(`
       SELECT id, sap_part_no, rnd_part_no, material_description, mrp_price
       FROM spare_parts
       WHERE LOWER(sap_part_no) LIKE ?
@@ -1060,7 +1068,7 @@ app.get('/api/search', requireLogin, (req, res) => {
     });
 
     // Search sold machines by machine_no or chassis_number
-    const soldMachines = db.prepare(`
+    const soldMachines = !can('sold_machines') ? none : db.prepare(`
       SELECT id, machine_no, chassis_number, customer_name, engine_number
       FROM sold_machines
       WHERE LOWER(machine_no) LIKE ? OR LOWER(chassis_number) LIKE ? OR LOWER(engine_number) LIKE ?
