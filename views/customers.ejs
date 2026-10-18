@@ -2,8 +2,17 @@
 <%- include('partials/sidebar', { active: 'customers', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold">Customers <span class="badge bg-secondary ms-2"><%= customers.length %></span></h4>
-    <a href="/customers/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>Add Customer</a>
+    <h4 class="mb-0 fw-bold"><%= showDeleted ? 'Deleted Customers' : 'Customers' %> <span class="badge bg-secondary ms-2"><%= customers.length %></span></h4>
+    <div class="d-flex gap-2">
+      <% if (isAdmin) { %>
+        <% if (showDeleted) { %>
+        <a href="/customers" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Active customers</a>
+        <% } else if (deletedCount) { %>
+        <a href="/customers?deleted=1" class="btn btn-outline-secondary"><i class="bi bi-trash me-1"></i>Deleted (<%= deletedCount %>)</a>
+        <% } %>
+      <% } %>
+      <a href="/customers/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>Add Customer</a>
+    </div>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -12,6 +21,7 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="GET" action="/customers" class="d-flex gap-2">
+        <% if (showDeleted) { %><input type="hidden" name="deleted" value="1"><% } %>
         <input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Search by name, phone, GSTIN or PAN…">
         <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
         <% if (q) { %><a href="/customers" class="btn btn-outline-danger">Clear</a><% } %>
@@ -23,7 +33,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Name</th><th>Phone</th><th>GSTIN / PAN</th><th>City / State</th><th>Added</th><th></th></tr>
+          <tr><th>Name</th><th>Phone</th><th>GSTIN / PAN</th><th>City / State</th><th><%= showDeleted ? 'Deleted' : 'Added' %></th><th></th></tr>
         </thead>
         <tbody>
           <% customers.forEach(c => { %>
@@ -32,18 +42,28 @@
             <td><%= c.phone %></td>
             <td class="font-monospace small"><%= c.gstin %><% if (c.pan && !c.gstin) { %><%= c.pan %><% } %></td>
             <td class="text-muted small"><%= [c.city, c.state].filter(Boolean).join(', ') %></td>
+            <% if (showDeleted) { %>
+            <td class="text-muted small"><%= new Date(c.deleted_at + 'Z').toLocaleDateString('en-IN') %><% if (c.deleted_by_name) { %> · <%= c.deleted_by_name %><% } %></td>
+            <td class="text-end">
+              <form method="POST" action="/customers/<%= c.id %>/restore" class="d-inline">
+                <button class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-counterclockwise me-1"></i>Restore</button>
+              </form>
+            </td>
+            <% } else { %>
             <td class="text-muted small"><%= new Date(c.created_at).toLocaleDateString('en-IN') %></td>
             <td class="text-end">
               <a href="/quotations/new?customer_id=<%= c.id %>" class="btn btn-sm btn-outline-danger me-1" title="New Quotation"><i class="bi bi-file-earmark-plus"></i></a>
-              <a href="/customers/<%= c.id %>/edit" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
-              <form method="POST" action="/customers/<%= c.id %>/delete" class="d-inline" onsubmit="return confirm('Delete this customer?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              <a href="/customers/<%= c.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+              <form method="POST" action="/customers/<%= c.id %>/delete" class="d-inline"
+                    onsubmit="return confirm(<%= JSON.stringify('Delete customer "' + c.name + '"?' + (c.quote_count ? ' Their ' + c.quote_count + ' quotation(s) are kept.' : '')) %>)">
+                <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
               </form>
             </td>
+            <% } %>
           </tr>
           <% }) %>
           <% if (!customers.length) { %>
-          <tr><td colspan="6" class="text-center text-muted py-4">No customers found. <a href="/customers/new">Add one.</a></td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4"><% if (showDeleted) { %>No deleted customers.<% } else { %>No customers found. <a href="/customers/new">Add one.</a><% } %></td></tr>
           <% } %>
         </tbody>
       </table>

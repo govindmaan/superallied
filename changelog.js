@@ -6,6 +6,15 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'new', title: 'New admin dashboard',
+        details: ['This month at a glance: quotations, value quoted, accepted %, machines sold, spare quotations.',
+                  'Needs attention: follow-ups due, approvals waiting, part orders and cancellations.',
+                  'Team check-ins today, 6-month quotation chart, enquiry pipeline, salesperson leaderboard.'] },
+      { commit: '', type: 'improved', title: 'Safer deleting of customers and quotations',
+        details: ['Fixed: deleting a customer no longer gives an error.',
+                  'Deleted customers and cancelled quotations disappear for users; admin still sees them and can restore.',
+                  'Cancelled quotations are left out of totals and reports.'] },
+      { commit: '', type: 'fixed', title: 'Dealer purchase price visible to admin only', details: [] },
       { commit: '', type: 'new', title: 'Machine quotation: date, validity and additional items',
         details: ['Choose the quotation date (defaults to today); it is printed on the PDF.',
                   'PDF shows "valid till" the last day of the quotation\'s month (30th/31st).',

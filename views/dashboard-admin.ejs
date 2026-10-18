@@ -1,0 +1,252 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'dashboard', user }) %>
+<%
+  // ₹ in lakh / crore for headline numbers
+  const short = n => n >= 1e7 ? '₹' + (n / 1e7).toFixed(2) + ' Cr'
+                   : n >= 1e5 ? '₹' + (n / 1e5).toFixed(2) + ' L'
+                   : '₹' + Math.round(n).toLocaleString('en-IN');
+  const delta = kpi.quotes - kpi.quotesPrev;
+  const maxTrend = Math.max(1, ...trend.map(t => t.count));
+  const maxStage = Math.max(1, ...pipeline.map(p => p.count));
+  const statusBadge = { sent: 'bg-primary', accepted: 'bg-success', rejected: 'bg-danger' };
+%>
+<div class="main-content admin-dash">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">Dashboard</h4>
+      <small class="text-muted"><%= month %> · figures exclude cancelled quotations</small>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/spare-quotations/new" class="btn btn-outline-success btn-sm"><i class="bi bi-receipt-cutoff me-1"></i>Spare Quotation</a>
+      <a href="/quotations/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i>Machine Quotation</a>
+    </div>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <!-- KPIs: this month -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg">
+      <a href="/quotations" class="kpi card border-0 shadow-sm h-100">
+        <div class="kpi-label">Machine quotations</div>
+        <div class="kpi-value"><%= kpi.quotes %></div>
+        <div class="kpi-sub <%= delta > 0 ? 'up' : delta < 0 ? 'down' : '' %>">
+          <% if (delta > 0) { %><i class="bi bi-arrow-up-short"></i><%= delta %> vs last month
+          <% } else if (delta < 0) { %><i class="bi bi-arrow-down-short"></i><%= -delta %> vs last month
+          <% } else { %>Same as last month<% } %>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi card border-0 shadow-sm h-100">
+        <div class="kpi-label">Value quoted</div>
+        <div class="kpi-value"><%= short(kpi.quoteValue) %></div>
+        <div class="kpi-sub">Grand total of this month's quotes</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <a href="/quotations?status=accepted" class="kpi card border-0 shadow-sm h-100">
+        <div class="kpi-label">Accepted</div>
+        <div class="kpi-value"><%= kpi.accepted %></div>
+        <div class="kpi-sub"><%= kpi.conversion %>% of this month's quotes</div>
+      </a>
+    </div>
+    <div class="col-6 col-lg">
+      <a href="/enquiries/dashboard" class="kpi card border-0 shadow-sm h-100">
+        <div class="kpi-label">Machines sold</div>
+        <div class="kpi-value"><%= kpi.sales %></div>
+        <div class="kpi-sub"><%= kpi.sales ? short(kpi.salesValue) + ' closed' : 'No sales closed yet' %></div>
+      </a>
+    </div>
+    <div class="col-12 col-lg">
+      <a href="/spare-quotations" class="kpi card border-0 shadow-sm h-100">
+        <div class="kpi-label">Spare quotations</div>
+        <div class="kpi-value"><%= kpi.spares %></div>
+        <div class="kpi-sub"><%= short(kpi.spareValue) %> quoted</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <!-- Needs attention -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-bell me-1 text-danger"></i>Needs attention</div>
+        <div class="list-group list-group-flush">
+          <% attention.forEach(a => { %>
+          <a href="<%= a.href %>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 <%= a.count ? '' : 'text-muted' %>">
+            <i class="bi <%= a.icon %> fs-5 <%= a.count ? 'text-danger' : '' %>"></i>
+            <span class="flex-grow-1"><%= a.label %></span>
+            <span class="badge rounded-pill <%= a.count ? 'bg-danger' : 'bg-light text-muted border' %> fs-6"><%= a.count %></span>
+          </a>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team today -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+          <span><i class="bi bi-people me-1 text-danger"></i>Team today</span>
+          <a href="/hr/attendance" class="small text-decoration-none">Attendance report</a>
+        </div>
+        <div class="card-body">
+          <div class="d-flex gap-4 mb-3">
+            <div><div class="kpi-value"><%= team.present %><span class="fs-6 text-muted fw-normal"> / <%= team.total %></span></div><div class="kpi-sub">checked in</div></div>
+            <div><div class="kpi-value"><%= team.visits %></div><div class="kpi-sub">site visits</div></div>
+          </div>
+          <% if (team.notIn.length) { %>
+          <div class="small text-muted mb-1">Not checked in yet</div>
+          <div class="d-flex flex-wrap gap-1">
+            <% team.notIn.slice(0, 12).forEach(n => { %><span class="badge bg-light text-dark border fw-normal"><%= n %></span><% }) %>
+            <% if (team.notIn.length > 12) { %><span class="badge bg-light text-muted border fw-normal">+<%= team.notIn.length - 12 %> more</span><% } %>
+          </div>
+          <% } else if (team.total) { %>
+          <div class="small text-success"><i class="bi bi-check-circle me-1"></i>Everyone has checked in.</div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <!-- 6-month trend -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold">Machine quotations — last 6 months</div>
+        <div class="card-body">
+          <div class="trend" role="img" aria-label="Machine quotations per month">
+            <% trend.forEach((t, i) => { const last = i === trend.length - 1; %>
+            <div class="trend-col" tabindex="0">
+              <div class="trend-tip"><strong><%= t.label %></strong><br><%= t.count %> quotation<%= t.count === 1 ? '' : 's' %><br><%= short(t.value) %></div>
+              <div class="trend-num"><%= t.count %></div>
+              <div class="trend-bar <%= last ? 'current' : '' %>" style="height:<%= Math.max(t.count ? 4 : 0, t.count / maxTrend * 100) %>%"></div>
+              <div class="trend-label <%= last ? 'fw-semibold' : '' %>"><%= t.label %></div>
+            </div>
+            <% }) %>
+          </div>
+          <table class="visually-hidden">
+            <caption>Machine quotations per month</caption>
+            <tr><th>Month</th><th>Quotations</th><th>Value</th></tr>
+            <% trend.forEach(t => { %><tr><td><%= t.label %></td><td><%= t.count %></td><td><%= short(t.value) %></td></tr><% }) %>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enquiry pipeline -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+          <span>Enquiry pipeline</span>
+          <a href="/enquiries/pipeline" class="small text-decoration-none"><%= kpi.enqActive %> active · <%= kpi.enqNew %> new this month</a>
+        </div>
+        <div class="card-body">
+          <% pipeline.forEach(p => { %>
+          <div class="stage mb-2" title="<%= p.label %>: <%= p.count %>">
+            <div class="d-flex justify-content-between small"><span><%= p.label %></span><span class="fw-semibold"><%= p.count %></span></div>
+            <div class="stage-track"><div class="stage-fill" style="width:<%= p.count / maxStage * 100 %>%"></div></div>
+          </div>
+          <% }) %>
+          <% if (overdueFollowups.length) { %>
+          <div class="small text-muted mt-3 mb-1">Follow-ups due</div>
+          <ul class="list-unstyled small mb-0">
+            <% overdueFollowups.forEach(f => { %>
+            <li class="d-flex justify-content-between py-1 border-top">
+              <a href="/enquiries/<%= f.id %>" class="text-decoration-none text-truncate me-2"><%= f.customer_name %></a>
+              <span class="text-muted text-nowrap"><%= f.assignee_name || '—' %> · <%= new Date(f.next_followup_date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) %></span>
+            </li>
+            <% }) %>
+          </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Leaderboard -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+          <span>Salespersons this month</span>
+          <a href="/salespersons/reports/summary" class="small text-decoration-none">Full report</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light"><tr><th>Salesperson</th><th class="text-end">Machine quotes</th><th class="text-end">Accepted</th><th class="text-end">Spares</th></tr></thead>
+            <tbody>
+              <% leaderboard.forEach(b => { %>
+              <tr>
+                <td class="fw-semibold"><%= b.name %></td>
+                <td class="text-end"><%= b.quotes %> <span class="text-muted small">· <%= short(b.value) %></span></td>
+                <td class="text-end"><%= b.accepted %></td>
+                <td class="text-end"><%= b.spares %> <span class="text-muted small">· <%= short(b.spareValue) %></span></td>
+              </tr>
+              <% }) %>
+              <% if (!leaderboard.length) { %><tr><td colspan="4" class="text-center text-muted py-3">No quotations this month yet.</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent quotations -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+          <span>Recent machine quotations</span>
+          <a href="/quotations" class="small text-decoration-none">View all</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <tbody>
+              <% recent.forEach(q => { %>
+              <tr class="<%= q.cancelled_at ? 'text-muted' : '' %>">
+                <td><a href="/quotations/<%= q.id %>" class="fw-semibold text-decoration-none <%= q.cancelled_at ? 'text-muted' : 'text-dark' %>"><%= q.quotation_number %></a></td>
+                <td class="text-truncate" style="max-width:160px"><%= q.customer_name %><div class="small text-muted text-truncate"><%= q.machine_name %></div></td>
+                <td class="text-end text-nowrap"><%= short(q.total) %></td>
+                <td class="text-end">
+                  <% if (q.cancelled_at) { %><span class="badge bg-dark">Cancelled</span>
+                  <% } else { %><span class="badge <%= statusBadge[q.status] || 'bg-secondary' %>"><%= q.status %></span><% } %>
+                </td>
+              </tr>
+              <% }) %>
+              <% if (!recent.length) { %><tr><td class="text-center text-muted py-3">No quotations yet.</td></tr><% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.admin-dash .kpi { padding: 14px 16px; color: inherit; text-decoration: none; transition: box-shadow .15s; }
+.admin-dash a.kpi:hover { box-shadow: 0 .4rem 1rem rgba(0,0,0,.08) !important; }
+.admin-dash .kpi-label { font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+.admin-dash .kpi-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; color: #212529; }
+.admin-dash .kpi-sub   { font-size: 12px; color: #6c757d; }
+.admin-dash .kpi-sub.up   { color: #198754; }
+.admin-dash .kpi-sub.down { color: #b02a37; }
+
+/* 6-month column chart: one series, so no legend; hover/focus shows the tooltip */
+.trend { display: flex; align-items: flex-end; gap: 12px; height: 190px; padding-top: 22px; border-bottom: 1px solid #dee2e6; }
+.trend-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; outline: none; }
+.trend-bar { width: 100%; max-width: 44px; background: #e8a3aa; border-radius: 4px 4px 0 0; transition: background .15s; }
+.trend-bar.current { background: #dc3545; }
+.trend-col:hover .trend-bar, .trend-col:focus .trend-bar { background: #b02a37; }
+.trend-num { font-size: 12px; color: #495057; margin-bottom: 2px; }
+.trend-label { position: absolute; bottom: -20px; font-size: 12px; color: #6c757d; }
+.trend-tip { display: none; position: absolute; bottom: calc(100% - 10px); z-index: 2; background: #212529; color: #fff;
+             font-size: 12px; padding: 6px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; }
+.trend-col:hover .trend-tip, .trend-col:focus .trend-tip { display: block; }
+.admin-dash .card-body:has(.trend) { padding-bottom: 32px; }
+
+.stage-track { height: 8px; background: #f1f3f5; border-radius: 4px; overflow: hidden; }
+.stage-fill  { height: 100%; background: #dc3545; border-radius: 4px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

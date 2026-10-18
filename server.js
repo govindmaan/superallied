@@ -147,6 +147,112 @@ function requirePerm(perm) {
   };
 }
 
+// ── Admin dashboard data ──────────────────────────────────────────────────────
+// Business figures exclude cancelled quotations; months follow the quotation date (IST).
+function adminDashboardData() {
+  const s       = getSettings();
+  const today   = todayIST();
+  const month   = today.slice(0, 7);
+  const prevMonth = (() => { const [y, m] = month.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`; })();
+  const qDate   = "COALESCE(q.quotation_date, date(q.created_at))";
+
+  // Machine quotations: last 6 months, valued with the same calculation as the PDF
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const [y, m] = month.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    months.push(d.toISOString().slice(0, 7));
+  }
+  const recentQuotes = db.prepare(`
+    SELECT q.*, strftime('%Y-%m', ${qDate}) AS ym, COALESCE(sp.name, q.salesperson_name, 'Unassigned') AS sp_name
+    FROM quotations q LEFT JOIN salespersons sp ON sp.id = q.salesperson_id
+    WHERE q.cancelled_at IS NULL AND ${qDate} >= ?`).all(months[0] + '-01');
+  const trend = months.map(ym => {
+    const rows = recentQuotes.filter(q => q.ym === ym);
+    return { ym, count: rows.length, value: rows.reduce((t, q) => t + calcQuotation(q, s).total, 0),
+             label: new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-IN', { month: 'short', timeZone: 'UTC' }) };
+  });
+  const cur  = trend[trend.length - 1];
+  const prev = trend[trend.length - 2];
+  const monthQuotes = recentQuotes.filter(q => q.ym === month);
+  const accepted    = monthQuotes.filter(q => q.status === 'accepted').length;
+
+  // Spares this month
+  const spare = db.prepare(`SELECT COUNT(*) AS c, COALESCE(SUM(grand_total),0) AS v FROM spare_quotations
+    WHERE strftime('%Y-%m', COALESCE(quotation_date, created_at)) = ?`).get(month);
+
+  // Enquiry pipeline
+  const STAGES = [['phone_followup','Phone Follow-up'],['sales_visit','Sales Visit'],['enquiry_generated','Enquiry Generated'],['sales_closed','Sales Closed']];
+  const pipeline = STAGES.map(([key, label]) => ({ key, label,
+    count: db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active' AND current_stage=?").get(key).c }));
+  const enq = {
+    active:   db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active'").get().c,
+    newMonth: db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE strftime('%Y-%m', created_at)=?").get(month).c,
+    sales:    db.prepare("SELECT COUNT(*) AS c, COALESCE(SUM(sale_amount),0) AS v FROM enquiry_sales WHERE strftime('%Y-%m', created_at)=?").get(month),
+  };
+  const overdueFollowups = db.prepare(`
+    SELECT e.id, e.enquiry_number, e.customer_name, e.phone, u.full_name AS assignee_name, f.next_followup_date
+    FROM enquiries e
+    JOIN (SELECT enquiry_id, MAX(next_followup_date) AS next_followup_date FROM enquiry_followups
+          WHERE next_followup_date IS NOT NULL GROUP BY enquiry_id) f ON f.enquiry_id = e.id
+    LEFT JOIN users u ON u.id = e.assigned_to
+    WHERE e.status='active' AND f.next_followup_date <= ? ORDER BY f.next_followup_date LIMIT 6`).all(today);
+  const overdueCount = db.prepare(`
+    SELECT COUNT(*) AS c FROM enquiries e
+    JOIN (SELECT enquiry_id, MAX(next_followup_date) AS d FROM enquiry_followups WHERE next_followup_date IS NOT NULL GROUP BY enquiry_id) f
+      ON f.enquiry_id = e.id WHERE e.status='active' AND f.d <= ?`).get(today).c;
+
+  // Things waiting on someone
+  const attention = [
+    { label: 'Follow-ups due or overdue',      count: overdueCount, href: '/enquiries/dashboard',      icon: 'bi-telephone-forward' },
+    { label: 'Spare quotations to approve',    count: db.prepare("SELECT COUNT(*) AS c FROM spare_quotations WHERE approval_status='pending'").get().c, href: '/spare-quotations', icon: 'bi-receipt-cutoff' },
+    { label: 'Travel expenses to approve',     count: db.prepare("SELECT COUNT(*) AS c FROM travel_expenses WHERE status='submitted'").get().c, href: '/travel-expenses/queue', icon: 'bi-truck' },
+    { label: 'Leave requests to approve',      count: db.prepare("SELECT COUNT(*) AS c FROM leaves WHERE status='pending'").get().c, href: '/hr/leaves', icon: 'bi-calendar-x' },
+    { label: 'Spare part orders pending',      count: db.prepare("SELECT COUNT(*) AS c FROM part_orders WHERE status='pending'").get().c, href: '/part-orders', icon: 'bi-box-seam' },
+    { label: 'Quotations cancelled this month', count: db.prepare("SELECT COUNT(*) AS c FROM quotations WHERE strftime('%Y-%m', cancelled_at)=?").get(month).c, href: '/quotations?status=cancelled', icon: 'bi-x-circle' },
+  ];
+
+  // Salesperson leaderboard (this month)
+  const board = {};
+  monthQuotes.forEach(q => {
+    const b = board[q.sp_name] ||= { name: q.sp_name, quotes: 0, value: 0, accepted: 0, spares: 0, spareValue: 0 };
+    b.quotes++; b.value += calcQuotation(q, s).total; if (q.status === 'accepted') b.accepted++;
+  });
+  db.prepare(`SELECT COALESCE(sp.name, sq.salesperson, 'Unassigned') AS name, COUNT(*) AS c, COALESCE(SUM(sq.grand_total),0) AS v
+    FROM spare_quotations sq LEFT JOIN salespersons sp ON sp.id = sq.salesperson_id
+    WHERE strftime('%Y-%m', COALESCE(sq.quotation_date, sq.created_at)) = ? GROUP BY 1`).all(month).forEach(r => {
+    const b = board[r.name] ||= { name: r.name, quotes: 0, value: 0, accepted: 0, spares: 0, spareValue: 0 };
+    b.spares = r.c; b.spareValue = r.v;
+  });
+  const leaderboard = Object.values(board).sort((a, b) => (b.value + b.spareValue) - (a.value + a.spareValue)).slice(0, 8);
+
+  // Team today
+  const staff = db.prepare("SELECT id, full_name, username FROM users WHERE is_hr_active=1 AND role!='admin' ORDER BY full_name").all();
+  const present = new Set(db.prepare('SELECT user_id FROM attendance WHERE date=? AND check_in_time IS NOT NULL').all(today).map(r => r.user_id));
+  const team = {
+    total: staff.length,
+    present: staff.filter(u => present.has(u.id)).length,
+    notIn: staff.filter(u => !present.has(u.id)).map(u => u.full_name || u.username),
+    visits: db.prepare('SELECT COUNT(*) AS c FROM field_visits WHERE date(visit_time)=?').get(today).c,
+  };
+
+  const recent = db.prepare(`SELECT q.*, c.name AS customer_name, m.display_name AS machine_name
+    FROM quotations q JOIN customers c ON c.id=q.customer_id JOIN machines m ON m.id=q.machine_id
+    ORDER BY q.created_at DESC LIMIT 6`).all().map(q => ({ ...q, total: calcQuotation(q, s).total }));
+
+  return {
+    month: new Date(month + '-01T00:00:00Z').toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    kpi: {
+      quotes: cur.count, quotesPrev: prev.count, quoteValue: cur.value,
+      accepted, conversion: cur.count ? Math.round(accepted / cur.count * 100) : 0,
+      spares: spare.c, spareValue: spare.v,
+      sales: enq.sales.c, salesValue: enq.sales.v,
+      enqActive: enq.active, enqNew: enq.newMonth,
+    },
+    trend, pipeline, attention, overdueFollowups, leaderboard, team, recent,
+  };
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 app.get('/', requireLogin, (req, res) => {
   const role    = res.locals.user?.role;
@@ -157,7 +263,7 @@ app.get('/', requireLogin, (req, res) => {
   if (!isAdminLike) {
     // ── Employee tile dashboard ──
     const todayAtt = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(uid, today);
-    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND strftime('%Y-%m',created_at)=strftime('%Y-%m','now')").get(uid).c;
+    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m',created_at)=strftime('%Y-%m','now')").get(uid).c;
     const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time)=?").get(uid, today).c;
     const pendingLeaves = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE user_id=? AND status='pending'").get(uid).c;
     const emp = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
@@ -166,7 +272,9 @@ app.get('/', requireLogin, (req, res) => {
     return res.render('dashboard-employee', { title: 'Home', todayAtt, myQuotes, myVisits, pendingLeaves, emp, today, monthClaim });
   }
 
-  // ── Admin / HR dashboard ──
+  if (role === 'admin') return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(), formatINR });
+
+  // ── Manager / HR dashboard ──
   const isAdmin = role === 'admin';
   const stats = {
     customers: db.prepare('SELECT COUNT(*) as c FROM customers').get().c,
@@ -220,7 +328,9 @@ app.post('/profile/photo', requireLogin, (req, res) => {
 // Non-admins only see/manage customers they created themselves (plus legacy
 // customers created before ownership tracking existed, which have no owner).
 function canAccessCustomer(res, customer) {
-  return res.locals.user?.role === 'admin' || customer.created_by == null || customer.created_by === res.locals.user?.id;
+  if (res.locals.user?.role === 'admin') return true;
+  if (customer.deleted_at) return false;
+  return customer.created_by == null || customer.created_by === res.locals.user?.id;
 }
 
 // Normalise + validate GSTIN / PAN / Aadhaar from the customer form. Blank is allowed.
@@ -288,13 +398,19 @@ function quotationCustomerIds(q) {
 app.get('/customers', requireLogin, (req, res) => {
   const q = req.query.q || '';
   const isAdmin = res.locals.user?.role === 'admin';
-  let sql = 'SELECT * FROM customers WHERE 1=1';
+  // Admin can switch to the deleted customers (?deleted=1) to see or restore them
+  const showDeleted = isAdmin && req.query.deleted === '1';
+  let sql = `SELECT c.*, u.full_name AS deleted_by_name,
+               (SELECT COUNT(*) FROM quotations WHERE customer_id=c.id) AS quote_count
+             FROM customers c LEFT JOIN users u ON u.id=c.deleted_by
+             WHERE c.deleted_at IS ${showDeleted ? 'NOT ' : ''}NULL`;
   const params = [];
-  if (q) { sql += ' AND (name LIKE ? OR phone LIKE ? OR gstin LIKE ? OR pan LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`); }
-  if (!isAdmin) { sql += ' AND (created_by=? OR created_by IS NULL)'; params.push(req.session.userId); }
-  sql += ' ORDER BY name';
+  if (q) { sql += ' AND (c.name LIKE ? OR c.phone LIKE ? OR c.gstin LIKE ? OR c.pan LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`); }
+  if (!isAdmin) { sql += ' AND (c.created_by=? OR c.created_by IS NULL)'; params.push(req.session.userId); }
+  sql += ' ORDER BY c.name';
   const customers = db.prepare(sql).all(...params);
-  res.render('customers', { title: 'Customers', customers, q });
+  const deletedCount = isAdmin ? db.prepare('SELECT COUNT(*) AS c FROM customers WHERE deleted_at IS NOT NULL').get().c : 0;
+  res.render('customers', { title: 'Customers', customers, q, showDeleted, deletedCount, isAdmin });
 });
 
 app.get('/customers/new', requireLogin, (req, res) => {
@@ -352,23 +468,34 @@ app.post('/customers/:id/delete', requireLogin, (req, res) => {
     req.session.flash = { error: customer ? `You don't have permission to delete this customer.` : 'Customer not found.' };
     return res.redirect('/customers');
   }
-  db.prepare('DELETE FROM customers WHERE id = ?').run(req.params.id);
-  req.session.flash = { success: 'Customer deleted.' };
+  // Soft delete: quotations keep pointing at the customer, so the row stays.
+  db.prepare('UPDATE customers SET deleted_at=CURRENT_TIMESTAMP, deleted_by=? WHERE id=?').run(req.session.userId, req.params.id);
+  req.session.flash = { success: `Customer "${customer.name}" deleted.` };
   res.redirect('/customers');
+});
+
+app.post('/customers/:id/restore', requireLogin, requireAdmin, (req, res) => {
+  db.prepare('UPDATE customers SET deleted_at=NULL, deleted_by=NULL WHERE id=?').run(req.params.id);
+  req.session.flash = { success: 'Customer restored.' };
+  res.redirect('/customers?deleted=1');
 });
 
 // ── Quotations ────────────────────────────────────────────────────────────────
 app.get('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
   const isAdmin = res.locals.user?.role === 'admin';
   const { status, q } = req.query;
-  let sql = `SELECT qo.*, c.name as customer_name, m.display_name as machine_name
+  let sql = `SELECT qo.*, c.name as customer_name, m.display_name as machine_name, cu.full_name as cancelled_by_name
              FROM quotations qo
              JOIN customers c ON c.id = qo.customer_id
-             JOIN machines m  ON m.id = qo.machine_id`;
+             JOIN machines m  ON m.id = qo.machine_id
+             LEFT JOIN users cu ON cu.id = qo.cancelled_by`;
   const params = [];
   const conds = [];
   if (!isAdmin) { conds.push('qo.user_id = ?'); params.push(req.session.userId); }
-  if (status)   { conds.push('qo.status = ?'); params.push(status); }
+  // Cancelled quotations: never shown to users; admin sees them (or only them via the filter)
+  if (!isAdmin || (status && status !== 'cancelled')) conds.push('qo.cancelled_at IS NULL');
+  if (status === 'cancelled') conds.push('qo.cancelled_at IS NOT NULL');
+  else if (status) { conds.push('qo.status = ?'); params.push(status); }
   if (q)        { conds.push('(c.name LIKE ? OR qo.quotation_number LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
   if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
   sql += ' ORDER BY qo.created_at DESC';
@@ -381,8 +508,8 @@ app.get('/quotations/new', requireLogin, requirePerm('quotations'), (req, res) =
   const isAdmin      = res.locals.user?.role === 'admin';
   const machines     = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
   const customers    = isAdmin
-    ? db.prepare('SELECT * FROM customers ORDER BY name').all()
-    : db.prepare('SELECT * FROM customers WHERE created_by=? OR created_by IS NULL ORDER BY name').all(req.session.userId);
+    ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL ORDER BY name').all()
+    : db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL AND (created_by=? OR created_by IS NULL) ORDER BY name').all(req.session.userId);
   const salespersons = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name').all();
   const prefill      = req.query.customer_id || '';
   const s            = getSettings();
@@ -440,13 +567,14 @@ app.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) =
            m.display_name as machine_name, m.model_code, m.hsn_code,
            m.engine, m.transmission, m.rear_axle, m.pump,
            m.front_tyre, m.rear_tyre, m.battery, m.weight,
-           m.bucket, m.warranty, m.model_series
+           m.bucket, m.warranty, m.model_series, cu.full_name as cancelled_by_name
     FROM quotations qo
     JOIN customers c ON c.id = qo.customer_id
     JOIN machines m  ON m.id = qo.machine_id
+    LEFT JOIN users cu ON cu.id = qo.cancelled_by
     WHERE qo.id = ?`).get(req.params.id);
   if (!q) return res.redirect('/quotations');
-  if (!isAdmin && q.user_id !== req.session.userId) return res.redirect('/quotations');
+  if (!isAdmin && (q.user_id !== req.session.userId || q.cancelled_at)) return res.redirect('/quotations');
   const s = getSettings();
   const calc = calcQuotation(q, s);
   const specs = db.prepare('SELECT * FROM machine_specs WHERE machine_id=? ORDER BY display_order').all(q.machine_id);
@@ -459,11 +587,15 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
   const isAdmin   = res.locals.user?.role === 'admin';
   const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(req.params.id);
   if (!quotation) return res.redirect('/quotations');
-  if (!isAdmin && quotation.user_id !== req.session.userId) return res.redirect('/quotations');
+  if (!isAdmin && (quotation.user_id !== req.session.userId || quotation.cancelled_at)) return res.redirect('/quotations');
+  if (quotation.cancelled_at) {
+    req.session.flash = { error: 'This quotation is cancelled. Restore it before editing.' };
+    return res.redirect(`/quotations/${quotation.id}`);
+  }
   const machines  = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
   const customers = isAdmin
-    ? db.prepare('SELECT * FROM customers ORDER BY name').all()
-    : db.prepare('SELECT * FROM customers WHERE created_by=? OR created_by IS NULL ORDER BY name').all(req.session.userId);
+    ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL OR id=? ORDER BY name').all(quotation.customer_id)
+    : db.prepare('SELECT * FROM customers WHERE (deleted_at IS NULL OR id=?) AND (created_by=? OR created_by IS NULL) ORDER BY name').all(quotation.customer_id, req.session.userId);
   const s         = getSettings();
   // Active salespersons, plus the one already on this quotation even if since deactivated
   const salespersons2 = db.prepare('SELECT id,name FROM salespersons WHERE active=1 OR id=? ORDER BY name').all(quotation.salesperson_id || 0);
@@ -473,9 +605,9 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
 
 app.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) => {
   const isAdmin = res.locals.user?.role === 'admin';
-  const existing = db.prepare('SELECT user_id, salesperson_id FROM quotations WHERE id=?').get(req.params.id);
-  if (!existing || (!isAdmin && existing.user_id !== req.session.userId)) {
-    req.session.flash = { error: `You don't have permission to edit this quotation.` };
+  const existing = db.prepare('SELECT user_id, salesperson_id, cancelled_at FROM quotations WHERE id=?').get(req.params.id);
+  if (!existing || existing.cancelled_at || (!isAdmin && existing.user_id !== req.session.userId)) {
+    req.session.flash = { error: existing?.cancelled_at ? 'This quotation is cancelled.' : `You don't have permission to edit this quotation.` };
     return res.redirect('/quotations');
   }
   const extras = parseQuotationExtras(req.body, existing);
@@ -511,14 +643,21 @@ app.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) 
 
 app.post('/quotations/:id/delete', requireLogin, requirePerm('quotations'), (req, res) => {
   const isAdmin = res.locals.user?.role === 'admin';
-  const existing = db.prepare('SELECT user_id FROM quotations WHERE id=?').get(req.params.id);
-  if (!existing || (!isAdmin && existing.user_id !== req.session.userId)) {
-    req.session.flash = { error: `You don't have permission to delete this quotation.` };
+  const existing = db.prepare('SELECT user_id, cancelled_at FROM quotations WHERE id=?').get(req.params.id);
+  if (!existing || (!isAdmin && (existing.user_id !== req.session.userId || existing.cancelled_at))) {
+    req.session.flash = { error: `You don't have permission to cancel this quotation.` };
     return res.redirect('/quotations');
   }
-  db.prepare('DELETE FROM quotations WHERE id = ?').run(req.params.id);
-  req.session.flash = { success: 'Quotation deleted.' };
+  // Soft delete: hidden from users, admin still sees it marked Cancelled.
+  db.prepare('UPDATE quotations SET cancelled_at=CURRENT_TIMESTAMP, cancelled_by=? WHERE id=? AND cancelled_at IS NULL').run(req.session.userId, req.params.id);
+  req.session.flash = { success: 'Quotation cancelled.' };
   res.redirect('/quotations');
+});
+
+app.post('/quotations/:id/restore', requireLogin, requireAdmin, (req, res) => {
+  db.prepare('UPDATE quotations SET cancelled_at=NULL, cancelled_by=NULL WHERE id=?').run(req.params.id);
+  req.session.flash = { success: 'Quotation restored.' };
+  res.redirect(`/quotations/${req.params.id}`);
 });
 
 app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (req, res) => {
@@ -536,7 +675,7 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
     JOIN customers c ON c.id = qo.customer_id
     JOIN machines m  ON m.id = qo.machine_id
     WHERE qo.id = ?`).get(req.params.id);
-  if (!q) return res.status(404).send('Not found');
+  if (!q || q.cancelled_at) return res.status(404).send('Not found');
   if (!isAdmin && q.user_id !== req.session.userId) return res.status(403).send('Forbidden');
 
   const s    = getSettings();
@@ -694,6 +833,8 @@ app.post('/users/:id/activate', requireLogin, requireAdmin, (req, res) => {
 // ── API ───────────────────────────────────────────────────────────────────────
 app.get('/api/machines/:id', requireLogin, (req, res) => {
   const m = db.prepare('SELECT * FROM machines WHERE id = ?').get(req.params.id);
+  // Dealer purchase price (profit data) is admin-only
+  if (m && res.locals.user?.role !== 'admin') delete m.purchase_price;
   res.json(m || {});
 });
 
@@ -707,7 +848,7 @@ app.get('/api/spare/machine-lookup', requireLogin, (req, res) => {
 app.get('/api/customers/search', requireLogin, (req, res) => {
   const q = req.query.q || '';
   const isAdmin = res.locals.user?.role === 'admin';
-  let sql = "SELECT id, name, phone, gstin FROM customers WHERE (name LIKE ? OR phone LIKE ?)";
+  let sql = "SELECT id, name, phone, gstin FROM customers WHERE deleted_at IS NULL AND (name LIKE ? OR phone LIKE ?)";
   const params = [`%${q}%`, `%${q}%`];
   if (!isAdmin) { sql += ' AND (created_by=? OR created_by IS NULL)'; params.push(req.session.userId); }
   sql += ' LIMIT 10';
@@ -768,7 +909,7 @@ app.get('/api/search', requireLogin, (req, res) => {
     const customers = db.prepare(`
       SELECT id, name, phone, gstin
       FROM customers
-      WHERE LOWER(name) LIKE ? OR phone LIKE ?
+      WHERE deleted_at IS NULL AND (LOWER(name) LIKE ? OR phone LIKE ?)
       LIMIT ?
     `).all(`%${query}%`, `%${query}%`, limit);
 
@@ -787,7 +928,8 @@ app.get('/api/search', requireLogin, (req, res) => {
       FROM quotations q
       JOIN customers c ON c.id = q.customer_id
       JOIN machines m ON m.id = q.machine_id
-      WHERE q.quotation_number LIKE ? OR LOWER(c.name) LIKE ?
+      WHERE (q.quotation_number LIKE ? OR LOWER(c.name) LIKE ?)
+        ${res.locals.user?.role === 'admin' ? '' : 'AND q.cancelled_at IS NULL'}
       ORDER BY q.created_at DESC
       LIMIT ?
     `).all(`%${query}%`, `%${query}%`, limit);

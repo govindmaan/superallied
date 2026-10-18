@@ -4,10 +4,25 @@
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0 fw-bold">Quotation <%= q.quotation_number %></h4>
     <div class="d-flex gap-2">
+      <% if (q.cancelled_at) { %>
+      <form method="POST" action="/quotations/<%= q.id %>/restore">
+        <button class="btn btn-success"><i class="bi bi-arrow-counterclockwise me-1"></i>Restore</button>
+      </form>
+      <% } else { %>
       <a href="/quotations/<%= q.id %>/edit" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Edit</a>
       <a href="/quotations/<%= q.id %>/pdf" class="btn btn-danger"><i class="bi bi-file-pdf me-1"></i>Download PDF</a>
+      <% } %>
     </div>
   </div>
+
+  <% if (q.cancelled_at) { %>
+  <div class="alert alert-dark d-flex align-items-center gap-2">
+    <i class="bi bi-x-circle-fill fs-5"></i>
+    <div><strong>Cancelled</strong><%= q.cancelled_by_name ? ' by ' + q.cancelled_by_name : '' %> on
+      <%= new Date(q.cancelled_at + 'Z').toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) %>.
+      It is hidden from users. Restore it to edit or download.</div>
+  </div>
+  <% } %>
 
   <% if (flash.success) { %><div class="alert alert-success"><%= flash.success %></div><% } %>
   <% if (flash.error) { %><div class="alert alert-danger"><%= flash.error %></div><% } %>

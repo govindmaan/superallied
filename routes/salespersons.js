@@ -89,6 +89,7 @@ router.get('/reports/summary', (req, res) => {
       SUM(CASE WHEN q.status='confirmed' THEN 1 ELSE 0 END) AS confirmed_count
     FROM quotations q
     LEFT JOIN salespersons sp ON sp.id = q.salesperson_id
+    WHERE q.cancelled_at IS NULL
     GROUP BY COALESCE(sp.id, q.salesperson_name)
     ORDER BY total_value DESC
   `).all();

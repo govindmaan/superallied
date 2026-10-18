@@ -118,6 +118,12 @@ try { db.exec("ALTER TABLE customers ADD COLUMN created_by INTEGER REFERENCES us
 // Customer KYC ids (GSTIN already exists)
 try { db.exec("ALTER TABLE customers ADD COLUMN pan TEXT DEFAULT ''"); } catch(e) {}
 try { db.exec("ALTER TABLE customers ADD COLUMN aadhaar TEXT DEFAULT ''"); } catch(e) {}
+// Soft delete: deleted customers / cancelled quotations disappear for users,
+// admin still sees them (with who/when) and can restore
+try { db.exec("ALTER TABLE customers ADD COLUMN deleted_at DATETIME"); } catch(e) {}
+try { db.exec("ALTER TABLE customers ADD COLUMN deleted_by INTEGER REFERENCES users(id)"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_at DATETIME"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_by INTEGER REFERENCES users(id)"); } catch(e) {}
 
 // Quotation columns
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_name TEXT DEFAULT ''"); } catch(e) {}

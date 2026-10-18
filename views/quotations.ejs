@@ -7,6 +7,7 @@
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
@@ -18,6 +19,7 @@
           <option value="sent"  <%=status==='sent'?'selected':''%>>Sent</option>
           <option value="accepted" <%=status==='accepted'?'selected':''%>>Accepted</option>
           <option value="rejected" <%=status==='rejected'?'selected':''%>>Rejected</option>
+          <% if (user.role === 'admin') { %><option value="cancelled" <%=status==='cancelled'?'selected':''%>>Cancelled</option><% } %>
         </select>
         <button class="btn btn-outline-secondary"><i class="bi bi-filter"></i> Filter</button>
         <% if (q || status) { %><a href="/quotations" class="btn btn-outline-danger">Clear</a><% } %>
@@ -35,20 +37,32 @@
           <% quotations.forEach(q => {
             const calc = calcQuotation(q, settings);
           %>
-          <tr>
-            <td><a href="/quotations/<%= q.id %>" class="fw-semibold text-decoration-none text-dark"><%= q.quotation_number %></a></td>
+          <tr class="<%= q.cancelled_at ? 'text-decoration-line-through text-muted' : '' %>">
+            <td><a href="/quotations/<%= q.id %>" class="fw-semibold text-decoration-none <%= q.cancelled_at ? 'text-muted' : 'text-dark' %>"><%= q.quotation_number %></a></td>
             <td><%= q.customer_name %></td>
             <td class="text-muted small" style="max-width:200px"><%= q.machine_name %></td>
             <td><%= q.quantity %></td>
             <td class="fw-bold">₹<%= formatINR(calc.total) %></td>
-            <td><span class="badge <%= q.status==='sent'?'bg-primary':q.status==='accepted'?'bg-success':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span></td>
+            <td>
+              <% if (q.cancelled_at) { %>
+              <span class="badge bg-dark" title="Cancelled<%= q.cancelled_by_name ? ' by ' + q.cancelled_by_name : '' %> on <%= new Date(q.cancelled_at + 'Z').toLocaleDateString('en-IN') %>"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+              <% } else { %>
+              <span class="badge <%= q.status==='sent'?'bg-primary':q.status==='accepted'?'bg-success':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span>
+              <% } %>
+            </td>
             <td class="text-muted small"><%= new Date(q.quotation_date || q.created_at).toLocaleDateString('en-IN') %></td>
-            <td class="text-end">
-              <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger me-1" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
-              <a href="/quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-pencil"></i></a>
-              <form method="POST" action="/quotations/<%= q.id %>/delete" class="d-inline" onsubmit="return confirm('Delete this quotation?')">
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            <td class="text-end text-nowrap" style="text-decoration:none">
+              <% if (q.cancelled_at) { %>
+              <form method="POST" action="/quotations/<%= q.id %>/restore" class="d-inline">
+                <button class="btn btn-sm btn-outline-success" title="Restore"><i class="bi bi-arrow-counterclockwise"></i></button>
               </form>
+              <% } else { %>
+              <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger me-1" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
+              <a href="/quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+              <form method="POST" action="/quotations/<%= q.id %>/delete" class="d-inline" onsubmit="return confirm('Cancel quotation <%= q.quotation_number %>? It will be removed from your list.')">
+                <button class="btn btn-sm btn-outline-danger" title="Cancel quotation"><i class="bi bi-trash"></i></button>
+              </form>
+              <% } %>
             </td>
           </tr>
           <% }) %>
