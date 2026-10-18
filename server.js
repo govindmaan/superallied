@@ -1,3 +1,5 @@
+// All dates/times are India time (+5:30), whatever timezone the host runs in
+process.env.TZ = 'Asia/Kolkata';
 require('dotenv').config();
 const express  = require('express');
 const session  = require('express-session');
@@ -94,6 +96,8 @@ app.use((req, res, next) => {
     : null;
   res.locals.user     = u;
   res.locals.currentPath = req.originalUrl.split('?')[0]; // sidebar highlights the matching link
+  // SQLite CURRENT_TIMESTAMP values are UTC without a zone ('2026-10-18 09:30:00'); read them as UTC
+  res.locals.dbTime = (v) => v ? new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(v) ? v.replace(' ', 'T') + 'Z' : v) : null;
   res.locals.settings = getSettings();
   res.locals.unreadCount = u
     ? (db.prepare('SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0').get(u.id)?.c || 0)
@@ -215,7 +219,7 @@ function adminDashboardData() {
   const today   = todayIST();
   const month   = today.slice(0, 7);
   const prevMonth = (() => { const [y, m] = month.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`; })();
-  const qDate   = "COALESCE(q.quotation_date, date(q.created_at))";
+  const qDate   = "COALESCE(q.quotation_date, date(q.created_at,'+330 minutes'))";
 
   // Machine quotations: last 6 months, valued with the same calculation as the PDF
   const months = [];
@@ -248,8 +252,8 @@ function adminDashboardData() {
     count: db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active' AND current_stage=?").get(key).c }));
   const enq = {
     active:   db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active'").get().c,
-    newMonth: db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE strftime('%Y-%m', created_at)=?").get(month).c,
-    sales:    db.prepare("SELECT COUNT(*) AS c, COALESCE(SUM(sale_amount),0) AS v FROM enquiry_sales WHERE strftime('%Y-%m', created_at)=?").get(month),
+    newMonth: db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE strftime('%Y-%m', created_at,'+330 minutes')=?").get(month).c,
+    sales:    db.prepare("SELECT COUNT(*) AS c, COALESCE(SUM(sale_amount),0) AS v FROM enquiry_sales WHERE strftime('%Y-%m', created_at,'+330 minutes')=?").get(month),
   };
   const overdueFollowups = db.prepare(`
     SELECT e.id, e.enquiry_number, e.customer_name, e.phone, u.full_name AS assignee_name, f.next_followup_date
@@ -294,7 +298,7 @@ function adminDashboardData() {
     total: staff.length,
     present: staff.filter(u => present.has(u.id)).length,
     notIn: staff.filter(u => !present.has(u.id)).map(u => u.full_name || u.username),
-    visits: db.prepare('SELECT COUNT(*) AS c FROM field_visits WHERE date(visit_time)=?').get(today).c,
+    visits: db.prepare('SELECT COUNT(*) AS c FROM field_visits WHERE date(visit_time,\'+330 minutes\')=?').get(today).c,
   };
 
   const recent = db.prepare(`SELECT q.*, c.name AS customer_name, m.display_name AS machine_name
@@ -319,17 +323,17 @@ app.get('/', requireLogin, (req, res) => {
   const role    = res.locals.user?.role;
   const isAdminLike = ['admin','manager','hr'].includes(role);
   const uid     = req.session.userId;
-  const today   = new Date().toISOString().slice(0, 10);
+  const today   = new Date().toLocaleDateString('en-CA');
 
   if (!isAdminLike) {
     // ── Employee tile dashboard ──
     const todayAtt = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(uid, today);
-    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m',created_at)=strftime('%Y-%m','now')").get(uid).c;
-    const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time)=?").get(uid, today).c;
+    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+    const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
     const pendingLeaves = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE user_id=? AND status='pending'").get(uid).c;
     const emp = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
     const monthClaim = db.prepare("SELECT COALESCE(SUM(total_claim),0) as t FROM travel_expenses WHERE user_id=? AND date LIKE ?")
-      .get(uid, new Date().toISOString().slice(0,7) + '%').t;
+      .get(uid, new Date().toLocaleDateString('en-CA').slice(0, 7) + '%').t;
     // Sales: my open enquiries and follow-ups due today or overdue
     let myEnquiries = 0, followupsDue = [];
     if (res.locals.hasPerm('enquiries')) {
@@ -356,8 +360,8 @@ app.get('/', requireLogin, (req, res) => {
       ? db.prepare('SELECT COUNT(*) as c FROM quotations').get().c
       : db.prepare('SELECT COUNT(*) as c FROM quotations WHERE user_id=?').get(uid).c,
     thisMonth: isAdmin
-      ? db.prepare("SELECT COUNT(*) as c FROM quotations WHERE strftime('%Y-%m',created_at)=strftime('%Y-%m','now')").get().c
-      : db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND strftime('%Y-%m',created_at)=strftime('%Y-%m','now')").get(uid).c,
+      ? db.prepare("SELECT COUNT(*) as c FROM quotations WHERE strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get().c
+      : db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c,
     machines: db.prepare('SELECT COUNT(*) as c FROM machines WHERE active=1').get().c,
     soldMachines: db.prepare('SELECT COUNT(*) as c FROM sold_machines').get().c,
     spareParts: db.prepare('SELECT COUNT(*) as c FROM spare_parts').get().c,
@@ -365,8 +369,8 @@ app.get('/', requireLogin, (req, res) => {
       ? db.prepare('SELECT COUNT(*) as c FROM spare_quotations').get().c
       : db.prepare('SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=?').get(uid).c,
     spareToday: isAdmin
-      ? db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE date(created_at)=date('now')").get().c
-      : db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND date(created_at)=date('now')").get(uid).c,
+      ? db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE date(created_at,'+330 minutes')=date('now','+330 minutes')").get().c
+      : db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND date(created_at,'+330 minutes')=date('now','+330 minutes')").get(uid).c,
   };
   const recentSql = `SELECT q.*, c.name as customer_name, m.display_name as machine_name
     FROM quotations q JOIN customers c ON c.id=q.customer_id JOIN machines m ON m.id=q.machine_id
@@ -1197,9 +1201,9 @@ app.use('/backup',            requireLogin, requireAdmin,                     ba
 
 // Today's route: attendance check-in/out + site visits as GPS anchors
 app.get('/my-route', requireLogin, (req, res) => {
-  const today = new Date().toISOString().slice(0,10);
+  const today = new Date().toLocaleDateString('en-CA');
   const att = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(req.session.userId, today);
-  const visits = db.prepare("SELECT id, lat, lng, customer_name, purpose, visit_time FROM field_visits WHERE user_id=? AND date(visit_time)=? ORDER BY visit_time").all(req.session.userId, today);
+  const visits = db.prepare("SELECT id, lat, lng, customer_name, purpose, visit_time FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(req.session.userId, today);
   res.render('my-route', { title: 'My Route Today', att, visits, today });
 });
 

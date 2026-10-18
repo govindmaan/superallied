@@ -6,6 +6,16 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'new', title: 'Weekly travel allowance bill',
+        details: ['Trips for the week (Sunday–Saturday) can be added, edited and submitted until Saturday 8:00 pm.',
+                  'At the deadline the week locks, unsubmitted trips are submitted automatically and a TA bill is prepared (PDF available under TA Bills).'] },
+      { commit: '', type: 'new', title: 'Attendance calendar',
+        details: ['My Attendance shows the month with present, absent, leave and Sundays.',
+                  'Tap a day to see check-in and check-out photos, times, location and bike km.'] },
+      { commit: '', type: 'fixed', title: 'All times now in India time (+5:30)',
+        details: ['Punch-in and other times were shown 5½ hours behind; old punch-ins now show correctly.',
+                  'Punch-ins before 5:30 am are filed under the correct day.'] },
+      { commit: '', type: 'removed', title: 'Warranty line removed from machine description', details: ['Warranty is shown in the Terms & Conditions instead.'] },
       { commit: '', type: 'improved', title: 'Quotation PDF layout tidied',
         details: ['Content aligned with the letterhead and moved up; no longer runs into the footer.',
                   'Machine description no longer lists transmission, rear axle, pump, battery or weight.',

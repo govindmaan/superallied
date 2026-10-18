@@ -9,13 +9,13 @@ const { generatePDF } = require('../pdf');
 
 // ── HR Dashboard ──────────────────────────────────────────────────────────────
 router.get('/dashboard', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
 
   const totalEmployees = db.prepare("SELECT COUNT(*) as c FROM users WHERE is_hr_active=1").get().c;
   const presentToday   = db.prepare("SELECT COUNT(*) as c FROM attendance WHERE date=? AND check_in_time IS NOT NULL").get(today).c;
   const pendingLeaves  = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE status='pending'").get().c;
   const thisMonthSalaries = db.prepare(
-    "SELECT COUNT(*) as c FROM salary_records WHERE month=?").get(new Date().toISOString().slice(0,7)).c;
+    "SELECT COUNT(*) as c FROM salary_records WHERE month=?").get(new Date().toLocaleDateString('en-CA').slice(0, 7)).c;
 
   const recentAttendance = db.prepare(`
     SELECT a.*, u.full_name, u.employee_code, u.department
@@ -97,12 +97,12 @@ router.get('/employees/:id', (req, res) => {
   if (!emp) return res.redirect('/hr/employees');
 
   const manager  = emp.manager_id ? db.prepare('SELECT full_name FROM users WHERE id=?').get(emp.manager_id) : null;
-  const today    = new Date().toISOString().slice(0, 10);
-  const thisMonth = new Date().toISOString().slice(0, 7);
+  const today    = new Date().toLocaleDateString('en-CA');
+  const thisMonth = new Date().toLocaleDateString('en-CA').slice(0, 7);
 
   const attStats = db.prepare(`
     SELECT COUNT(*) as days, SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) as present
-    FROM attendance WHERE user_id=? AND date >= date('now','start of month')`).get(emp.id);
+    FROM attendance WHERE user_id=? AND date >= date('now','+330 minutes','start of month')`).get(emp.id);
   const lastSalary = db.prepare('SELECT * FROM salary_records WHERE user_id=? ORDER BY month DESC LIMIT 1').get(emp.id);
   const pendingLeaves = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE user_id=? AND status='pending'").get(emp.id).c;
 
@@ -221,7 +221,7 @@ router.get('/employees/:id/id-card/pdf', async (req, res) => {
 // ── Admin: Attendance view ────────────────────────────────────────────────────
 router.get('/attendance', (req, res) => {
   const { date: dateQ, emp } = req.query;
-  const dateFilter = dateQ || new Date().toISOString().slice(0,10);
+  const dateFilter = dateQ || new Date().toLocaleDateString('en-CA');
 
   const employees = db.prepare("SELECT id, full_name, employee_code FROM users WHERE is_hr_active=1 ORDER BY full_name").all();
 
@@ -287,7 +287,7 @@ router.post('/leaves/:id/review', (req, res) => {
 // ── Admin: Salary management ──────────────────────────────────────────────────
 router.get('/salary', (req, res) => {
   const { month: mq, emp } = req.query;
-  const month = mq || new Date().toISOString().slice(0, 7);
+  const month = mq || new Date().toLocaleDateString('en-CA').slice(0, 7);
 
   let sql = `SELECT sr.*, u.full_name, u.employee_code, u.department,
                ir.amount as incentive

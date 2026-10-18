@@ -128,6 +128,19 @@ try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_by INTEGER REFERENCES
 try { db.exec("ALTER TABLE users ADD COLUMN pin_hash TEXT"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN failed_logins INTEGER DEFAULT 0"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN locked_until DATETIME"); } catch(e) {}
+// Weekly Travelling Allowance bills (one per person per Sun–Sat week, prepared at Saturday 8 pm)
+db.exec(`CREATE TABLE IF NOT EXISTS ta_bills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bill_no TEXT UNIQUE NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  week_start DATE NOT NULL,
+  week_end DATE NOT NULL,
+  trips INTEGER DEFAULT 0,
+  total_km REAL DEFAULT 0,
+  total_amount REAL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, week_start)
+)`);
 
 // Quotation columns
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_name TEXT DEFAULT ''"); } catch(e) {}
@@ -1154,7 +1167,7 @@ db.exec(`
 `);
 
 function nextEnquiryNumber() {
-  const ym = new Date().toISOString().slice(0, 7).replace('-', '');
+  const ym = new Date().toLocaleDateString('en-CA').slice(0, 7).replace('-', '');
   const count = db.prepare("SELECT COUNT(*) as c FROM enquiries WHERE enquiry_number LIKE ?").get(`ENQ-${ym}-%`).c;
   return `ENQ-${ym}-${String(count + 1).padStart(4, '0')}`;
 }
@@ -1220,7 +1233,7 @@ function getEnquiryTimeline(enquiryId) {
 
 // Idempotent: notifies the assignee once per day about a due/overdue follow-up.
 function checkFollowupNotifications(userId) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const due = db.prepare(`
     SELECT e.id, e.enquiry_number, e.customer_name, f.next_followup_date
     FROM enquiries e
@@ -1234,7 +1247,7 @@ function checkFollowupNotifications(userId) {
 
   due.forEach(d => {
     const link = `/enquiries/${d.id}`;
-    const already = db.prepare(`SELECT id FROM notifications WHERE user_id=? AND link=? AND date(created_at)=?`)
+    const already = db.prepare(`SELECT id FROM notifications WHERE user_id=? AND link=? AND date(created_at,'+330 minutes')=?`)
       .get(userId, link, today);
     if (already) return;
     const overdue = d.next_followup_date < today;
@@ -1318,6 +1331,24 @@ function auditLog(userId, action, entity = '', entityId = '', details = '') {
     db.prepare('INSERT INTO audit_log (user_id,action,entity,entity_id,details) VALUES (?,?,?,?,?)')
       .run(userId, action, entity, String(entityId), details);
   } catch(e) {}
+}
+
+// One-time: attendance / odometer days used to be the UTC date, so a punch-in
+// before 5:30 am India time was filed under the previous day. Re-file them under
+// the India date (skipped if that user already has a row for that date).
+if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_ist_dates_v1'").get()) {
+  try {
+    db.exec('BEGIN');
+    const att = db.prepare(`UPDATE attendance SET date = date(check_in_time,'+330 minutes')
+      WHERE check_in_time IS NOT NULL AND date <> date(check_in_time,'+330 minutes')
+        AND NOT EXISTS (SELECT 1 FROM attendance a2 WHERE a2.user_id = attendance.user_id AND a2.date = date(attendance.check_in_time,'+330 minutes'))`).run();
+    const jr = db.prepare(`UPDATE expense_journeys SET date = date(start_time,'+330 minutes')
+      WHERE start_time IS NOT NULL AND date <> date(start_time,'+330 minutes')
+        AND NOT EXISTS (SELECT 1 FROM expense_journeys j2 WHERE j2.user_id = expense_journeys.user_id AND j2.date = date(expense_journeys.start_time,'+330 minutes'))`).run();
+    db.prepare("INSERT INTO settings (key, value) VALUES ('migr_ist_dates_v1', ?)").run(`attendance ${att.changes}, journeys ${jr.changes}`);
+    db.exec('COMMIT');
+    if (att.changes || jr.changes) console.log(`India-time date fix: ${att.changes} attendance, ${jr.changes} journey rows re-dated.`);
+  } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('India-time date fix failed:', e.message); }
 }
 
 module.exports = { db, getSettings, getFY, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

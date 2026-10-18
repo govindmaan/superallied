@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { db }  = require('../db');
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() { return new Date().toLocaleDateString('en-CA'); }
 
 // ── Save journey start (called immediately after check-in) ────────────────────
 router.post('/journey/start', (req, res) => {

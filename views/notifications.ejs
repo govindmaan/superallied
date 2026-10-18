@@ -28,7 +28,7 @@
           <div class="flex-grow-1">
             <div class="fw-semibold <%= n.is_read ? 'text-muted' : '' %>"><%= n.title %></div>
             <% if (n.body) { %><div class="small text-muted"><%= n.body %></div><% } %>
-            <div class="text-muted" style="font-size:11px"><%= new Date(n.created_at).toLocaleString('en-IN') %></div>
+            <div class="text-muted" style="font-size:11px"><%= dbTime(n.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) %></div>
           </div>
           <% if (!n.is_read) { %><span class="badge bg-danger rounded-pill mt-1">New</span><% } %>
         </div>

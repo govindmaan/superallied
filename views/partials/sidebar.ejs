@@ -61,6 +61,7 @@
       { label: 'Expenses', items: [
         { href: '/travel-expenses/new',       icon: 'bi-truck',          label: 'New Travel Expense',  show: can('expense_claim') },
         { href: '/travel-expenses/my',        icon: 'bi-receipt-cutoff', label: 'My Travel Expenses',  show: can('expense_claim'), keys: ['travel-expenses'] },
+        { href: '/travel-expenses/bills',     icon: 'bi-file-earmark-text', label: 'TA Bills',          show: can('expense_claim') || can('expense_approval') },
         { href: '/travel-expenses/queue',     icon: 'bi-check2-square',  label: 'Expense Approvals',   show: can('expense_approval') },
         { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',      label: 'Expense Rate Config', show: isMgr },
       ]},

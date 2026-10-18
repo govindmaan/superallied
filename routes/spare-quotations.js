@@ -19,8 +19,8 @@ router.get('/', (req, res) => {
 
   if (!isAdmin) { sql += ' AND sq.created_by=?'; params.push(uid); }
   if (status)   { sql += ' AND sq.status=?'; params.push(status); }
-  if (from)     { sql += ' AND date(sq.created_at)>=?'; params.push(from); }
-  if (to)       { sql += ' AND date(sq.created_at)<=?'; params.push(to); }
+  if (from)     { sql += ' AND date(sq.created_at,\'+330 minutes\')>=?'; params.push(from); }
+  if (to)       { sql += ' AND date(sq.created_at,\'+330 minutes\')<=?'; params.push(to); }
   if (q)        { sql += ' AND (sq.quotation_no LIKE ? OR sq.customer_name LIKE ? OR sq.machine_no LIKE ?)'; params.push(`%${q}%`,`%${q}%`,`%${q}%`); }
   sql += ' ORDER BY sq.created_at DESC';
 
@@ -103,7 +103,7 @@ router.post('/', (req, res) => {
          spName, spId, +f.validity_days||7,
          f.remarks||'', f.terms||'', 'draft',
          f.show_discount === 'on' ? 1 : 0,
-         f.quotation_date || new Date().toISOString().slice(0,10),
+         f.quotation_date || new Date().toLocaleDateString('en-CA'),
          totalBasic, totalGst, grandTotal, roundoffAmt, req.session.userId);
 
   const qid = info.lastInsertRowid;
@@ -193,7 +193,7 @@ router.post('/:id/update', (req, res) => {
          f.place_of_supply||'', f.tax_mode||'CGST_SGST', spName2, spId2,
          +f.validity_days||7, f.remarks||'', f.terms||'', f.status||'draft',
          f.show_discount === 'on' ? 1 : 0,
-         f.quotation_date || new Date().toISOString().slice(0,10),
+         f.quotation_date || new Date().toLocaleDateString('en-CA'),
          totalBasic, totalGst, grandTotal, roundoffAmt2, req.params.id);
 
   // Replace items
@@ -346,8 +346,8 @@ router.get('/reports/summary', (req, res) => {
   let sql = `SELECT sq.*, u.full_name as creator_name FROM spare_quotations sq
     LEFT JOIN users u ON u.id=sq.created_by WHERE 1=1`;
   const params = [];
-  if (from)       { sql += ' AND date(sq.created_at)>=?'; params.push(from); }
-  if (to)         { sql += ' AND date(sq.created_at)<=?'; params.push(to); }
+  if (from)       { sql += ' AND date(sq.created_at,\'+330 minutes\')>=?'; params.push(from); }
+  if (to)         { sql += ' AND date(sq.created_at,\'+330 minutes\')<=?'; params.push(to); }
   if (salesperson){ sql += ' AND sq.salesperson LIKE ?'; params.push(`%${salesperson}%`); }
   if (machine_no) { sql += ' AND sq.machine_no LIKE ?'; params.push(`%${machine_no}%`); }
   if (customer)   { sql += ' AND sq.customer_name LIKE ?'; params.push(`%${customer}%`); }
@@ -361,7 +361,7 @@ router.get('/reports/summary', (req, res) => {
     SUM(sqi.qty) as total_qty, SUM(sqi.line_total) as total_value, COUNT(*) as times_quoted
     FROM spare_quotation_items sqi
     JOIN spare_quotations sq ON sq.id=sqi.quotation_id
-    WHERE 1=1 ${from ? 'AND date(sq.created_at)>=?' : ''} ${to ? 'AND date(sq.created_at)<=?' : ''}
+    WHERE 1=1 ${from ? 'AND date(sq.created_at,\'+330 minutes\')>=?' : ''} ${to ? 'AND date(sq.created_at,\'+330 minutes\')<=?' : ''}
     GROUP BY sqi.part_no, sqi.description ORDER BY times_quoted DESC LIMIT 10`
   ).all(...[from,to].filter(Boolean));
 

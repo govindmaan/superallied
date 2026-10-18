@@ -50,8 +50,8 @@ function getEnquiries(user, filters = {}) {
   if (filters.district) { sql += ' AND e.district LIKE ?'; params.push(`%${filters.district}%`); }
   if (filters.machine)  { sql += ' AND (e.machine_interested LIKE ? OR e.machine_model LIKE ?)'; params.push(`%${filters.machine}%`, `%${filters.machine}%`); }
   if (filters.lead_source) { sql += ' AND e.lead_source = ?'; params.push(filters.lead_source); }
-  if (filters.from) { sql += ' AND date(e.created_at) >= ?'; params.push(filters.from); }
-  if (filters.to)   { sql += ' AND date(e.created_at) <= ?'; params.push(filters.to); }
+  if (filters.from) { sql += ' AND date(e.created_at,\'+330 minutes\') >= ?'; params.push(filters.from); }
+  if (filters.to)   { sql += ' AND date(e.created_at,\'+330 minutes\') <= ?'; params.push(filters.to); }
   if (filters.q) {
     sql += ' AND (e.customer_name LIKE ? OR e.phone LIKE ? OR e.village_city LIKE ? OR e.district LIKE ? OR e.enquiry_number LIKE ? OR e.machine_interested LIKE ?)';
     const like = `%${filters.q}%`;
@@ -103,21 +103,21 @@ router.get('/dashboard', (req, res) => {
   const allAccess = canSeeAll(user);
   const uid = user.id;
   const scope = allAccess ? '' : `AND e.assigned_to = ${uid}`;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const thisMonth = today.slice(0, 7);
 
-  const todayCalls = db.prepare(`SELECT COUNT(*) as c FROM enquiry_followups f JOIN enquiries e ON e.id=f.enquiry_id WHERE date(f.created_at)=? ${scope}`).get(today).c;
-  const todayVisits = db.prepare(`SELECT COUNT(*) as c FROM enquiry_visits v JOIN enquiries e ON e.id=v.enquiry_id WHERE date(v.created_at)=? ${scope}`).get(today).c;
-  const newToday = db.prepare(`SELECT COUNT(*) as c FROM enquiries e WHERE date(e.created_at)=? ${scope}`).get(today).c;
-  const salesClosedMonth = db.prepare(`SELECT COUNT(*) as c FROM enquiry_sales s JOIN enquiries e ON e.id=s.enquiry_id WHERE strftime('%Y-%m',s.created_at)=? ${scope}`).get(thisMonth).c;
-  const monthlyRevenue = db.prepare(`SELECT COALESCE(SUM(s.sale_amount),0) as t FROM enquiry_sales s JOIN enquiries e ON e.id=s.enquiry_id WHERE strftime('%Y-%m',s.created_at)=? ${scope}`).get(thisMonth).t;
+  const todayCalls = db.prepare(`SELECT COUNT(*) as c FROM enquiry_followups f JOIN enquiries e ON e.id=f.enquiry_id WHERE date(f.created_at,'+330 minutes')=? ${scope}`).get(today).c;
+  const todayVisits = db.prepare(`SELECT COUNT(*) as c FROM enquiry_visits v JOIN enquiries e ON e.id=v.enquiry_id WHERE date(v.created_at,'+330 minutes')=? ${scope}`).get(today).c;
+  const newToday = db.prepare(`SELECT COUNT(*) as c FROM enquiries e WHERE date(e.created_at,'+330 minutes')=? ${scope}`).get(today).c;
+  const salesClosedMonth = db.prepare(`SELECT COUNT(*) as c FROM enquiry_sales s JOIN enquiries e ON e.id=s.enquiry_id WHERE strftime('%Y-%m', s.created_at,'+330 minutes')=? ${scope}`).get(thisMonth).c;
+  const monthlyRevenue = db.prepare(`SELECT COALESCE(SUM(s.sale_amount),0) as t FROM enquiry_sales s JOIN enquiries e ON e.id=s.enquiry_id WHERE strftime('%Y-%m', s.created_at,'+330 minutes')=? ${scope}`).get(thisMonth).t;
 
   const pendingFollowups = db.prepare(`
     SELECT e.id, e.enquiry_number, e.customer_name, e.phone, u.full_name as assignee_name, f.next_followup_date
     FROM enquiries e
     JOIN (SELECT enquiry_id, MAX(next_followup_date) as next_followup_date FROM enquiry_followups WHERE next_followup_date IS NOT NULL GROUP BY enquiry_id) f ON f.enquiry_id=e.id
     LEFT JOIN users u ON u.id=e.assigned_to
-    WHERE e.status='active' AND f.next_followup_date <= date('now') ${scope}
+    WHERE e.status='active' AND f.next_followup_date <= date('now','+330 minutes') ${scope}
     ORDER BY f.next_followup_date ASC LIMIT 15
   `).all();
 
@@ -136,8 +136,8 @@ router.get('/dashboard', (req, res) => {
   if (allAccess) {
     leaderboard = db.prepare(`
       SELECT u.full_name, e.assigned_to,
-        COUNT(DISTINCT CASE WHEN s.id IS NOT NULL AND strftime('%Y-%m',s.created_at)=? THEN e.id END) as sales_this_month,
-        SUM(CASE WHEN s.id IS NOT NULL AND strftime('%Y-%m',s.created_at)=? THEN s.sale_amount ELSE 0 END) as revenue_this_month
+        COUNT(DISTINCT CASE WHEN s.id IS NOT NULL AND strftime('%Y-%m', s.created_at,'+330 minutes')=? THEN e.id END) as sales_this_month,
+        SUM(CASE WHEN s.id IS NOT NULL AND strftime('%Y-%m', s.created_at,'+330 minutes')=? THEN s.sale_amount ELSE 0 END) as revenue_this_month
       FROM enquiries e
       LEFT JOIN enquiry_sales s ON s.enquiry_id=e.id
       LEFT JOIN users u ON u.id=e.assigned_to

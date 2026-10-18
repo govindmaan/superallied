@@ -23,9 +23,9 @@ router.post('/', (req, res) => {
 // ── My visits list ────────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
   const uid    = req.session.userId;
-  const today  = new Date().toISOString().slice(0, 10);
+  const today  = new Date().toLocaleDateString('en-CA');
   const visits = db.prepare('SELECT * FROM field_visits WHERE user_id=? ORDER BY visit_time DESC LIMIT 50').all(uid);
-  const todayCount = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time)=?").get(uid, today).c;
+  const todayCount = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
   res.render('visits', { title: 'My Field Visits', visits, todayCount });
 });
 

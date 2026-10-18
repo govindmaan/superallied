@@ -285,7 +285,7 @@
               <div class="bg-light rounded p-2">
                 <div class="d-flex justify-content-between">
                   <span class="fw-semibold small"><%= t.user_name %></span>
-                  <small class="text-muted"><%= new Date(t.created_at).toLocaleDateString('en-IN') %> · <%= new Date(t.created_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) %></small>
+                  <small class="text-muted"><%= dbTime(t.created_at).toLocaleDateString('en-IN') %> · <%= dbTime(t.created_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) %></small>
                 </div>
                 <div class="small mt-1" style="white-space:pre-wrap"><%= t.text %></div>
                 <% t.attachments.forEach(a => { %>

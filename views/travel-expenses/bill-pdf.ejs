@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; background: transparent; }
+  .page { width: 100%; }
+  h1 { text-align: center; font-size: 15px; letter-spacing: 2px; margin-bottom: 8px; }
+  .info { display: flex; justify-content: space-between; border: 1px solid #ccc; padding: 6px 10px; line-height: 1.6; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #000; padding: 4px 6px; }
+  th { background: #f0f0f0; font-size: 10.5px; }
+  .r { text-align: right; } .c { text-align: center; }
+  tr.rej td { color: #888; text-decoration: line-through; }
+  tfoot td { font-weight: bold; }
+  .words { margin-top: 6px; font-weight: bold; }
+  .note { margin-top: 6px; font-size: 10px; color: #333; }
+  .signs { display: flex; justify-content: space-between; margin-top: 46px; }
+  .signs div { width: 30%; border-top: 1px solid #000; text-align: center; padding-top: 4px; font-size: 10.5px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>TRAVELLING ALLOWANCE BILL</h1>
+  <div class="info">
+    <div>
+      <strong>Name</strong> : <%= bill.full_name %><br>
+      <strong>Employee Code</strong> : <%= bill.employee_code || '—' %><br>
+      <strong>Designation</strong> : <%= bill.designation || '—' %><br>
+      <strong>Vehicle No.</strong> : <%= bill.vehicle_number || '—' %>
+    </div>
+    <div style="text-align:right">
+      <strong>Bill No.</strong> : <%= bill.bill_no %><br>
+      <strong>Period</strong> : <%= period %><br>
+      <strong>Prepared on</strong> : <%= new Date(bill.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th class="c">#</th><th>Date</th><th>Expense No.</th><th>Purpose</th><th>Vehicle</th><th class="r">Start km</th><th class="r">End km</th><th class="r">Km</th><th class="r">Rate</th><th class="r">Amount (₹)</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <% trips.forEach((t, i) => { %>
+      <tr class="<%= t.status === 'rejected' ? 'rej' : '' %>">
+        <td class="c"><%= i + 1 %></td>
+        <td><%= fmtD(t.date) %></td>
+        <td><%= t.expense_number %></td>
+        <td><%= t.purpose || '—' %></td>
+        <td><%= t.travel_type %></td>
+        <td class="r"><%= t.start_odo %></td>
+        <td class="r"><%= t.end_odo %></td>
+        <td class="r"><%= t.distance_km.toFixed(1) %></td>
+        <td class="r"><%= t.rate_per_km %></td>
+        <td class="r"><%= t.total_claim.toFixed(2) %></td>
+        <td><%= t.status %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="7">Total</td><td class="r"><%= totals.km.toFixed(1) %></td><td></td><td class="r"><%= totals.amount.toFixed(2) %></td><td></td></tr>
+    </tfoot>
+  </table>
+  <div class="words">Amount : <%= numberToWords(Math.round(totals.amount)) %>.</div>
+  <div class="note">
+    Approved so far: ₹<%= totals.approved.toFixed(2) %><% if (totals.pending) { %> · <%= totals.pending %> trip(s) awaiting approval<% } %><% if (totals.rejected) { %> · <%= totals.rejected %> rejected trip(s) not included<% } %>.
+    I certify that the above journeys were performed on official duty.
+  </div>
+
+  <div class="signs">
+    <div>Employee Signature</div>
+    <div>Checked By</div>
+    <div>Approved By</div>
+  </div>
+</div>
+</body>
+</html>

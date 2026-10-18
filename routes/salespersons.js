@@ -57,8 +57,8 @@ router.get('/reports/summary', (req, res) => {
   const { from, to } = req.query;
   const dp = [];
   let dCond = '';
-  if (from) { dCond += ' AND date(sq.created_at)>=?'; dp.push(from); }
-  if (to)   { dCond += ' AND date(sq.created_at)<=?'; dp.push(to); }
+  if (from) { dCond += ' AND date(sq.created_at,\'+330 minutes\')>=?'; dp.push(from); }
+  if (to)   { dCond += ' AND date(sq.created_at,\'+330 minutes\')<=?'; dp.push(to); }
 
   const spareStats = db.prepare(`
     SELECT
@@ -96,13 +96,13 @@ router.get('/reports/summary', (req, res) => {
 
   const monthlyTrend = db.prepare(`
     SELECT
-      strftime('%Y-%m', sq.created_at)                        AS month,
+      strftime('%Y-%m', sq.created_at,'+330 minutes')                        AS month,
       COALESCE(sp.name, sq.salesperson, 'Unassigned')         AS sp_name,
       COUNT(*)                                                 AS count,
       COALESCE(SUM(sq.grand_total),0)                         AS value
     FROM spare_quotations sq
     LEFT JOIN salespersons sp ON sp.id = sq.salesperson_id
-    WHERE sq.created_at >= date('now','-6 months') ${dCond}
+    WHERE sq.created_at >= date('now','+330 minutes','-6 months') ${dCond}
     GROUP BY month, COALESCE(sp.id, sq.salesperson)
     ORDER BY month ASC
   `).all(...dp);

@@ -1,0 +1,52 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
+<% const badge = { draft:'bg-secondary', submitted:'bg-warning text-dark', approved:'bg-success', rejected:'bg-danger' }; %>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold">Travelling Allowance Bill <span class="font-monospace text-muted fs-6"><%= bill.bill_no %></span></h4>
+      <small class="text-muted"><%= bill.full_name %> · Week <%= period %></small>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/travel-expenses/bills" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>All bills</a>
+      <a href="/travel-expenses/bills/<%= bill.id %>/pdf" class="btn btn-danger"><i class="bi bi-file-pdf me-1"></i>Download PDF</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted">Trips</div><div class="fs-4 fw-bold"><%= trips.length %></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted">Distance</div><div class="fs-4 fw-bold"><%= totals.km.toFixed(0) %> km</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted">Bill amount</div><div class="fs-4 fw-bold text-danger">₹<%= totals.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 }) %></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="small text-muted">Approved so far</div><div class="fs-4 fw-bold text-success">₹<%= totals.approved.toLocaleString('en-IN', { maximumFractionDigits: 0 }) %></div>
+      <% if (totals.pending) { %><div class="small text-muted"><%= totals.pending %> trip<%= totals.pending === 1 ? '' : 's' %> awaiting approval</div><% } %></div></div></div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 align-middle">
+        <thead class="table-light"><tr><th>Date</th><th>Expense #</th><th>Purpose</th><th>Vehicle</th><th class="text-end">Odometer</th><th class="text-end">Km</th><th class="text-end">Rate</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          <% trips.forEach(t => { %>
+          <tr class="<%= t.status === 'rejected' ? 'text-muted text-decoration-line-through' : '' %>">
+            <td class="small text-nowrap"><%= fmtD(t.date) %></td>
+            <td><a href="/travel-expenses/<%= t.id %>" class="font-monospace small text-decoration-none"><%= t.expense_number %></a></td>
+            <td class="small"><%= t.purpose || '—' %></td>
+            <td class="small"><%= t.travel_type %></td>
+            <td class="text-end small text-nowrap"><%= t.start_odo %> → <%= t.end_odo %></td>
+            <td class="text-end"><%= t.distance_km.toFixed(1) %></td>
+            <td class="text-end small">₹<%= t.rate_per_km %></td>
+            <td class="text-end fw-semibold">₹<%= t.total_claim.toFixed(0) %></td>
+            <td style="text-decoration:none"><span class="badge <%= badge[t.status] %>"><%= t.status %></span></td>
+          </tr>
+          <% }) %>
+        </tbody>
+        <tfoot class="table-light fw-bold">
+          <tr><td colspan="5">Total<% if (totals.rejected) { %> <span class="fw-normal small text-muted">(excludes <%= totals.rejected %> rejected)</span><% } %></td>
+            <td class="text-end"><%= totals.km.toFixed(1) %></td><td></td><td class="text-end">₹<%= totals.amount.toFixed(0) %></td><td></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

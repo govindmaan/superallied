@@ -1,0 +1,43 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-danger"></i>TA Bills</h4>
+    <a href="/travel-expenses/my" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>My Travel Expenses</a>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <div class="alert alert-light border small">
+    <i class="bi bi-clock me-1"></i>A Travelling Allowance bill is prepared for each week (Sunday–Saturday) at <strong>Saturday 8:00 pm</strong>.
+    The current week, <%= current.start %> – <%= current.end %>, closes this Saturday.
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light"><tr><th>Bill No.</th><% if (all) { %><th>Employee</th><% } %><th>Week</th><th class="text-end">Trips</th><th class="text-end">Distance</th><th class="text-end">Amount</th><th></th></tr></thead>
+        <tbody>
+          <% bills.forEach(b => { %>
+          <tr>
+            <td><a href="/travel-expenses/bills/<%= b.id %>" class="fw-semibold text-decoration-none font-monospace"><%= b.bill_no %></a></td>
+            <% if (all) { %><td><%= b.full_name %></td><% } %>
+            <td class="small"><%= fmtD(b.week_start) %> – <%= fmtD(b.week_end) %> <%= b.week_end.slice(0, 4) %></td>
+            <td class="text-end"><%= b.trips %></td>
+            <td class="text-end"><%= b.total_km.toFixed(0) %> km</td>
+            <td class="text-end fw-semibold">₹<%= b.total_amount.toLocaleString('en-IN', { maximumFractionDigits: 0 }) %></td>
+            <td class="text-end text-nowrap">
+              <a href="/travel-expenses/bills/<%= b.id %>" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+              <a href="/travel-expenses/bills/<%= b.id %>/pdf" class="btn btn-sm btn-danger" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
+            </td>
+          </tr>
+          <% }) %>
+          <% if (!bills.length) { %><tr><td colspan="<%= all ? 7 : 6 %>" class="text-center text-muted py-4">No TA bills yet. The first one is prepared after Saturday 8:00 pm.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
