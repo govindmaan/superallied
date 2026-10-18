@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'improved', title: 'Quotation PDF layout tidied',
+        details: ['Content aligned with the letterhead and moved up; no longer runs into the footer.',
+                  'Machine description no longer lists transmission, rear axle, pump, battery or weight.',
+                  'Spare quotations that only just overflow now fit on one page.'] },
       { commit: '', type: 'improved', title: 'Terms & Conditions on machine quotations; always one page',
         details: ['Price validity, delivery, payment terms, warranty, taxes & duties and financer note printed on every machine quotation.',
                   'Long quotations shrink slightly to fit, so the PDF never runs onto a second page.'] },

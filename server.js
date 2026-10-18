@@ -462,12 +462,12 @@ function quotationValidTill(dateStr) {
 // Terms printed on every machine quotation (PDF + quotation page)
 function machineQuotationTerms(validTill) {
   return [
-    { label: 'Price Validity',  text: `This quotation is valid till ${validTill} (end of the month of the quotation date).` },
+    { label: 'Price Validity',  text: `This quotation is valid till ${validTill}.` },
     { label: 'Delivery',        text: '01 to 02 weeks, Ex-Meerut, from the date of receipt of the buyer firm\'s executable order.' },
     { label: 'Payment Terms',   text: '100% in advance with order, payable by demand draft in favour of Super Allied.' },
     { label: 'Warranty',        text: '01 Year or 2000 Hours. Engine warranty applicable as per manufacturer guidelines.' },
     { label: 'Taxes & Duties',  text: 'Applicable at the time of delivery; charged at the rate prevailing on the date of dispatch.' },
-    { label: 'For Financer',    text: 'Please address your delivery order & payment in favour of Super Allied, or obtain an NOC before payment to "Bull Machine Pvt. Ltd."' },
+    { label: 'For Financer',    text: 'Please address your delivery order & payment in favour of Super Allied.' },
   ];
 }
 

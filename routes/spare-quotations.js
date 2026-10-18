@@ -328,7 +328,8 @@ router.get('/:id/pdf', async (req, res) => {
     }, (err, h) => err ? reject(err) : resolve(h)));
 
   try {
-    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH);
+    // Slight overflow (e.g. the last line) is shrunk onto one page; long part lists still use more pages
+    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.85 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${q.quotation_no.replace(/\//g,'-')}.pdf"`);
     res.send(pdfBuffer);

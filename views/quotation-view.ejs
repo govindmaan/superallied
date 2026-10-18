@@ -62,7 +62,6 @@
             <dt class="col-4 text-muted">Model Code</dt><dd class="col-8 small font-monospace"><%= q.model_code %></dd>
             <dt class="col-4 text-muted">HSN Code</dt><dd class="col-8"><%= q.hsn_code %></dd>
             <dt class="col-4 text-muted">Engine</dt><dd class="col-8 small"><%= q.engine %></dd>
-            <dt class="col-4 text-muted">Transmission</dt><dd class="col-8 small"><%= q.transmission %></dd>
             <% if (q.tyre_option) { %><dt class="col-4 text-muted">Tyre Type</dt><dd class="col-8 small"><%= q.tyre_option === 'HD' ? 'HD Tyre - 14.00x25' : 'IT Tyre - 16.09x28' %></dd><% } %>
             <dt class="col-4 text-muted">Quantity</dt><dd class="col-8"><%= q.quantity %></dd>
             <dt class="col-4 text-muted">Status</dt><dd class="col-8"><span class="badge <%= q.status==='accepted'?'bg-success':q.status==='sent'?'bg-primary':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span></dd>

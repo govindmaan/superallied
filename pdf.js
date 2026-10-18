@@ -59,13 +59,16 @@ async function loadLetterhead(letterheadPath) {
   return bytes;
 }
 
-// Writing area inside the letterhead: A4 minus the margins below
-const LH_MARGIN = { top: 38, right: 10, bottom: 20, left: 10 };   // mm
+// Writing area inside the letterhead: A4 minus the margins below. The letterhead's
+// header ends at 24 mm and its footer starts at 272 mm; its text starts 12.6 mm in.
+const LH_MARGIN = { top: 29, right: 12, bottom: 28, left: 12 };   // mm
 const MM = 96 / 25.4;                                            // CSS px per mm
 
 // Generate PDF with letterhead PDF as background on every page.
-// fitOnePage: shrink the content (never enlarge) so it always fits on one page.
-async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = false } = {}) {
+// fitOnePage: if the content is a bit taller than one page, shrink it (never
+// below minScale) so it fits on one page; content that needs more than that
+// shrink prints normally across several pages instead.
+async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = false, minScale = 0.5 } = {}) {
   if (!letterheadPath || !fs.existsSync(letterheadPath)) {
     return generatePDF(html);
   }
@@ -79,10 +82,12 @@ async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = fa
     await page.setViewport({ width: Math.round(areaW), height: Math.round(areaH) });
     await page.emulateMediaType('print');
     await page.setContent(html, { waitUntil: 'networkidle0' });
-    let scale = 1;
+    let scale = 1, onePage = false;
     if (fitOnePage) {
       const h = await page.evaluate(() => document.body.scrollHeight);
-      if (h > areaH - 4) scale = Math.max(0.5, (areaH - 4) / h);
+      const fit = (areaH - 4) / h;
+      if (fit >= 1) onePage = true;
+      else if (fit >= minScale) { scale = fit; onePage = true; }
     }
     contentBytes = await page.pdf({
       format: 'A4',
@@ -90,7 +95,7 @@ async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = fa
       omitBackground: true,
       scale,
       margin: { top: LH_MARGIN.top + 'mm', right: LH_MARGIN.right + 'mm', bottom: LH_MARGIN.bottom + 'mm', left: LH_MARGIN.left + 'mm' },
-      ...(fitOnePage ? { pageRanges: '1' } : {}),
+      ...(onePage ? { pageRanges: '1' } : {}),
     });
   } finally {
     await page.close();

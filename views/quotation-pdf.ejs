@@ -106,13 +106,8 @@
           <strong><%= q.machine_name %> - HSN <%= q.hsn_code %></strong>
           <ul class="spec-list">
             <% if(q.engine)       { %><li><%= q.engine %></li><% } %>
-            <% if(q.transmission) { %><li><%= q.transmission %></li><% } %>
-            <% if(q.rear_axle && q.rear_axle !== 'N/A') { %><li><%= q.rear_axle %></li><% } %>
-            <% if(q.pump)         { %><li><%= q.pump %></li><% } %>
             <% if(q.front_tyre)   { %><li>Front Tyre - <%= q.front_tyre %></li><% } %>
             <% if(q.tyre_option === 'HD') { %><li>Rear Tyre - HD 14.00x25</li><% } else if(q.tyre_option === 'IT') { %><li>Rear Tyre - IT 16.09x28</li><% } else if(q.rear_tyre) { %><li>Rear Tyre - <%= q.rear_tyre %></li><% } %>
-            <% if(q.battery)      { %><li><%= q.battery %></li><% } %>
-            <% if(q.weight)       { %><li><%= q.weight %> - Weight</li><% } %>
             <% if(q.bucket)       { %><li><%= q.bucket %></li><% } %>
             <% if(specs && specs.length > 0) { %>
               <% specs.forEach(s => { %><li><%= s.spec_name %> - <%= s.spec_value %></li><% }) %>
