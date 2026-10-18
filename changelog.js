@@ -6,6 +6,16 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'new', title: 'Log in with a 6-digit PIN',
+        details: ['Set your PIN in My Profile → Login PIN; your password still works.',
+                  'Tick "Remember me on this device" to log in with just your PIN next time.'] },
+      { commit: '', type: 'improved', title: 'New login screen with extra security',
+        details: ['After 5 wrong PINs or passwords the account is locked for 15 minutes.',
+                  'Free Cloudflare security check on the login screen (turned on once its keys are added).'] },
+      { commit: '', type: 'improved', title: 'Easier phone screens for salespeople',
+        details: ['Bottom bar on every page: Home, Enquiries, Visit, Attendance, Menu.',
+                  'Home shows big Check In and Site Visit buttons, and follow-ups due with one-tap Call and WhatsApp.',
+                  'Fixed: the greeting on the phone home screen was hidden under the top bar.'] },
       { commit: '', type: 'new', title: 'New admin dashboard',
         details: ['This month at a glance: quotations, value quoted, accepted %, machines sold, spare quotations.',
                   'Needs attention: follow-ups due, approvals waiting, part orders and cancellations.',

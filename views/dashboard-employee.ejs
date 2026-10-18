@@ -29,37 +29,72 @@
     </div>
   </div>
 
+  <!-- Primary actions: the two things done most in the field -->
+  <div class="primary-actions">
+    <a href="/attendance" class="pa-btn <%= todayAtt?.check_out_time ? 'pa-done' : todayAtt?.check_in_time ? 'pa-out' : 'pa-in' %>">
+      <i class="bi <%= todayAtt?.check_out_time ? 'bi-check2-circle' : todayAtt?.check_in_time ? 'bi-box-arrow-right' : 'bi-box-arrow-in-right' %>"></i>
+      <span><%= todayAtt?.check_out_time ? 'Day complete' : todayAtt?.check_in_time ? 'Check Out' : 'Check In' %></span>
+    </a>
+    <a href="#" class="pa-btn pa-visit" onclick="openVisitModal(); return false">
+      <i class="bi bi-geo-alt-fill"></i><span>Site Visit</span>
+      <small><%= myVisits %> today</small>
+    </a>
+  </div>
+
+  <!-- Follow-ups due (sales) -->
+  <% if (hasPerm('enquiries')) { %>
+  <div class="card border-0 shadow-sm mb-3 followups">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="bi bi-telephone-forward me-1 text-danger"></i>Follow-ups due</span>
+      <span class="badge <%= followupsDue.length ? 'bg-danger' : 'bg-light text-muted border' %>"><%= followupsDue.length %></span>
+    </div>
+    <% if (followupsDue.length) { %>
+    <div class="list-group list-group-flush">
+      <% followupsDue.forEach(f => { const overdue = f.due < today; const ph = String(f.phone || '').replace(/\D/g, ''); %>
+      <div class="list-group-item d-flex align-items-center gap-2 py-2">
+        <a href="/enquiries/<%= f.id %>" class="flex-grow-1 text-decoration-none text-dark" style="min-width:0">
+          <div class="fw-semibold text-truncate"><%= f.customer_name %></div>
+          <div class="small <%= overdue ? 'text-danger' : 'text-muted' %> text-truncate">
+            <%= overdue ? 'Overdue · ' + new Date(f.due + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Today' %><%= f.machine_interested ? ' · ' + f.machine_interested : '' %>
+          </div>
+        </a>
+        <% if (ph) { %>
+        <a href="tel:<%= ph %>" class="btn btn-success round-btn" aria-label="Call <%= f.customer_name %>"><i class="bi bi-telephone-fill"></i></a>
+        <a href="https://wa.me/<%= ph.length === 10 ? '91' + ph : ph %>" target="_blank" rel="noopener" class="btn btn-outline-success round-btn" aria-label="WhatsApp <%= f.customer_name %>"><i class="bi bi-whatsapp"></i></a>
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="card-body py-3 small text-muted"><i class="bi bi-check-circle me-1 text-success"></i>No follow-ups due today.</div>
+    <% } %>
+  </div>
+  <% } %>
+
   <!-- Quick stat chips -->
-  <div class="d-flex flex-wrap gap-2 mb-4">
-    <div class="stat-chip"><i class="bi bi-file-earmark-text me-1"></i><strong><%= myQuotes %></strong> Quotations this month</div>
-    <div class="stat-chip"><i class="bi bi-geo-alt me-1"></i><strong><%= myVisits %></strong> Visits today</div>
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <% if (hasPerm('enquiries')) { %><div class="stat-chip"><i class="bi bi-funnel me-1"></i><strong><%= myEnquiries %></strong> Open enquiries</div><% } %>
+    <% if (hasPerm('quotations')) { %><div class="stat-chip"><i class="bi bi-file-earmark-text me-1"></i><strong><%= myQuotes %></strong> Quotations this month</div><% } %>
     <% if (pendingLeaves > 0) { %>
     <div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> Leave pending</div>
     <% } %>
   </div>
 
-  <!-- Main action tiles -->
+  <!-- Action tiles -->
   <div class="tile-grid">
-
-    <!-- Attendance -->
-    <a href="/attendance" class="tile tile-attendance">
-      <div class="tile-icon"><i class="bi bi-calendar-check-fill"></i></div>
-      <div class="tile-label">Attendance</div>
-      <div class="tile-sub">
-        <% if (!todayAtt?.check_in_time) { %>Tap to Check In
-        <% } else if (!todayAtt?.check_out_time) { %>Checked In • Tap to Check Out
-        <% } else { %>Done for today<% } %>
-      </div>
+    <% if (hasPerm('enquiries')) { %>
+    <a href="/enquiries/new" class="tile tile-enquiry">
+      <div class="tile-icon"><i class="bi bi-person-plus-fill"></i></div>
+      <div class="tile-label">New Enquiry</div>
+      <div class="tile-sub">Add a customer lead</div>
     </a>
-
-    <!-- Field Visit -->
-    <a href="#" class="tile tile-visit" onclick="openVisitModal(); return false">
-      <div class="tile-icon"><i class="bi bi-geo-alt-fill"></i></div>
-      <div class="tile-label">Field Visit</div>
-      <div class="tile-sub"><%= myVisits %> visit<%= myVisits===1?'':'s' %> today</div>
+    <a href="/enquiries" class="tile tile-pipeline">
+      <div class="tile-icon"><i class="bi bi-funnel-fill"></i></div>
+      <div class="tile-label">My Enquiries</div>
+      <div class="tile-sub"><%= myEnquiries %> open</div>
     </a>
+    <% } %>
 
-    <!-- Quotations (if permitted) -->
     <% if (hasPerm('quotations')) { %>
     <a href="/quotations/new" class="tile tile-quote">
       <div class="tile-icon"><i class="bi bi-file-earmark-plus-fill"></i></div>
@@ -68,43 +103,45 @@
     </a>
     <% } %>
 
-    <!-- Route Map -->
-    <a href="/my-route" class="tile tile-route">
-      <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
-      <div class="tile-label">Route Map</div>
-      <div class="tile-sub">Today's route</div>
+    <% if (hasPerm('customers')) { %>
+    <a href="/customers" class="tile tile-customers">
+      <div class="tile-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="tile-label">Customers</div>
+      <div class="tile-sub">Search & add</div>
     </a>
+    <% } %>
 
-    <!-- Travel Expense -->
     <% if (hasPerm('expense_claim')) { %>
-    <a href="/travel-expenses/my" class="tile tile-expense">
+    <a href="/travel-expenses/new" class="tile tile-expense">
       <div class="tile-icon"><i class="bi bi-truck"></i></div>
       <div class="tile-label">Travel Expense</div>
       <div class="tile-sub">₹<%= monthClaim.toFixed(0) %> this month</div>
     </a>
     <% } %>
 
-    <!-- My Leaves -->
+    <a href="/my-route" class="tile tile-route">
+      <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
+      <div class="tile-label">Route Map</div>
+      <div class="tile-sub">Today's route</div>
+    </a>
+
     <a href="/leaves" class="tile tile-leave">
       <div class="tile-icon"><i class="bi bi-calendar-x-fill"></i></div>
       <div class="tile-label">My Leaves</div>
       <div class="tile-sub"><%= pendingLeaves > 0 ? pendingLeaves + ' pending' : 'Apply leave' %></div>
     </a>
 
-    <!-- My Salary -->
     <a href="/salary" class="tile tile-salary">
       <div class="tile-icon"><i class="bi bi-cash-coin"></i></div>
       <div class="tile-label">My Salary</div>
       <div class="tile-sub">View slips</div>
     </a>
 
-    <!-- ID Card -->
     <a href="/id-card" class="tile tile-id">
       <div class="tile-icon"><i class="bi bi-credit-card-2-front-fill"></i></div>
       <div class="tile-label">ID Card</div>
       <div class="tile-sub">View & Download</div>
     </a>
-
   </div>
 
   <!-- Notifications shortcut -->
@@ -185,7 +222,7 @@
 </div>
 
 <style>
-.emp-home { padding-top: 20px; }
+@media (min-width: 992px) { .emp-home { padding-top: 20px; } } /* phones keep the space under the top bar */
 .emp-greeting {
   background: linear-gradient(135deg, #1a1d2e 0%, #2d3250 100%);
   border-radius: 16px; padding: 20px; color: #fff; margin-bottom: 20px;
@@ -210,6 +247,23 @@
   padding: 5px 14px; font-size: 12px; color: #444;
 }
 .stat-chip-warn { background: #fff3cd; color: #856404; }
+
+/* Primary actions */
+.primary-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.pa-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+          border-radius: 16px; padding: 16px 8px; min-height: 92px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px;
+          box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.pa-btn i { font-size: 1.9rem; line-height: 1; }
+.pa-btn small { font-weight: 500; opacity: .85; font-size: 12px; }
+.pa-btn:active { transform: scale(.98); color: #fff; }
+.pa-in    { background: #198754; }
+.pa-out   { background: #fd7e14; }
+.pa-done  { background: #6c757d; }
+.pa-visit { background: #0d6efd; }
+.pa-btn:hover { color: #fff; filter: brightness(1.05); }
+
+.followups .list-group-item { min-height: 60px; }
+.round-btn { width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; font-size: 1.1rem; }
 
 /* Tile Grid */
 .tile-grid {
@@ -251,6 +305,16 @@
 .tile-salary     .tile-icon { color: #20c997; }
 .tile-id         { border-color: #6c757d; }
 .tile-id         .tile-icon { color: #6c757d; }
+.tile-enquiry    { border-color: #cc0000; }
+.tile-enquiry    .tile-icon { color: #cc0000; }
+.tile-pipeline   { border-color: #0dcaf0; }
+.tile-pipeline   .tile-icon { color: #0aa2c0; }
+.tile-customers  { border-color: #198754; }
+.tile-customers  .tile-icon { color: #198754; }
+@media (max-width: 575.98px) {
+  .tile { min-height: 96px; padding: 14px 10px; }
+  .tile-icon { font-size: 1.7rem; margin-bottom: 4px; }
+}
 
 .notif-bar {
   background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px;
@@ -362,5 +426,8 @@ function closeVisitModal() {
   if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; }
   bootstrap.Modal.getInstance(document.getElementById('visitModal'))?.hide();
 }
+
+// Opened from the bottom bar's Visit button (/?visit=1)
+<% if (openVisit) { %>window.addEventListener('load', () => { history.replaceState(null, '', '/'); openVisitModal(); });<% } %>
 </script>
 </body></html>

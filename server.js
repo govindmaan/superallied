@@ -50,6 +50,7 @@ app.locals.UPLOADS_DIR = UPLOADS_DIR;
 app.locals.bullLogoB64 = BULL_LOGO_B64;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+app.set('trust proxy', 1); // behind Railway's proxy: req.ip is the real client address
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -114,24 +115,84 @@ app.use((req, res, next) => {
 });
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Login (password or 6-digit PIN) ──────────────────────────────────────────
+// Cloudflare Turnstile (free CAPTCHA) is on when both keys are set; otherwise skipped.
+const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY || '';
+const TURNSTILE_SECRET   = process.env.TURNSTILE_SECRET_KEY || '';
+const MAX_FAILED_LOGINS = 5;   // per account, then locked for LOCK_MINUTES
+const LOCK_MINUTES      = 15;
+const IP_MAX_ATTEMPTS   = 30;  // per network address per 15 minutes
+const ipAttempts = new Map();  // ip -> { count, since }
+
+function ipRateLimited(ip) {
+  const now = Date.now(), win = 15 * 60000;
+  const rec = ipAttempts.get(ip);
+  if (!rec || now - rec.since > win) { ipAttempts.set(ip, { count: 1, since: now }); return false; }
+  rec.count++;
+  return rec.count > IP_MAX_ATTEMPTS;
+}
+
+async function verifyCaptcha(token, ip) {
+  if (!TURNSTILE_SECRET) return true;
+  if (!token) return false;
+  try {
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST', body: new URLSearchParams({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }) });
+    return !!(await r.json()).success;
+  } catch (e) {
+    console.error('Turnstile verify failed:', e.message);
+    return false;
+  }
+}
+
 app.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
-  res.render('login', { title: 'Login' });
+  res.render('login', { title: 'Login', turnstileSiteKey: TURNSTILE_SECRET ? TURNSTILE_SITE_KEY : '' });
 });
 
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+app.post('/login', async (req, res) => {
+  const mode     = req.body.mode === 'pin' ? 'pin' : 'password';
+  const username = String(req.body.username || '').trim();
+  const fail = (error) => { req.session.flash = { error, loginMode: mode, username }; res.redirect('/login'); };
+
+  if (ipRateLimited(req.ip)) return fail('Too many login attempts. Please wait 15 minutes and try again.');
+  if (!(await verifyCaptcha(req.body['cf-turnstile-response'], req.ip))) return fail('Please complete the security check.');
+
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    req.session.flash = { error: 'Invalid username or password.' };
-    return res.redirect('/login');
+  if (user?.locked_until && new Date(user.locked_until) > new Date()) {
+    const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+    return fail(`Too many wrong attempts. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
   }
-  if (user.is_hr_active === 0) {
-    req.session.flash = { error: 'Your account has been deactivated. Contact HR/Admin.' };
-    return res.redirect('/login');
+
+  let ok = false;
+  if (user && mode === 'pin') {
+    if (!user.pin_hash) return fail('No PIN set for this account. Log in with your password, then set a PIN in My Profile.');
+    ok = /^\d{6}$/.test(req.body.pin || '') && bcrypt.compareSync(req.body.pin, user.pin_hash);
+  } else if (user) {
+    ok = bcrypt.compareSync(String(req.body.password || ''), user.password_hash);
   }
-  req.session.userId = user.id;
-  res.redirect('/');
+
+  if (!ok) {
+    if (user) {
+      const fails = (user.failed_logins || 0) + 1;
+      if (fails >= MAX_FAILED_LOGINS) {
+        db.prepare('UPDATE users SET failed_logins=0, locked_until=? WHERE id=?')
+          .run(new Date(Date.now() + LOCK_MINUTES * 60000).toISOString(), user.id);
+        return fail(`Too many wrong attempts. Account locked for ${LOCK_MINUTES} minutes.`);
+      }
+      db.prepare('UPDATE users SET failed_logins=? WHERE id=?').run(fails, user.id);
+    }
+    return fail(mode === 'pin' ? 'Invalid username or PIN.' : 'Invalid username or password.');
+  }
+  if (user.is_hr_active === 0) return fail('Your account has been deactivated. Contact HR/Admin.');
+
+  db.prepare('UPDATE users SET failed_logins=0, locked_until=NULL WHERE id=?').run(user.id);
+  // New session id on login (prevents session fixation)
+  req.session.regenerate(err => {
+    if (err) return fail('Login failed, please try again.');
+    req.session.userId = user.id;
+    res.redirect('/');
+  });
 });
 
 app.get('/logout', (req, res) => {
@@ -269,7 +330,20 @@ app.get('/', requireLogin, (req, res) => {
     const emp = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
     const monthClaim = db.prepare("SELECT COALESCE(SUM(total_claim),0) as t FROM travel_expenses WHERE user_id=? AND date LIKE ?")
       .get(uid, new Date().toISOString().slice(0,7) + '%').t;
-    return res.render('dashboard-employee', { title: 'Home', todayAtt, myQuotes, myVisits, pendingLeaves, emp, today, monthClaim });
+    // Sales: my open enquiries and follow-ups due today or overdue
+    let myEnquiries = 0, followupsDue = [];
+    if (res.locals.hasPerm('enquiries')) {
+      myEnquiries = db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active' AND assigned_to=?").get(uid).c;
+      followupsDue = db.prepare(`
+        SELECT e.id, e.customer_name, e.phone, e.machine_interested, f.d AS due
+        FROM enquiries e
+        JOIN (SELECT enquiry_id, MAX(next_followup_date) AS d FROM enquiry_followups WHERE next_followup_date IS NOT NULL GROUP BY enquiry_id) f
+          ON f.enquiry_id = e.id
+        WHERE e.status='active' AND e.assigned_to=? AND f.d <= ?
+        ORDER BY f.d LIMIT 10`).all(uid, todayIST());
+    }
+    return res.render('dashboard-employee', { title: 'Home', todayAtt, myQuotes, myVisits, pendingLeaves, emp, today, monthClaim,
+      myEnquiries, followupsDue, openVisit: req.query.visit === '1' });
   }
 
   if (role === 'admin') return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(), formatINR });
@@ -309,6 +383,29 @@ app.get('/', requireLogin, (req, res) => {
 app.get('/profile', requireLogin, (req, res) => {
   const emp = db.prepare('SELECT * FROM users WHERE id=?').get(req.session.userId);
   res.render('profile', { title: 'My Profile', emp });
+});
+
+// Set / change / remove the 6-digit login PIN (password required)
+function weakPin(pin) {
+  if (/^(\d)\1{5}$/.test(pin)) return true;                       // 111111
+  const asc = '0123456789012', desc = '9876543210987';
+  return asc.includes(pin) || desc.includes(pin);                 // 123456, 654321
+}
+
+app.post('/profile/pin', requireLogin, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.session.userId);
+  const { password, pin, confirm, remove } = req.body;
+  const back = (flash) => { req.session.flash = flash; res.redirect('/profile'); };
+  if (!bcrypt.compareSync(String(password || ''), user.password_hash)) return back({ error: 'Current password is wrong.' });
+  if (remove) {
+    db.prepare('UPDATE users SET pin_hash=NULL WHERE id=?').run(user.id);
+    return back({ success: 'Login PIN removed.' });
+  }
+  if (!/^\d{6}$/.test(pin || '')) return back({ error: 'PIN must be exactly 6 digits.' });
+  if (pin !== confirm)            return back({ error: 'The two PINs do not match.' });
+  if (weakPin(pin))               return back({ error: 'That PIN is too easy to guess. Avoid repeated or sequential digits.' });
+  db.prepare('UPDATE users SET pin_hash=? WHERE id=?').run(bcrypt.hashSync(pin, 10), user.id);
+  back({ success: user.pin_hash ? 'Login PIN changed.' : 'Login PIN set. You can now log in with your PIN.' });
 });
 
 app.post('/profile/photo', requireLogin, (req, res) => {

@@ -124,6 +124,10 @@ try { db.exec("ALTER TABLE customers ADD COLUMN deleted_at DATETIME"); } catch(e
 try { db.exec("ALTER TABLE customers ADD COLUMN deleted_by INTEGER REFERENCES users(id)"); } catch(e) {}
 try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_at DATETIME"); } catch(e) {}
 try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_by INTEGER REFERENCES users(id)"); } catch(e) {}
+// Login: optional 6-digit PIN, and lockout after repeated failed attempts
+try { db.exec("ALTER TABLE users ADD COLUMN pin_hash TEXT"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN failed_logins INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN locked_until DATETIME"); } catch(e) {}
 
 // Quotation columns
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_name TEXT DEFAULT ''"); } catch(e) {}

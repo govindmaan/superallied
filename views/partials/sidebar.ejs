@@ -109,6 +109,34 @@
   </a>
 </div>
 
+<%
+  // Bottom bar on phones for field staff (sales, service, office…); admin/manager/HR use the sidebar
+  const fieldUser = user && !['admin','manager','hr'].includes(user.role);
+  const p = (typeof currentPath !== 'undefined' && currentPath) || '';
+  const bottomNav = fieldUser ? [
+    { href: '/', icon: 'bi-house-door-fill', label: 'Home', on: p === '/' },
+    can('enquiries')
+      ? { href: '/enquiries', icon: 'bi-funnel-fill', label: 'Enquiries', on: p.startsWith('/enquiries') }
+      : { href: '/customers', icon: 'bi-people-fill', label: 'Customers', on: p.startsWith('/customers') },
+    { href: '/?visit=1', icon: 'bi-geo-alt-fill', label: 'Visit', center: true },
+    hasPerm('attendance')
+      ? { href: '/attendance', icon: 'bi-calendar-check-fill', label: 'Attendance', on: p.startsWith('/attendance') }
+      : { href: '/leaves', icon: 'bi-calendar-x-fill', label: 'Leaves', on: p.startsWith('/leaves') },
+  ] : [];
+%>
+<% if (fieldUser) { %>
+<nav class="bottom-nav" aria-label="Quick navigation">
+  <% bottomNav.forEach(b => { %>
+  <a href="<%= b.href %>" class="bn-item<%= b.center ? ' bn-center' : '' %><%= b.on ? ' active' : '' %>">
+    <span class="bn-icon"><i class="bi <%= b.icon %>"></i></span><span class="bn-label"><%= b.label %></span>
+  </a>
+  <% }) %>
+  <button type="button" class="bn-item" onclick="toggleSidebar()" aria-label="Open menu">
+    <span class="bn-icon"><i class="bi bi-list"></i></span><span class="bn-label">Menu</span>
+  </button>
+</nav>
+<% } %>
+
 <!-- Backdrop overlay -->
 <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
@@ -199,6 +227,26 @@
 </nav>
 
 <style>
+/* Bottom navigation (phones, field staff) */
+.bottom-nav { display: none; }
+@media (max-width: 991.98px) {
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
+    background: #fff; border-top: 1px solid #e5e7eb; box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  body:has(.bottom-nav) .main-content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: none;
+             color: #6b7280; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 0; min-height: 52px; justify-content: flex-end; }
+  .bn-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+  .bn-item.active { color: #cc0000; }
+  .bn-center .bn-icon { width: 54px; height: 54px; margin-top: -26px; border-radius: 50%; background: #cc0000; color: #fff;
+                        display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+                        box-shadow: 0 6px 16px rgba(204,0,0,.35); border: 4px solid #fff; }
+  .bn-center { color: #cc0000; }
+}
+
 /* Section headers */
 .sb-section { margin-top: 2px; }
 .sb-section-hdr {
