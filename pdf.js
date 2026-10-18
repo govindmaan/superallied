@@ -59,8 +59,13 @@ async function loadLetterhead(letterheadPath) {
   return bytes;
 }
 
-// Generate PDF with letterhead PDF as background on every page
-async function generatePDFWithLetterhead(html, letterheadPath) {
+// Writing area inside the letterhead: A4 minus the margins below
+const LH_MARGIN = { top: 38, right: 10, bottom: 20, left: 10 };   // mm
+const MM = 96 / 25.4;                                            // CSS px per mm
+
+// Generate PDF with letterhead PDF as background on every page.
+// fitOnePage: shrink the content (never enlarge) so it always fits on one page.
+async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = false } = {}) {
   if (!letterheadPath || !fs.existsSync(letterheadPath)) {
     return generatePDF(html);
   }
@@ -69,12 +74,23 @@ async function generatePDFWithLetterhead(html, letterheadPath) {
   const page = await browser.newPage();
   let contentBytes;
   try {
+    const areaW = (210 - LH_MARGIN.left - LH_MARGIN.right) * MM;
+    const areaH = (297 - LH_MARGIN.top - LH_MARGIN.bottom) * MM;
+    await page.setViewport({ width: Math.round(areaW), height: Math.round(areaH) });
+    await page.emulateMediaType('print');
     await page.setContent(html, { waitUntil: 'networkidle0' });
+    let scale = 1;
+    if (fitOnePage) {
+      const h = await page.evaluate(() => document.body.scrollHeight);
+      if (h > areaH - 4) scale = Math.max(0.5, (areaH - 4) / h);
+    }
     contentBytes = await page.pdf({
       format: 'A4',
       printBackground: true,
       omitBackground: true,
-      margin: { top: '38mm', right: '10mm', bottom: '20mm', left: '10mm' },
+      scale,
+      margin: { top: LH_MARGIN.top + 'mm', right: LH_MARGIN.right + 'mm', bottom: LH_MARGIN.bottom + 'mm', left: LH_MARGIN.left + 'mm' },
+      ...(fitOnePage ? { pageRanges: '1' } : {}),
     });
   } finally {
     await page.close();

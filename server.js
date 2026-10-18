@@ -459,6 +459,18 @@ function quotationValidTill(dateStr) {
   return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 }
 
+// Terms printed on every machine quotation (PDF + quotation page)
+function machineQuotationTerms(validTill) {
+  return [
+    { label: 'Price Validity',  text: `This quotation is valid till ${validTill} (end of the month of the quotation date).` },
+    { label: 'Delivery',        text: '01 to 02 weeks, Ex-Meerut, from the date of receipt of the buyer firm\'s executable order.' },
+    { label: 'Payment Terms',   text: '100% in advance with order, payable by demand draft in favour of Super Allied.' },
+    { label: 'Warranty',        text: '01 Year or 2000 Hours. Engine warranty applicable as per manufacturer guidelines.' },
+    { label: 'Taxes & Duties',  text: 'Applicable at the time of delivery; charged at the rate prevailing on the date of dispatch.' },
+    { label: 'For Financer',    text: 'Please address your delivery order & payment in favour of Super Allied, or obtain an NOC before payment to "Bull Machine Pvt. Ltd."' },
+  ];
+}
+
 function fmtLongDate(dateStr) {
   return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
@@ -677,7 +689,8 @@ app.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) =
   const specs = db.prepare('SELECT * FROM machine_specs WHERE machine_id=? ORDER BY display_order').all(q.machine_id);
   const qDate = quotationDateOf(q);
   res.render('quotation-view', { title: `Quotation ${q.quotation_number}`, q, calc, specs, formatINR, customerIds: quotationCustomerIds(q),
-    quotationDate: fmtLongDate(qDate), validTill: fmtLongDate(quotationValidTill(qDate)) });
+    quotationDate: fmtLongDate(qDate), validTill: fmtLongDate(quotationValidTill(qDate)),
+    terms: machineQuotationTerms(fmtLongDate(quotationValidTill(qDate))) });
 });
 
 app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, res) => {
@@ -781,13 +794,14 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
   const html = await new Promise((resolve, reject) => {
     const qDate = quotationDateOf(q);
     res.app.render('quotation-pdf', { q, calc, specs, settings: s, formatINR, customerIds: quotationCustomerIds(q),
-      quotationDate: fmtLongDate(qDate).toUpperCase(), validTill: fmtLongDate(quotationValidTill(qDate)), numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: PAYMENT_QR_B64 }, (err, html) => {
+      quotationDate: fmtLongDate(qDate).toUpperCase(), validTill: fmtLongDate(quotationValidTill(qDate)),
+      terms: machineQuotationTerms(fmtLongDate(quotationValidTill(qDate))), numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: PAYMENT_QR_B64 }, (err, html) => {
       if (err) reject(err); else resolve(html);
     });
   });
 
   try {
-    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH);
+    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH, { fitOnePage: true });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Quotation-${q.quotation_number.replace('/', '-')}.pdf"`);
     res.send(pdfBuffer);

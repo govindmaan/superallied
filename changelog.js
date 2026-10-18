@@ -6,6 +6,9 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'improved', title: 'Terms & Conditions on machine quotations; always one page',
+        details: ['Price validity, delivery, payment terms, warranty, taxes & duties and financer note printed on every machine quotation.',
+                  'Long quotations shrink slightly to fit, so the PDF never runs onto a second page.'] },
       { commit: '', type: 'improved', title: 'Quotation PDFs are much smaller',
         details: ['Machine and spare quotation PDFs drop from about 1.5 MB to about 230 KB, with the same look.'] },
       { commit: '', type: 'improved', title: 'Salespersons see only their own customers',

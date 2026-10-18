@@ -5,7 +5,7 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: transparent; }
-  .page { width: 190mm; }
+  .page { width: 100%; } /* fills the letterhead's writing area, also when scaled to fit one page */
 
   /* ── Header ── */
   .header { display: flex; justify-content: space-between; align-items: flex-start;
@@ -20,7 +20,7 @@
 
   /* ── Customer block ── */
   .customer-block { border: 1px solid #ccc; padding: 6px 10px; margin-bottom: 6px;
-                    font-size: 11px; line-height: 1.75; display: flex; justify-content: space-between; }
+                    font-size: 11px; line-height: 1.6; display: flex; justify-content: space-between; }
   .customer-right { text-align: right; white-space: nowrap; font-size: 11px; }
 
   .greeting { font-size: 11px; margin-bottom: 5px; }
@@ -53,7 +53,11 @@
   .qr-box  { width: 72px; height: 72px; border: 1px solid #aaa; display: flex; align-items: center;
              justify-content: center; font-size: 9px; color: #888; text-align: center; }
 
-  .validity { margin-top: 9px; font-size: 11px; }
+  /* ── Terms & Conditions ── */
+  .terms { margin-top: 8px; font-size: 10px; line-height: 1.45; }
+  .terms-title { font-weight: bold; font-size: 11px; margin-bottom: 2px; }
+  .terms ol { padding-left: 16px; }
+  .terms li { margin-bottom: 1px; }
   .footer { margin-top: 9px; font-size: 11px; font-weight: bold;
             border-top: 1px solid #ccc; padding-top: 6px; }
 </style>
@@ -204,6 +208,14 @@
     </tbody>
   </table>
 
+  <!-- TERMS & CONDITIONS -->
+  <div class="terms">
+    <div class="terms-title">Terms &amp; Conditions</div>
+    <ol>
+      <% terms.forEach(t => { %><li><strong><%= t.label %> :</strong> <%= t.text %></li><% }) %>
+    </ol>
+  </div>
+
   <!-- BANK + QR -->
   <div class="bank-block">
     <div>
@@ -222,11 +234,6 @@
         <div class="qr-box">Scan to<br>Pay</div>
       <% } %>
     </div>
-  </div>
-
-  <!-- VALIDITY -->
-  <div class="validity">
-    <strong>Quotation Validity :</strong> This quotation is valid till <strong><%= validTill %></strong>.
   </div>
 
   <!-- FOOTER -->
