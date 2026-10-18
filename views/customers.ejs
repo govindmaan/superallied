@@ -12,7 +12,7 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="GET" action="/customers" class="d-flex gap-2">
-        <input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Search by name, phone or GSTIN…">
+        <input type="text" name="q" value="<%= q %>" class="form-control" placeholder="Search by name, phone, GSTIN or PAN…">
         <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
         <% if (q) { %><a href="/customers" class="btn btn-outline-danger">Clear</a><% } %>
       </form>
@@ -23,14 +23,14 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Name</th><th>Phone</th><th>GSTIN</th><th>City / State</th><th>Added</th><th></th></tr>
+          <tr><th>Name</th><th>Phone</th><th>GSTIN / PAN</th><th>City / State</th><th>Added</th><th></th></tr>
         </thead>
         <tbody>
           <% customers.forEach(c => { %>
           <tr>
             <td class="fw-semibold"><%= c.name %></td>
             <td><%= c.phone %></td>
-            <td class="font-monospace small"><%= c.gstin %></td>
+            <td class="font-monospace small"><%= c.gstin %><% if (c.pan && !c.gstin) { %><%= c.pan %><% } %></td>
             <td class="text-muted small"><%= [c.city, c.state].filter(Boolean).join(', ') %></td>
             <td class="text-muted small"><%= new Date(c.created_at).toLocaleDateString('en-IN') %></td>
             <td class="text-end">

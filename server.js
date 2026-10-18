@@ -223,12 +223,74 @@ function canAccessCustomer(res, customer) {
   return res.locals.user?.role === 'admin' || customer.created_by == null || customer.created_by === res.locals.user?.id;
 }
 
+// Normalise + validate GSTIN / PAN / Aadhaar from the customer form. Blank is allowed.
+// PAN is characters 3–12 of a GSTIN, so it is filled in from the GSTIN when left empty.
+function parseCustomerIds(body) {
+  const gstin   = String(body.gstin   || '').toUpperCase().replace(/\s+/g, '');
+  let   pan     = String(body.pan     || '').toUpperCase().replace(/\s+/g, '');
+  const aadhaar = String(body.aadhaar || '').replace(/[\s-]+/g, '');
+  if (gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) return { error: 'GSTIN must be 15 characters, e.g. 09ABCDE1234F1Z5.' };
+  if (!pan && gstin) pan = gstin.slice(2, 12);
+  if (pan && !/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)) return { error: 'PAN must be 10 characters, e.g. ABCDE1234F.' };
+  if (aadhaar && !/^[2-9]\d{11}$/.test(aadhaar)) return { error: 'Aadhaar must be 12 digits.' };
+  return { gstin, pan, aadhaar };
+}
+
+// Customer ids printed on a machine quotation: GSTIN and/or PAN when present,
+// otherwise Aadhaar (masked to the last 4 digits).
+// ── Machine quotation helpers ─────────────────────────────────────────────────
+const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+
+// Date printed on the quotation: chosen date, or creation date for older quotations
+function quotationDateOf(q) {
+  return q.quotation_date || String(q.created_at || '').slice(0, 10) || todayIST();
+}
+
+// A quotation is valid till the last day (30th/31st, 28th/29th in Feb) of its month
+function quotationValidTill(dateStr) {
+  const [y, m] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
+function fmtLongDate(dateStr) {
+  return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+// Date, salesperson and additional items from the quotation form.
+// The salesperson must be chosen; name/phone are copied from the salesperson record.
+// An inactive salesperson is only accepted if already on the quotation being edited.
+function parseQuotationExtras(body, existing) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(body.quotation_date || '') ? body.quotation_date : todayIST();
+
+  const spId = parseInt(body.salesperson_id) || 0;
+  const sp = spId ? db.prepare('SELECT id, name, phone, active FROM salespersons WHERE id=?').get(spId) : null;
+  if (!sp || (!sp.active && existing?.salesperson_id !== sp.id)) return { error: 'Please choose the salesperson for this quotation.' };
+
+  const descs   = [].concat(body.extra_desc   ?? []);
+  const amounts = [].concat(body.extra_amount ?? []);
+  const items = Array.from({ length: Math.max(descs.length, amounts.length) }, (_, i) =>
+                       ({ description: String(descs[i] ?? '').trim(), amount: Math.max(0, parseFloat(amounts[i]) || 0) }))
+                     .filter(it => it.description || it.amount);
+  if (items.some(it => !it.description)) return { error: 'Each additional item needs a description.' };
+
+  return { date, salesperson: sp, extraItems: JSON.stringify(items) };
+}
+
+function quotationCustomerIds(q) {
+  const ids = [];
+  if (q.customer_gstin) ids.push({ label: 'GSTIN', value: q.customer_gstin });
+  if (q.customer_pan)   ids.push({ label: 'PAN',   value: q.customer_pan });
+  if (!ids.length && q.customer_aadhaar)
+    ids.push({ label: 'Aadhaar', value: 'XXXX XXXX ' + q.customer_aadhaar.slice(-4) });
+  return ids;
+}
+
 app.get('/customers', requireLogin, (req, res) => {
   const q = req.query.q || '';
   const isAdmin = res.locals.user?.role === 'admin';
   let sql = 'SELECT * FROM customers WHERE 1=1';
   const params = [];
-  if (q) { sql += ' AND (name LIKE ? OR phone LIKE ? OR gstin LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (q) { sql += ' AND (name LIKE ? OR phone LIKE ? OR gstin LIKE ? OR pan LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`); }
   if (!isAdmin) { sql += ' AND (created_by=? OR created_by IS NULL)'; params.push(req.session.userId); }
   sql += ' ORDER BY name';
   const customers = db.prepare(sql).all(...params);
@@ -240,14 +302,19 @@ app.get('/customers/new', requireLogin, (req, res) => {
 });
 
 app.post('/customers', requireLogin, (req, res) => {
-  const { name, phone, address, city, state, gstin, hp_with, notes } = req.body;
+  const { name, phone, address, city, state, hp_with, notes } = req.body;
   if (!name?.trim()) {
     req.session.flash = { error: 'Customer name is required.' };
     return res.redirect('/customers/new');
   }
-  db.prepare(`INSERT INTO customers (name,phone,address,city,state,gstin,hp_with,notes,created_by)
-              VALUES (?,?,?,?,?,?,?,?,?)`)
-    .run(name.trim(), phone||'', address||'', city||'', state||'', gstin||'', hp_with||'', notes||'', req.session.userId);
+  const ids = parseCustomerIds(req.body);
+  if (ids.error) {
+    res.locals.flash = { error: ids.error };
+    return res.render('customer-form', { title: 'New Customer', customer: req.body });
+  }
+  db.prepare(`INSERT INTO customers (name,phone,address,city,state,gstin,pan,aadhaar,hp_with,notes,created_by)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(name.trim(), phone||'', address||'', city||'', state||'', ids.gstin, ids.pan, ids.aadhaar, hp_with||'', notes||'', req.session.userId);
   req.session.flash = { success: `Customer "${name}" created.` };
   res.redirect('/customers');
 });
@@ -267,9 +334,14 @@ app.post('/customers/:id', requireLogin, (req, res) => {
     req.session.flash = { error: customer ? `You don't have permission to edit this customer.` : 'Customer not found.' };
     return res.redirect('/customers');
   }
-  const { name, phone, address, city, state, gstin, hp_with, notes } = req.body;
-  db.prepare(`UPDATE customers SET name=?,phone=?,address=?,city=?,state=?,gstin=?,hp_with=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .run(name, phone||'', address||'', city||'', state||'', gstin||'', hp_with||'', notes||'', req.params.id);
+  const { name, phone, address, city, state, hp_with, notes } = req.body;
+  const ids = parseCustomerIds(req.body);
+  if (ids.error) {
+    res.locals.flash = { error: ids.error };
+    return res.render('customer-form', { title: 'Edit Customer', customer: { ...req.body, id: customer.id } });
+  }
+  db.prepare(`UPDATE customers SET name=?,phone=?,address=?,city=?,state=?,gstin=?,pan=?,aadhaar=?,hp_with=?,notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .run(name, phone||'', address||'', city||'', state||'', ids.gstin, ids.pan, ids.aadhaar, hp_with||'', notes||'', req.params.id);
   req.session.flash = { success: 'Customer updated.' };
   res.redirect('/customers');
 });
@@ -315,7 +387,7 @@ app.get('/quotations/new', requireLogin, requirePerm('quotations'), (req, res) =
   const prefill      = req.query.customer_id || '';
   const s            = getSettings();
   res.render('quotation-form', { title: 'New Quotation', quotation: null, machines, customers, salespersons, prefill, formatINR, settings: s,
-    defaultSalesperson: s.contact_name || '', defaultSalespersonPhone: s.contact_phone || '' });
+    quotationDate: todayIST(), quotationValidTill });
 });
 
 app.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
@@ -323,24 +395,25 @@ app.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
     customer_id, machine_id, quantity, basic_price,
     tax_mode, cgst_rate, sgst_rate, igst_rate,
     has_tcs, tcs_rate, insurance_amount, trc, handling_charges, transport_charges, hp_with, notes,
-    salesperson_name, salesperson_phone,
   } = req.body;
 
   if (!customer_id || !machine_id || !basic_price) {
     req.session.flash = { error: 'Customer, machine and price are required.' };
     return res.redirect('/quotations/new');
   }
-
-  const spId3 = req.body.salesperson_id ? parseInt(req.body.salesperson_id) : null;
-  let spName3 = salesperson_name || '';
-  if (spId3) { const spR3 = db.prepare('SELECT name,phone FROM salespersons WHERE id=?').get(spId3); if (spR3) { spName3 = spR3.name; } }
+  const extras = parseQuotationExtras(req.body, null);
+  if (extras.error) {
+    req.session.flash = { error: extras.error };
+    return res.redirect('/quotations/new');
+  }
 
   const { quotationNumber, financialYear, serialNumber } = nextQuotationNumber();
   db.prepare(`INSERT INTO quotations
     (quotation_number,financial_year,serial_number,customer_id,machine_id,user_id,
      quantity,basic_price,transit_insurance,tax_mode,cgst_rate,sgst_rate,igst_rate,
-     has_tcs,tcs_rate,insurance_amount,trc,handling_charges,transport_charges,hp_with,notes,salesperson_name,salesperson_phone,tyre_option,salesperson_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+     has_tcs,tcs_rate,insurance_amount,trc,handling_charges,transport_charges,hp_with,notes,salesperson_name,salesperson_phone,tyre_option,salesperson_id,
+     quotation_date,extra_items)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(
       quotationNumber, financialYear, serialNumber,
       +customer_id, +machine_id, req.session.userId,
@@ -349,8 +422,9 @@ app.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
       has_tcs === 'on' ? 1 : 0, +tcs_rate||1,
       +insurance_amount||0, String(+trc||0), +handling_charges||0, +transport_charges||0,
       hp_with||'', notes||'',
-      spName3, salesperson_phone||'',
-      req.body.tyre_option||'IT', spId3
+      extras.salesperson.name, extras.salesperson.phone||'',
+      req.body.tyre_option||'IT', extras.salesperson.id,
+      extras.date, extras.extraItems
     );
   req.session.flash = { success: `Quotation ${quotationNumber} created.` };
   res.redirect('/quotations');
@@ -362,6 +436,7 @@ app.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) =
     SELECT qo.*, c.name as customer_name, c.phone as customer_phone,
            c.address as customer_address, c.city as customer_city,
            c.state as customer_state, c.gstin as customer_gstin,
+           c.pan as customer_pan, c.aadhaar as customer_aadhaar,
            m.display_name as machine_name, m.model_code, m.hsn_code,
            m.engine, m.transmission, m.rear_axle, m.pump,
            m.front_tyre, m.rear_tyre, m.battery, m.weight,
@@ -375,7 +450,9 @@ app.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) =
   const s = getSettings();
   const calc = calcQuotation(q, s);
   const specs = db.prepare('SELECT * FROM machine_specs WHERE machine_id=? ORDER BY display_order').all(q.machine_id);
-  res.render('quotation-view', { title: `Quotation ${q.quotation_number}`, q, calc, specs, formatINR });
+  const qDate = quotationDateOf(q);
+  res.render('quotation-view', { title: `Quotation ${q.quotation_number}`, q, calc, specs, formatINR, customerIds: quotationCustomerIds(q),
+    quotationDate: fmtLongDate(qDate), validTill: fmtLongDate(quotationValidTill(qDate)) });
 });
 
 app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, res) => {
@@ -388,29 +465,35 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
     ? db.prepare('SELECT * FROM customers ORDER BY name').all()
     : db.prepare('SELECT * FROM customers WHERE created_by=? OR created_by IS NULL ORDER BY name').all(req.session.userId);
   const s         = getSettings();
-  const salespersons2 = db.prepare('SELECT id,name FROM salespersons WHERE active=1 ORDER BY name').all();
+  // Active salespersons, plus the one already on this quotation even if since deactivated
+  const salespersons2 = db.prepare('SELECT id,name FROM salespersons WHERE active=1 OR id=? ORDER BY name').all(quotation.salesperson_id || 0);
   res.render('quotation-form', { title: 'Edit Quotation', quotation, machines, customers, salespersons: salespersons2, prefill: '', formatINR, settings: s,
-    defaultSalesperson: s.contact_name || '', defaultSalespersonPhone: s.contact_phone || '' });
+    quotationDate: quotationDateOf(quotation), quotationValidTill });
 });
 
 app.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) => {
   const isAdmin = res.locals.user?.role === 'admin';
-  const existing = db.prepare('SELECT user_id FROM quotations WHERE id=?').get(req.params.id);
+  const existing = db.prepare('SELECT user_id, salesperson_id FROM quotations WHERE id=?').get(req.params.id);
   if (!existing || (!isAdmin && existing.user_id !== req.session.userId)) {
     req.session.flash = { error: `You don't have permission to edit this quotation.` };
     return res.redirect('/quotations');
+  }
+  const extras = parseQuotationExtras(req.body, existing);
+  if (extras.error) {
+    req.session.flash = { error: extras.error };
+    return res.redirect(`/quotations/${req.params.id}/edit`);
   }
   const {
     customer_id, machine_id, quantity, basic_price,
     tax_mode, cgst_rate, sgst_rate, igst_rate,
     has_tcs, tcs_rate, insurance_amount, trc, handling_charges, transport_charges, hp_with, notes, status,
-    salesperson_name, salesperson_phone, tyre_option,
+    tyre_option,
   } = req.body;
   db.prepare(`UPDATE quotations SET
     customer_id=?,machine_id=?,quantity=?,basic_price=?,transit_insurance=?,
     tax_mode=?,cgst_rate=?,sgst_rate=?,igst_rate=?,has_tcs=?,tcs_rate=?,
     insurance_amount=?,trc=?,handling_charges=?,transport_charges=?,hp_with=?,notes=?,status=?,
-    salesperson_name=?,salesperson_phone=?,tyre_option=?
+    salesperson_name=?,salesperson_phone=?,salesperson_id=?,tyre_option=?,quotation_date=?,extra_items=?
     WHERE id=?`)
     .run(
       +customer_id, +machine_id, +quantity||1, +basic_price, 0,
@@ -418,8 +501,8 @@ app.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) 
       has_tcs === 'on' ? 1 : 0, +tcs_rate||1,
       +insurance_amount||0, String(+trc||0), +handling_charges||0, +transport_charges||0,
       hp_with||'', notes||'', status||'draft',
-      salesperson_name||'', salesperson_phone||'',
-      tyre_option||'IT',
+      extras.salesperson.name, extras.salesperson.phone||'', extras.salesperson.id,
+      tyre_option||'IT', extras.date, extras.extraItems,
       req.params.id
     );
   req.session.flash = { success: 'Quotation updated.' };
@@ -444,6 +527,7 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
     SELECT qo.*, c.name as customer_name, c.phone as customer_phone,
            c.address as customer_address, c.city as customer_city,
            c.state as customer_state, c.gstin as customer_gstin,
+           c.pan as customer_pan, c.aadhaar as customer_aadhaar,
            m.display_name as machine_name, m.model_code, m.hsn_code,
            m.engine, m.transmission, m.rear_axle, m.pump,
            m.front_tyre, m.rear_tyre, m.battery, m.weight,
@@ -459,7 +543,9 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
   const calc = calcQuotation(q, s);
   const specs = db.prepare('SELECT * FROM machine_specs WHERE machine_id=? ORDER BY display_order').all(q.machine_id);
   const html = await new Promise((resolve, reject) => {
-    res.app.render('quotation-pdf', { q, calc, specs, settings: s, formatINR, numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: PAYMENT_QR_B64 }, (err, html) => {
+    const qDate = quotationDateOf(q);
+    res.app.render('quotation-pdf', { q, calc, specs, settings: s, formatINR, customerIds: quotationCustomerIds(q),
+      quotationDate: fmtLongDate(qDate).toUpperCase(), validTill: fmtLongDate(quotationValidTill(qDate)), numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: PAYMENT_QR_B64 }, (err, html) => {
       if (err) reject(err); else resolve(html);
     });
   });
@@ -511,7 +597,6 @@ app.post('/settings', requireLogin, (req, res) => {
     'contact_name','contact_phone','company_phone_sales','company_phone_service',
     'company_email','company_udyam','company_state','company_state_code',
     'bank_beneficiary','bank_account','bank_ifsc','bank_branch',
-    'salesperson_name','salesperson_phone',
     'rto_default_rate','price_lock_enabled','roundoff_enabled','roundoff_amount',
     'company_upi'
   ];

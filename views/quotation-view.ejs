@@ -22,7 +22,9 @@
             <dt class="col-4 text-muted">Phone</dt><dd class="col-8"><%= q.customer_phone %></dd>
             <dt class="col-4 text-muted">Address</dt><dd class="col-8"><%= q.customer_address %></dd>
             <dt class="col-4 text-muted">City/State</dt><dd class="col-8"><%= [q.customer_city, q.customer_state].filter(Boolean).join(', ') %></dd>
-            <dt class="col-4 text-muted">GSTIN</dt><dd class="col-8 font-monospace"><%= q.customer_gstin %></dd>
+            <% customerIds.forEach(id => { %>
+            <dt class="col-4 text-muted"><%= id.label %></dt><dd class="col-8 font-monospace"><%= id.value %></dd>
+            <% }) %>
             <dt class="col-4 text-muted">HP With</dt><dd class="col-8"><%= q.hp_with || '—' %></dd>
           </dl>
         </div>
@@ -60,6 +62,8 @@
           <dl class="row mb-0">
             <dt class="col-4 text-muted">Name</dt><dd class="col-8 fw-semibold"><%= q.salesperson_name || '—' %></dd>
             <dt class="col-4 text-muted">Phone</dt><dd class="col-8"><%= q.salesperson_phone || '—' %></dd>
+            <dt class="col-4 text-muted">Quotation Date</dt><dd class="col-8"><%= quotationDate %></dd>
+            <dt class="col-4 text-muted">Valid Till</dt><dd class="col-8"><%= validTill %></dd>
           </dl>
         </div>
       </div>
@@ -84,6 +88,9 @@
             <tr style="background-color: #fff3cd"><td><strong>Roundoff (Up)</strong></td><td class="text-end text-warning fw-bold">+ ₹<%= formatINR(calc.roundoff) %></td></tr>
             <% } %>
             <tr class="table-secondary fw-semibold"><td>Ex-Showroom Price</td><td class="text-end">₹<%= formatINR(calc.exShowroom) %></td></tr>
+            <% calc.extraItems.forEach(it => { %>
+            <tr><td><%= it.description %></td><td class="text-end">₹<%= formatINR(it.amount) %></td></tr>
+            <% }) %>
             <tr><td>Insurance (with IMT-23)</td><td class="text-end"><%= calc.insuranceAmount > 0 ? '₹' + formatINR(calc.insuranceAmount) : '—' %></td></tr>
             <tr><td>TRC / LTT</td><td class="text-end"><%= calc.trcAmount > 0 ? '₹' + formatINR(calc.trcAmount) : '—' %></td></tr>
             <tr><td>Handling Charges</td><td class="text-end"><%= calc.handling > 0 ? '₹' + formatINR(calc.handling) : '—' %></td></tr>

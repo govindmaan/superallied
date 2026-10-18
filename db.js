@@ -115,10 +115,17 @@ db.exec(`
 
 // Customer ownership (so non-admins only see customers they created)
 try { db.exec("ALTER TABLE customers ADD COLUMN created_by INTEGER REFERENCES users(id)"); } catch(e) {}
+// Customer KYC ids (GSTIN already exists)
+try { db.exec("ALTER TABLE customers ADD COLUMN pan TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE customers ADD COLUMN aadhaar TEXT DEFAULT ''"); } catch(e) {}
 
 // Quotation columns
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_name TEXT DEFAULT ''"); } catch(e) {}
 try { db.exec("ALTER TABLE quotations ADD COLUMN salesperson_phone TEXT DEFAULT ''"); } catch(e) {}
+// Quotation date (editable; old rows fall back to created_at) and additional
+// items after Ex-Showroom, stored as JSON [{ description, amount }]
+try { db.exec("ALTER TABLE quotations ADD COLUMN quotation_date DATE"); } catch(e) {}
+try { db.exec("ALTER TABLE quotations ADD COLUMN extra_items TEXT DEFAULT '[]'"); } catch(e) {}
 try { db.exec("ALTER TABLE quotations ADD COLUMN tyre_option TEXT DEFAULT 'IT'"); } catch(e) {}
 
 // Machine columns
@@ -808,8 +815,8 @@ function numberToWords(n) {
   return w.trim()+' Rupees Only';
 }
 
-// Basic → GST → TCS → roundoff = Ex-Showroom Price; then Insurance, TRC/LTT,
-// Handling and Transport are added on top to reach the Grand Total.
+// Basic → GST → TCS → roundoff = Ex-Showroom Price; then Additional Items,
+// Insurance, TRC/LTT, Handling and Transport are added on top to reach the Grand Total.
 function calcQuotation(q, settings) {
   const basic = q.basic_price * q.quantity;
   const base  = basic;
@@ -837,10 +844,14 @@ function calcQuotation(q, settings) {
   const trcAmount       = parseFloat(q.trc) || 0;
   const handling        = parseFloat(q.handling_charges) || 0;
   const transport       = parseFloat(q.transport_charges) || 0;
-  const total = exShowroom + insuranceAmount + trcAmount + handling + transport;
+  let extraItems = [];
+  try { extraItems = JSON.parse(q.extra_items || '[]'); } catch (e) {}
+  const extrasTotal = extraItems.reduce((sum, it) => sum + (parseFloat(it.amount) || 0), 0);
+  const total = exShowroom + extrasTotal + insuranceAmount + trcAmount + handling + transport;
 
   return { basic, base, cgst, sgst, igst, preTcs, tcs, preRound,
            roundoff, roundoffApplied: roundoff > 0, exShowroom,
+           extraItems, extrasTotal,
            insuranceAmount, trcAmount, handling, transport, total,
            amountWords: numberToWords(Math.round(total)) };
 }

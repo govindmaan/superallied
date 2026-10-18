@@ -53,6 +53,7 @@
   .qr-box  { width: 72px; height: 72px; border: 1px solid #aaa; display: flex; align-items: center;
              justify-content: center; font-size: 9px; color: #888; text-align: center; }
 
+  .validity { margin-top: 9px; font-size: 11px; }
   .footer { margin-top: 9px; font-size: 11px; font-weight: bold;
             border-top: 1px solid #ccc; padding-top: 6px; }
 </style>
@@ -67,11 +68,11 @@
       <strong>Name</strong> - <%= q.customer_name %><br>
       <strong>Phone</strong> - <%= q.customer_phone || 'XXXXX-XXXXX' %><br>
       <strong>Address</strong> - <%= [q.customer_address, q.customer_city, q.customer_state].filter(Boolean).join(', ') %><br>
-      <strong>GSTIN</strong> : <%= q.customer_gstin || '' %><br>
+      <% customerIds.forEach(id => { %><strong><%= id.label %></strong> : <%= id.value %><br><% }) %>
       <strong>HP with</strong> - <%= q.hp_with || '—' %>
     </div>
     <div class="customer-right">
-      <strong>Date :</strong> <%= new Date(q.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}).toUpperCase() %><br>
+      <strong>Date :</strong> <%= quotationDate %><br>
       <strong>Quotation Number</strong> - <%= q.quotation_number %><br>
       <% if (q.salesperson_name) { %><strong>Salesperson</strong> - <%= q.salesperson_name %><% if (q.salesperson_phone) { %> (<%= q.salesperson_phone %>)<% } %><% } %>
     </div>
@@ -169,6 +170,12 @@
       <tr class="row-bold">
         <td></td><td>Ex-Showroom Price</td><td></td><td class="col-price"><%= formatINR(calc.exShowroom) %></td>
       </tr>
+      <% calc.extraItems.forEach(it => { %>
+      <tr>
+        <td></td><td><%= it.description %></td><td></td>
+        <td class="col-price"><%= formatINR(it.amount) %></td>
+      </tr>
+      <% }) %>
       <tr>
         <td></td><td>Insurance including IMT-23</td><td></td>
         <td class="col-price"><%= calc.insuranceAmount > 0 ? formatINR(calc.insuranceAmount) : '—' %></td>
@@ -215,6 +222,11 @@
         <div class="qr-box">Scan to<br>Pay</div>
       <% } %>
     </div>
+  </div>
+
+  <!-- VALIDITY -->
+  <div class="validity">
+    <strong>Quotation Validity :</strong> This quotation is valid till <strong><%= validTill %></strong>.
   </div>
 
   <!-- FOOTER -->
