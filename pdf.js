@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, PDFArray, PDFName, PDFRawStream, PDFNumber } = require('pdf-lib');
 const fs = require('fs');
 
 let _browser = null;
@@ -31,6 +31,34 @@ async function generatePDF(html) {
   }
 }
 
+// The letterhead artwork embeds a ~1.4 MB print (CMYK) colour profile that every
+// quotation would carry. Swap ICC-based colour spaces for their plain device
+// equivalent and drop the profiles: same look on screen and office printers,
+// far smaller file. Cleaned once and cached until the file changes.
+let _letterhead = null; // { path, mtimeMs, bytes }
+
+async function loadLetterhead(letterheadPath) {
+  const { mtimeMs } = fs.statSync(letterheadPath);
+  if (_letterhead && _letterhead.path === letterheadPath && _letterhead.mtimeMs === mtimeMs) return _letterhead.bytes;
+
+  const doc = await PDFDocument.load(fs.readFileSync(letterheadPath));
+  const ctx = doc.context;
+  const device = { 1: 'DeviceGray', 3: 'DeviceRGB', 4: 'DeviceCMYK' };
+  for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFArray) || obj.size() !== 2) continue;
+    if (obj.lookup(0) !== PDFName.of('ICCBased')) continue;
+    const profileRef = obj.get(1);
+    const profile = ctx.lookup(profileRef);
+    const n = profile instanceof PDFRawStream ? profile.dict.lookup(PDFName.of('N'), PDFNumber)?.asNumber() : null;
+    if (!device[n]) continue;
+    ctx.assign(ref, PDFName.of(device[n]));
+    ctx.delete(profileRef);
+  }
+  const bytes = await doc.save();
+  _letterhead = { path: letterheadPath, mtimeMs, bytes };
+  return bytes;
+}
+
 // Generate PDF with letterhead PDF as background on every page
 async function generatePDFWithLetterhead(html, letterheadPath) {
   if (!letterheadPath || !fs.existsSync(letterheadPath)) {
@@ -53,8 +81,7 @@ async function generatePDFWithLetterhead(html, letterheadPath) {
   }
 
   try {
-    const letterheadBytes = fs.readFileSync(letterheadPath);
-    const letterheadDoc = await PDFDocument.load(letterheadBytes);
+    const letterheadDoc = await PDFDocument.load(await loadLetterhead(letterheadPath));
     const contentDoc = await PDFDocument.load(contentBytes);
     const outputDoc = await PDFDocument.create();
     const pageCount = contentDoc.getPageCount();

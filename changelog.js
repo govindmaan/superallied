@@ -6,6 +6,8 @@ module.exports = [
   {
     date: '2026-10-18',
     items: [
+      { commit: '', type: 'improved', title: 'Quotation PDFs are much smaller',
+        details: ['Machine and spare quotation PDFs drop from about 1.5 MB to about 230 KB, with the same look.'] },
       { commit: '', type: 'improved', title: 'Salespersons see only their own customers',
         details: ['Customer list, quotation customer picker and search show only customers you created.',
                   'Search also shows only your own enquiries and quotations.'] },
