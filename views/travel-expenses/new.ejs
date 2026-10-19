@@ -90,7 +90,7 @@
                 <%= linkedVisitIds.includes(v.id) ? 'checked' : '' %>>
               <label class="form-check-label small" for="v<%= v.id %>">
                 VIS-<%= String(v.id).padStart(5,'0') %> — <%= v.customer_name %>
-                <span class="text-muted"><%= new Date(v.visit_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+                <span class="text-muted"><%= dbTime(v.visit_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
               </label>
             </div>
             <% }) %>

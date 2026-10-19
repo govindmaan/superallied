@@ -1,0 +1,322 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'route', user }) %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<div class="main-content route-page">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-map me-2 text-danger"></i><%= canViewAll ? 'DSE Route Map' : 'My Route' %></h4>
+  </div>
+
+  <!-- Filters -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+      <form id="filters" class="row g-2 align-items-end">
+        <% if (canViewAll) { %>
+        <div class="col-12 col-md-4">
+          <label class="form-label small mb-1" for="f_user">DSE / Employee</label>
+          <select id="f_user" class="form-select">
+            <% employees.forEach(e => { %><option value="<%= e.id %>" <%= e.id === selUser ? 'selected' : '' %>><%= e.full_name || e.username %><%= e.visits ? '' : ' (no visits)' %></option><% }) %>
+          </select>
+        </div>
+        <% } %>
+        <div class="col-6 col-md-3" id="dayField">
+          <label class="form-label small mb-1" for="f_date">Visit date</label>
+          <input type="date" id="f_date" class="form-control" value="<%= selDate %>" max="<%= today %>">
+        </div>
+        <div class="col-6 col-md-2 d-none rangeField">
+          <label class="form-label small mb-1" for="f_from">From</label>
+          <input type="date" id="f_from" class="form-control" value="<%= from %>" max="<%= today %>">
+        </div>
+        <div class="col-6 col-md-2 d-none rangeField">
+          <label class="form-label small mb-1" for="f_to">To</label>
+          <input type="date" id="f_to" class="form-control" value="<%= to %>" max="<%= today %>">
+        </div>
+        <div class="col-6 col-md-auto">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="f_range" <%= from && to ? 'checked' : '' %>>
+            <label class="form-check-label small" for="f_range">Date range</label>
+          </div>
+        </div>
+        <div class="col-12 col-md-auto">
+          <button class="btn btn-danger w-100"><i class="bi bi-search me-1"></i>Show</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Range: one row per day -->
+  <div class="card border-0 shadow-sm mb-3 d-none" id="rangeCard">
+    <div class="card-header bg-white fw-semibold" id="rangeTitle">Days</div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light"><tr><th>Date</th><th class="text-end">Visits</th><th class="text-end">With GPS</th><th>First</th><th>Last</th><th class="text-end">Road km</th><th></th></tr></thead>
+        <tbody id="rangeBody"></tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-white small text-muted">Road km appears once a day's route has been opened. Days are never joined to each other.</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="row g-2 mb-3" id="summary">
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">DSE</div><div class="sum-value" id="s_name">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">Date</div><div class="sum-value" id="s_date">—</div></div></div>
+    <div class="col-4 col-lg-2"><div class="sum-tile"><div class="sum-label">Visits</div><div class="sum-value" id="s_total">—</div></div></div>
+    <div class="col-8 col-lg-2"><div class="sum-tile"><div class="sum-label">Road distance <i class="bi bi-info-circle" title="Calculated along roads between recorded visit points. Not a GPS track of the path actually driven."></i></div><div class="sum-value text-danger" id="s_km">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">First visit</div><div class="sum-value" id="s_first">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">Last visit</div><div class="sum-value" id="s_last">—</div></div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="map-wrap">
+          <div id="routeMap"></div>
+          <div class="map-state" id="mapState"></div>
+        </div>
+        <div class="card-footer bg-white small text-muted d-flex flex-wrap gap-3 align-items-center">
+          <span><span class="lg-line"></span> Road route between visits (calculated)</span>
+          <span><span class="lg-line lg-fail"></span> Road route unavailable — not counted</span>
+          <span id="mapNote"></span>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between"><span>Visits in order</span><span class="small text-muted" id="listCount"></span></div>
+        <div class="list-group list-group-flush" id="visitList"></div>
+      </div>
+      <div class="small text-muted mt-2 px-1">
+        Visits are shown in the order they were recorded (never re-ordered). The road distance is the routed distance between consecutive visit points<%= osrmPublic ? ', calculated with the free OpenStreetMap (OSRM) routing service' : '' %>; it is not a GPS track of the exact path driven.
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.sum-tile { background: #fff; border-radius: 12px; padding: 10px 12px; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); height: 100%; }
+.sum-label { font-size: 11px; color: #6c757d; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+.sum-value { font-size: 1.05rem; font-weight: 700; color: #212529; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-wrap { position: relative; }
+#routeMap { height: 62vh; min-height: 360px; border-radius: 12px 12px 0 0; }
+@media (max-width: 991.98px) { #routeMap { height: 52vh; min-height: 300px; } }
+.map-state { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center;
+             background: rgba(255,255,255,.85); z-index: 500; border-radius: 12px 12px 0 0; padding: 20px; }
+.map-state.show { display: flex; }
+.vmark { width: 30px; height: 30px; border-radius: 50%; background: #cc0000; color: #fff; font-weight: 700; font-size: 13px;
+         display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.vmark.multi { width: auto; min-width: 30px; padding: 0 7px; border-radius: 15px; font-size: 12px; }
+.vmark.first { background: #198754; } .vmark.last { background: #212529; }
+.varrow { color: #cc0000; font-size: 18px; line-height: 1; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+.lg-line { display: inline-block; width: 26px; height: 0; border-top: 4px solid #cc0000; vertical-align: middle; margin-right: 4px; }
+.lg-line.lg-fail { border-top: 3px dashed #868e96; }
+.vlist-item { cursor: pointer; }
+.vlist-item .seq { width: 28px; height: 28px; border-radius: 50%; background: #cc0000; color: #fff; font-weight: 700; font-size: 12px;
+                   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.vlist-item .seq.nogps { background: #adb5bd; }
+.leg-row { font-size: 12px; color: #6c757d; padding: 4px 16px 4px 52px; background: #fafafa; }
+.leaflet-popup-content { margin: 10px 12px; font-size: 13px; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+  const SELF = <%= user.id %>, CAN_ALL = <%= canViewAll ? 'true' : 'false' %>;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tm = iso => iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const dLong = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const km = n => n == null ? '—' : (n < 10 ? n.toFixed(2) : n.toFixed(1)) + ' km';
+
+  const map = L.map('routeMap', { zoomControl: true }).setView([28.98, 77.70], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
+  const layer = L.layerGroup().addTo(map);
+  const markerByVisit = {};
+
+  function state(html) { const el = $('mapState'); el.innerHTML = html || ''; el.classList.toggle('show', !!html); }
+  const userId = () => CAN_ALL ? +$('f_user').value : SELF;
+  const rangeOn = () => $('f_range').checked;
+  function syncRangeUi() {
+    document.querySelectorAll('.rangeField').forEach(e => e.classList.toggle('d-none', !rangeOn()));
+    $('rangeCard').classList.toggle('d-none', !rangeOn());
+  }
+
+  // Bearing between two points, for the direction arrows
+  function bearing(a, b) {
+    const r = Math.PI / 180, y = Math.sin((b[1] - a[1]) * r) * Math.cos(b[0] * r);
+    const x = Math.cos(a[0] * r) * Math.sin(b[0] * r) - Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+    return Math.atan2(y, x) / r;
+  }
+  function addArrows(geom) {
+    if (geom.length < 2) return;
+    // Arrow at the middle of the leg (and quarter points on long legs)
+    const marks = geom.length > 60 ? [0.25, 0.5, 0.75] : [0.5];
+    marks.forEach(f => {
+      const i = Math.min(geom.length - 2, Math.max(0, Math.floor(geom.length * f)));
+      const deg = bearing(geom[i], geom[i + 1]);
+      L.marker(geom[i], { interactive: false, keyboard: false,
+        icon: L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+          html: `<div class="varrow" style="transform:rotate(${deg - 90}deg)">➤</div>` }) }).addTo(layer);
+    });
+  }
+
+  function popupHtml(v) {
+    const phone = v.phone ? `<a href="tel:${esc(v.phone)}"><i class="bi bi-telephone-fill"></i> ${esc(v.phone)}</a>` : '<span class="text-muted">—</span>';
+    const acc = v.accuracy ? ` <span class="${v.accuracy > 200 ? 'text-warning' : 'text-muted'}">(±${v.accuracy} m${v.accuracy > 200 ? ', low accuracy' : ''})</span>` : '';
+    return `<div class="fw-bold mb-1">#${v.seq} · ${esc(v.customer)}</div>
+      ${v.contact ? `<div><span class="text-muted">Met:</span> ${esc(v.contact)}</div>` : ''}
+      <div><span class="text-muted">Phone:</span> ${phone}</div>
+      <div><span class="text-muted">Purpose:</span> ${esc(v.purpose || '—')}</div>
+      <div><span class="text-muted">Time:</span> ${new Date(v.time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+      <div><span class="text-muted">Location:</span> ${v.address ? esc(v.address) + '<br>' : ''}${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}${acc}
+        <a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank" rel="noopener">map</a></div>
+      ${v.remarks ? `<div class="mt-1 small text-muted">${esc(v.remarks)}</div>` : ''}
+      <div class="small text-muted mt-1">${esc(v.visitNo)}</div>`;
+  }
+
+  function renderDay(d) {
+    layer.clearLayers();
+    Object.keys(markerByVisit).forEach(k => delete markerByVisit[k]);
+    const s = d.summary;
+    $('s_name').textContent = d.user.name; $('s_name').title = d.user.name;
+    $('s_date').textContent = dLong(d.date);
+    $('s_total').textContent = s.total + (s.missing ? ` (${s.missing} no GPS)` : '');
+    $('s_km').textContent = s.located < 2 ? '—' : !s.legsOk && s.legsFailed ? 'Unavailable *' : km(s.routeKm) + (s.legsFailed ? ' *' : '');
+    $('s_first').textContent = tm(s.first); $('s_last').textContent = tm(s.last);
+    $('listCount').textContent = s.total ? `${s.total} visit${s.total === 1 ? '' : 's'}` : '';
+    $('mapNote').textContent = s.legsFailed ? `* ${s.legsFailed} leg${s.legsFailed === 1 ? '' : 's'} could not be routed and ${s.legsFailed === 1 ? 'is' : 'are'} not in the total.` : '';
+
+    // Legs first so markers sit on top
+    d.legs.forEach(l => {
+      if (l.ok && l.same) return;
+      if (l.ok) {
+        L.polyline(l.geometry, { color: '#cc0000', weight: 4, opacity: .85 }).addTo(layer)
+          .bindTooltip(`#${l.from} → #${l.to}: ${km(l.km)}${l.minutes != null ? ' · ~' + l.minutes + ' min drive' : ''}`, { sticky: true });
+        addArrows(l.geometry);
+      } else {
+        const a = d.visits.find(v => v.seq === l.from), b = d.visits.find(v => v.seq === l.to);
+        L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: '#868e96', weight: 3, dashArray: '6 6', opacity: .9 }).addTo(layer)
+          .bindTooltip(`#${l.from} → #${l.to}: road route unavailable (sequence only, not counted)`, { sticky: true });
+      }
+    });
+
+    // Markers: visits at (almost) the same spot share one marker, e.g. "3·4"
+    const located = d.visits.filter(v => v.lat != null);
+    const groups = [];
+    located.forEach(v => {
+      const g = groups.find(g => map.distance([g.lat, g.lng], [v.lat, v.lng]) < 20);
+      if (g) g.items.push(v); else groups.push({ lat: v.lat, lng: v.lng, items: [v] });
+    });
+    const firstSeq = located[0]?.seq, lastSeq = located[located.length - 1]?.seq;
+    groups.forEach(g => {
+      const label = g.items.map(v => v.seq).join('·');
+      const cls = g.items.length > 1 ? 'multi' : g.items[0].seq === firstSeq ? 'first' : g.items[0].seq === lastSeq && located.length > 1 ? 'last' : '';
+      const m = L.marker([g.lat, g.lng], { riseOnHover: true, title: `Visit ${label}`,
+        icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14],
+          html: `<div class="vmark ${cls}">${label}</div>` }) }).addTo(layer)
+        .bindPopup(g.items.map(popupHtml).join('<hr class="my-2">'), { maxWidth: 280 });
+      g.items.forEach(v => { markerByVisit[v.seq] = m; });
+    });
+
+    // Ordered list with the road distance to the next located visit
+    const list = $('visitList');
+    list.innerHTML = '';
+    if (!d.visits.length) list.innerHTML = '<div class="list-group-item text-muted small">No visits recorded on this date.</div>';
+    d.visits.forEach(v => {
+      const el = document.createElement('div');
+      el.className = 'list-group-item vlist-item d-flex gap-2 align-items-start';
+      el.innerHTML = `<span class="seq ${v.lat == null ? 'nogps' : ''}">${v.seq}</span>
+        <div class="flex-grow-1" style="min-width:0">
+          <div class="d-flex justify-content-between gap-2"><span class="fw-semibold text-truncate">${esc(v.customer)}</span><span class="small text-muted text-nowrap">${tm(v.time)}</span></div>
+          <div class="small text-muted text-truncate">${esc(v.purpose || '—')}${v.phone ? ` · <a href="tel:${esc(v.phone)}" onclick="event.stopPropagation()">${esc(v.phone)}</a>` : ''}</div>
+          ${v.lat == null ? `<div class="small text-warning-emphasis"><i class="bi bi-geo-alt"></i> ${v.location === 'invalid' ? 'Invalid GPS — not on map' : 'No GPS — not on map'}${v.address ? ': ' + esc(v.address) : ''}</div>` : ''}
+        </div>`;
+      if (v.lat != null) el.addEventListener('click', () => { map.setView([v.lat, v.lng], Math.max(map.getZoom(), 15)); markerByVisit[v.seq].openPopup(); });
+      list.appendChild(el);
+      const leg = d.legs.find(l => l.from === v.seq);
+      if (leg) {
+        const row = document.createElement('div');
+        row.className = 'leg-row';
+        row.innerHTML = leg.ok
+          ? (leg.same ? `<i class="bi bi-arrow-down"></i> same place as #${leg.to}` : `<i class="bi bi-arrow-down"></i> ${km(leg.km)} by road to #${leg.to}`)
+          : `<i class="bi bi-exclamation-triangle text-warning"></i> road route to #${leg.to} unavailable`;
+        list.appendChild(row);
+      }
+    });
+
+    // Fit the map to what we have
+    if (located.length > 1) map.fitBounds(L.featureGroup(layer.getLayers().filter(x => x.getLatLng || x.getBounds)).getBounds(), { padding: [30, 30] });
+    else if (located.length === 1) map.setView([located[0].lat, located[0].lng], 15);
+
+    if (!d.visits.length) state('<div><i class="bi bi-calendar-x fs-2 d-block mb-2 text-muted"></i>No visits recorded for this DSE on this date.</div>');
+    else if (!located.length) state('<div><i class="bi bi-geo-alt fs-2 d-block mb-2 text-warning"></i>None of this day\'s visits have GPS coordinates, so nothing can be shown on the map.<br><span class="small text-muted">The visits are listed alongside.</span></div>');
+    else state('');
+  }
+
+  async function loadDay(date) {
+    state('<div><div class="spinner-border text-danger mb-2"></div><div class="small">Loading visits and road routes…</div></div>');
+    try {
+      const r = await fetch(`/route-map/api/day?user=${userId()}&date=${date}`);
+      const d = await r.json();
+      if (!r.ok) throw Object.assign(new Error(d.error || 'Could not load the route.'), { status: r.status });
+      renderDay(d);
+    } catch (e) {
+      layer.clearLayers();
+      $('visitList').innerHTML = '';
+      state(`<div><i class="bi ${e.status === 403 ? 'bi-shield-lock' : 'bi-exclamation-triangle'} fs-2 d-block mb-2 text-danger"></i>${esc(e.message)}
+        ${e.status === 403 ? '' : `<div class="mt-2"><button class="btn btn-sm btn-outline-danger" id="retryBtn">Try again</button></div>`}</div>`);
+      $('retryBtn')?.addEventListener('click', () => loadDay(date));
+    }
+  }
+
+  async function loadRange() {
+    const from = $('f_from').value, to = $('f_to').value;
+    const body = $('rangeBody');
+    body.innerHTML = '<tr><td colspan="7" class="text-center py-3"><span class="spinner-border spinner-border-sm text-danger"></span></td></tr>';
+    try {
+      const r = await fetch(`/route-map/api/range?user=${userId()}&from=${from}&to=${to}`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Could not load the range.');
+      $('rangeTitle').textContent = `${d.user.name} · ${dLong(from)} – ${dLong(to)}`;
+      body.innerHTML = d.days.length ? '' : '<tr><td colspan="7" class="text-center text-muted py-3">No visits in this period.</td></tr>';
+      d.days.forEach(day => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="text-nowrap">${dLong(day.date)}</td><td class="text-end">${day.visits}</td><td class="text-end">${day.located}</td>
+          <td>${tm(day.first)}</td><td>${tm(day.last)}</td><td class="text-end">${day.routeKm == null ? '<span class="text-muted">open to calculate</span>' : km(day.routeKm)}</td>
+          <td class="text-end"><button class="btn btn-sm btn-outline-danger">Show route</button></td>`;
+        tr.querySelector('button').addEventListener('click', () => { $('f_date').value = day.date; loadDay(day.date); });
+        body.appendChild(tr);
+      });
+      if (d.days.length) { $('f_date').value = d.days[0].date; loadDay(d.days[0].date); }
+      else { layer.clearLayers(); $('visitList').innerHTML = ''; state('<div class="text-muted">No visits in this period.</div>'); }
+    } catch (e) {
+      body.innerHTML = `<tr><td colspan="7" class="text-danger py-3">${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  function go(e) {
+    e?.preventDefault();
+    syncRangeUi();
+    const q = new URLSearchParams();
+    if (CAN_ALL) q.set('user', userId());
+    if (rangeOn() && $('f_from').value && $('f_to').value) {
+      q.set('from', $('f_from').value); q.set('to', $('f_to').value);
+      history.replaceState(null, '', '/route-map?' + q);
+      loadRange();
+    } else {
+      q.set('date', $('f_date').value);
+      history.replaceState(null, '', '/route-map?' + q);
+      loadDay($('f_date').value);
+    }
+  }
+  $('filters').addEventListener('submit', go);
+  $('f_range').addEventListener('change', () => {
+    syncRangeUi();
+    if (rangeOn() && !$('f_from').value) {   // default: last 7 days
+      const t = new Date(); $('f_to').value = t.toLocaleDateString('en-CA');
+      t.setDate(t.getDate() - 6); $('f_from').value = t.toLocaleDateString('en-CA');
+    }
+  });
+  go();
+})();
+</script>
+</body></html>

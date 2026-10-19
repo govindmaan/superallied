@@ -33,6 +33,7 @@ const salespersonsRoutes    = require('./routes/salespersons');
 const stockRoutes           = require('./routes/stock');
 const form22Routes          = require('./routes/form22');
 const partOrdersRoutes      = require('./routes/part-orders');
+const routeMapRoutes        = require('./routes/route-map');
 const backupRoutes          = require('./routes/backup');
 const databankRoutes        = require('./routes/databank');
 
@@ -1199,16 +1200,12 @@ app.use('/salespersons',      requireLogin, requirePerm('salespersons_admin'), s
 app.use('/stock',             requireLogin, requirePerm('stock'),             stockRoutes);
 app.use('/form-22',           requireLogin, requirePerm('quotations'),        form22Routes);
 app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       partOrdersRoutes);
+app.use('/route-map',         requireLogin,                                   routeMapRoutes);
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
 
-// Today's route: attendance check-in/out + site visits as GPS anchors
-app.get('/my-route', requireLogin, (req, res) => {
-  const today = new Date().toLocaleDateString('en-CA');
-  const att = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(req.session.userId, today);
-  const visits = db.prepare("SELECT id, lat, lng, customer_name, purpose, visit_time FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(req.session.userId, today);
-  res.render('my-route', { title: 'My Route Today', att, visits, today });
-});
+// Old "My Route" page now lives in the route map
+app.get('/my-route', requireLogin, (req, res) => res.redirect('/route-map'));
 
 // Help: datewise list of app improvements (see changelog.js)
 app.get('/help', requireLogin, (req, res) => {

@@ -14,12 +14,12 @@
           <% visits.forEach(v => { %>
           <tr>
             <td class="font-monospace small text-muted">VIS-<%= String(v.id).padStart(5,'0') %></td>
-            <td class="small"><%= new Date(v.visit_time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></td>
+            <td class="small"><%= dbTime(v.visit_time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></td>
             <td class="fw-semibold"><%= v.customer_name %></td>
-            <td class="small"><%= v.contact_person || '—' %></td>
+            <td class="small"><%= v.contact_person || '—' %><% if (v.phone) { %><div><a href="tel:<%= v.phone %>"><%= v.phone %></a></div><% } %></td>
             <td class="small"><%= v.purpose || '—' %></td>
             <td class="small">
-              <% if (v.lat) { %><a href="https://maps.google.com/?q=<%= v.lat %>,<%= v.lng %>" target="_blank" class="text-decoration-none"><i class="bi bi-geo-alt-fill text-danger"></i> Map</a><% } else { %>—<% } %>
+              <% if (v.lat) { %><a href="https://maps.google.com/?q=<%= v.lat %>,<%= v.lng %>" target="_blank" class="text-decoration-none"><i class="bi bi-geo-alt-fill text-danger"></i> Map</a><% } else if (v.address) { %><span class="text-warning-emphasis" title="No GPS — typed address"><%= v.address %></span><% } else { %>—<% } %>
             </td>
             <td class="small text-muted"><%= v.remarks || '—' %></td>
           </tr>

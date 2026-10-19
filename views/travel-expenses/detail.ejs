@@ -46,7 +46,7 @@
         <div class="card-header bg-white fw-semibold">Linked Site Visits</div>
         <div class="card-body">
           <% visits.forEach(v => { %>
-          <div class="small mb-1">VIS-<%= String(v.id).padStart(5,'0') %> — <strong><%= v.customer_name %></strong> <span class="text-muted"><%= new Date(v.visit_time).toLocaleString('en-IN') %></span></div>
+          <div class="small mb-1">VIS-<%= String(v.id).padStart(5,'0') %> — <strong><%= v.customer_name %></strong> <span class="text-muted"><%= dbTime(v.visit_time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) %></span></div>
           <% }) %>
         </div>
       </div>

@@ -348,6 +348,22 @@ db.exec(`
 
 try { db.exec("ALTER TABLE field_visits ADD COLUMN contact_person TEXT DEFAULT ''"); } catch(e) {}
 try { db.exec("ALTER TABLE field_visits ADD COLUMN purpose TEXT DEFAULT ''"); } catch(e) {}
+// Route map: phone, typed address when GPS is unavailable, GPS accuracy (m) and how the location was obtained
+try { db.exec("ALTER TABLE field_visits ADD COLUMN phone TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE field_visits ADD COLUMN address TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE field_visits ADD COLUMN gps_accuracy REAL"); } catch(e) {}
+try { db.exec("ALTER TABLE field_visits ADD COLUMN location_status TEXT DEFAULT ''"); } catch(e) {}  // gps | denied | unavailable | timeout
+db.exec("CREATE INDEX IF NOT EXISTS idx_visits_user_time ON field_visits(user_id, visit_time)");
+// Road-route cache between two visit points (rounded to ~1 m), so each pair is routed once
+db.exec(`CREATE TABLE IF NOT EXISTS route_legs (
+  leg_key    TEXT PRIMARY KEY,
+  ok         INTEGER NOT NULL,
+  distance_m REAL,
+  duration_s REAL,
+  geometry   TEXT,
+  provider   TEXT DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
 
 // ── Motor Vehicle Travel Expense Tables ───────────────────────────────────────
 db.exec(`

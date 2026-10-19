@@ -52,7 +52,7 @@
       { items: [
         { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: 'Sold Machines', show: can('sold_machines'), keys: ['sold-machines'] },
         { href: '/visits',        icon: 'bi-geo-alt-fill',  label: 'Site Visits',   show: can('field_visit'),   keys: ['visits'] },
-        { href: '/my-route',      icon: 'bi-map-fill',      label: 'My Route',      show: can('route_map'),     keys: ['route'] },
+        { href: '/route-map',     icon: 'bi-map-fill',      label: isMgr ? 'DSE Route Map' : 'My Route', show: isMgr || can('route_map') || can('field_visit'), keys: ['route'] },
       ]},
     ]},
     { id: 'hr', label: 'Human Resources', icon: 'bi-people-fill', groups: [
