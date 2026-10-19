@@ -322,9 +322,11 @@ function billData(req, res) {
     .all(bill.user_id, bill.week_start, bill.week_end);
   const counted  = trips.filter(t => t.status !== 'rejected');
   const approved = trips.filter(t => t.status === 'approved');
+  const payments = db.prepare('SELECT * FROM travel_payments WHERE ta_bill_id=? ORDER BY paid_on').all(bill.id);
   return {
-    bill, trips,
+    bill, trips, payments,
     totals: {
+      paid: payments.reduce((a, p) => a + p.amount, 0),
       km: counted.reduce((a, t) => a + t.distance_km, 0), amount: counted.reduce((a, t) => a + t.total_claim, 0),
       approved: approved.reduce((a, t) => a + t.total_claim, 0),
       pending: trips.filter(t => t.status === 'submitted').length, rejected: trips.length - counted.length,

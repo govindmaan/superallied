@@ -6,6 +6,15 @@ module.exports = [
   {
     date: '2026-10-19',
     items: [
+      { commit: '', type: 'new', title: 'Pay travel expenses from Salary Management',
+        details: ['New "Pay Travel Expense" button next to Upload Salary and Add Incentive.',
+                  'Choose the employee and TA bill; the amount fills in with what is approved and not yet paid.',
+                  'The employee is notified and the TA bill shows the payment.'] },
+    ],
+  },
+  {
+    date: '2026-10-19',
+    items: [
       { commit: '', type: 'new', title: 'Databank of potential customers',
         details: ['New Databank section: past and competitor (JCB, Mahindra…) machine owners, one record per mobile number.',
                   'Browse by district and village with counts, or search any mix of name, mobile, village and remark.',

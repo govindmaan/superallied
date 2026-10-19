@@ -304,8 +304,17 @@ router.get('/salary', (req, res) => {
   const totals    = { gross: 0, net: 0, pf: 0 };
   records.forEach(r => { totals.gross += r.gross; totals.net += r.net_salary; totals.pf += r.pf; });
 
+  // Travel expense payments made in this month
+  let tsql = `SELECT tp.*, u.full_name, u.employee_code, b.bill_no
+              FROM travel_payments tp JOIN users u ON u.id=tp.user_id LEFT JOIN ta_bills b ON b.id=tp.ta_bill_id
+              WHERE strftime('%Y-%m', tp.paid_on)=?`;
+  const tparams = [month];
+  if (emp) { tsql += ' AND tp.user_id=?'; tparams.push(emp); }
+  const travelPayments = db.prepare(tsql + ' ORDER BY tp.paid_on DESC, tp.id DESC').all(...tparams);
+
   res.render('hr/salary', { title: 'Salary Management', records, employees,
-    month, empFilter: emp||'', totals, formatINR });
+    month, empFilter: emp||'', totals, formatINR, travelPayments,
+    today: new Date().toLocaleDateString('en-CA') });
 });
 
 router.post('/salary', (req, res) => {
@@ -335,6 +344,44 @@ router.post('/salary/incentive', (req, res) => {
     `₹${amount} incentive added. Reason: ${reason||'—'}`, 'salary', '/salary');
   req.session.flash = { success: 'Incentive added.' };
   res.redirect('/hr/salary?month=' + month);
+});
+
+// ── Travel expense payments ───────────────────────────────────────────────────
+// TA bills for one employee with approved, paid and balance amounts (for the Pay modal)
+router.get('/salary/travel-due/:uid', (req, res) => {
+  const bills = db.prepare(`
+    SELECT b.id, b.bill_no, b.week_start, b.week_end, b.total_amount,
+      (SELECT COALESCE(SUM(total_claim),0) FROM travel_expenses t
+         WHERE t.user_id=b.user_id AND t.date BETWEEN b.week_start AND b.week_end AND t.status='approved') AS approved,
+      (SELECT COUNT(*) FROM travel_expenses t
+         WHERE t.user_id=b.user_id AND t.date BETWEEN b.week_start AND b.week_end AND t.status='submitted') AS pending,
+      (SELECT COALESCE(SUM(amount),0) FROM travel_payments p WHERE p.ta_bill_id=b.id) AS paid
+    FROM ta_bills b WHERE b.user_id=? ORDER BY b.week_start DESC LIMIT 30`).all(req.params.uid);
+  bills.forEach(b => { b.balance = Math.max(0, Math.round((b.approved - b.paid) * 100) / 100); });
+  res.json({ bills });
+});
+
+router.post('/salary/travel-payment', (req, res) => {
+  const { user_id, ta_bill_id, amount, paid_on, mode, reference, remarks } = req.body;
+  const back = (flash) => { req.session.flash = flash; res.redirect('/hr/salary?month=' + String(paid_on || '').slice(0, 7)); };
+  const amt = Math.round((parseFloat(amount) || 0) * 100) / 100;
+  if (!+user_id || amt <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(paid_on || '')) return back({ error: 'Choose the employee, a payment date and an amount above zero.' });
+  const bill = +ta_bill_id ? db.prepare('SELECT * FROM ta_bills WHERE id=? AND user_id=?').get(+ta_bill_id, +user_id) : null;
+  if (+ta_bill_id && !bill) return back({ error: 'That TA bill does not belong to this employee.' });
+
+  db.prepare('INSERT INTO travel_payments (user_id, ta_bill_id, amount, paid_on, mode, reference, remarks, created_by) VALUES (?,?,?,?,?,?,?,?)')
+    .run(+user_id, bill ? bill.id : null, amt, paid_on, mode || '', reference || '', remarks || '', req.session.userId);
+  createNotification(+user_id, 'Travel expense paid',
+    `₹${amt.toLocaleString('en-IN')} paid on ${paid_on}${bill ? ' for ' + bill.bill_no : ''}${mode ? ' by ' + mode : ''}.`,
+    'salary', bill ? '/travel-expenses/bills/' + bill.id : '/salary');
+  back({ success: `Travel expense payment of ₹${amt.toLocaleString('en-IN')} recorded.` });
+});
+
+router.post('/salary/travel-payment/:id/delete', (req, res) => {
+  const p = db.prepare('SELECT * FROM travel_payments WHERE id=?').get(req.params.id);
+  if (p) db.prepare('DELETE FROM travel_payments WHERE id=?').run(p.id);
+  req.session.flash = { success: 'Travel expense payment removed.' };
+  res.redirect('/hr/salary?month=' + String(p?.paid_on || '').slice(0, 7));
 });
 
 router.get('/salary/:id/pdf', async (req, res) => {

@@ -21,6 +21,13 @@
       <% if (totals.pending) { %><div class="small text-muted"><%= totals.pending %> trip<%= totals.pending === 1 ? '' : 's' %> awaiting approval</div><% } %></div></div></div>
   </div>
 
+  <% if (payments.length) { %>
+  <div class="alert alert-success d-flex flex-wrap gap-2 align-items-center">
+    <i class="bi bi-cash-coin"></i><strong>Paid ₹<%= totals.paid.toLocaleString('en-IN', { maximumFractionDigits: 2 }) %></strong>
+    <span class="small">— <%= payments.map(p => `${p.paid_on}${p.mode ? ' · ' + p.mode : ''}${p.reference ? ' · ' + p.reference : ''}`).join('; ') %></span>
+  </div>
+  <% } %>
+
   <div class="card border-0 shadow-sm">
     <div class="table-responsive">
       <table class="table table-sm mb-0 align-middle">

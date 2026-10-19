@@ -128,6 +128,19 @@ try { db.exec("ALTER TABLE quotations ADD COLUMN cancelled_by INTEGER REFERENCES
 try { db.exec("ALTER TABLE users ADD COLUMN pin_hash TEXT"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN failed_logins INTEGER DEFAULT 0"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN locked_until DATETIME"); } catch(e) {}
+// Travel expense payments made to employees (Salary Management → Pay Travel Expense)
+db.exec(`CREATE TABLE IF NOT EXISTS travel_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  ta_bill_id INTEGER REFERENCES ta_bills(id),
+  amount REAL NOT NULL,
+  paid_on DATE NOT NULL,
+  mode TEXT DEFAULT '',
+  reference TEXT DEFAULT '',
+  remarks TEXT DEFAULT '',
+  created_by INTEGER REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
 // Weekly Travelling Allowance bills (one per person per Sun–Sat week, prepared at Saturday 8 pm)
 db.exec(`CREATE TABLE IF NOT EXISTS ta_bills (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
