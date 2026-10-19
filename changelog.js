@@ -6,15 +6,18 @@ module.exports = [
   {
     date: '2026-10-19',
     items: [
+      { commit: 'cfa6195', type: 'new', title: 'DSE Route Map',
+        details: ['Pick a DSE and date to see every site visit on one map, numbered in the order recorded.',
+                  'Visits are joined by road routes with direction arrows; total road km, first/last visit and km between visits are shown.',
+                  'Salespersons see their own route; admin and manager can see everyone.'] },
+      { commit: 'cfa6195', type: 'improved', title: 'Site punch-in: phone number and clearer location handling',
+        details: ['Add the customer\'s phone number to a site visit.',
+                  'If location is blocked or unavailable, you are told why and asked for the address instead.'] },
+      { commit: 'cfa6195', type: 'fixed', title: 'Site visit times shown 5½ hours early', details: [] },
       { commit: '', type: 'new', title: 'Pay travel expenses from Salary Management',
         details: ['New "Pay Travel Expense" button next to Upload Salary and Add Incentive.',
                   'Choose the employee and TA bill; the amount fills in with what is approved and not yet paid.',
                   'The employee is notified and the TA bill shows the payment.'] },
-    ],
-  },
-  {
-    date: '2026-10-19',
-    items: [
       { commit: '', type: 'new', title: 'Databank of potential customers',
         details: ['New Databank section: past and competitor (JCB, Mahindra…) machine owners, one record per mobile number.',
                   'Browse by district and village with counts, or search any mix of name, mobile, village and remark.',
