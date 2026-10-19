@@ -4,6 +4,16 @@
 
 module.exports = [
   {
+    date: '2026-10-19',
+    items: [
+      { commit: '', type: 'new', title: 'Databank of potential customers',
+        details: ['New Databank section: past and competitor (JCB, Mahindra…) machine owners, one record per mobile number.',
+                  'Browse by district and village with counts, or search any mix of name, mobile, village and remark.',
+                  'Tap a number to call; add a remark after each call so the last remark stays current.',
+                  'Admin chooses who can open it (Databank → Access) and is the only one who can import or export.'] },
+    ],
+  },
+  {
     date: '2026-10-18',
     items: [
       { commit: '', type: 'new', title: 'Weekly travel allowance bill',

@@ -34,6 +34,7 @@ const stockRoutes           = require('./routes/stock');
 const form22Routes          = require('./routes/form22');
 const partOrdersRoutes      = require('./routes/part-orders');
 const backupRoutes          = require('./routes/backup');
+const databankRoutes        = require('./routes/databank');
 
 // Pre-encode images once at startup
 const LOGO_PATH = path.join(__dirname, 'public', 'bull-logo.jpg');
@@ -92,7 +93,7 @@ function requireAdmin(req, res, next) {
 // Inject user, settings, permissions, notification count into all views
 app.use((req, res, next) => {
   const u = req.session.userId
-    ? db.prepare('SELECT id, username, full_name, role FROM users WHERE id = ?').get(req.session.userId)
+    ? db.prepare('SELECT id, username, full_name, role, databank_access FROM users WHERE id = ?').get(req.session.userId)
     : null;
   res.locals.user     = u;
   res.locals.currentPath = req.originalUrl.split('?')[0]; // sidebar highlights the matching link
@@ -106,6 +107,7 @@ app.use((req, res, next) => {
   // Permission helpers
   if (u) {
     const perms = getUserPermissions(u.role);
+    if (u.databank_access) perms.push('databank');
     res.locals.hasPerm = (p) => perms.includes('*') || perms.includes(p);
     res.locals._perms  = perms;
     if (perms.includes('*') || perms.includes('enquiries')) {
@@ -1198,6 +1200,7 @@ app.use('/stock',             requireLogin, requirePerm('stock'),             st
 app.use('/form-22',           requireLogin, requirePerm('quotations'),        form22Routes);
 app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       partOrdersRoutes);
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
+app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
 
 // Today's route: attendance check-in/out + site visits as GPS anchors
 app.get('/my-route', requireLogin, (req, res) => {

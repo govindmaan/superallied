@@ -21,6 +21,12 @@
         { href: '/calculator',                   icon: 'bi-calculator-fill',   label: 'Profit Calculator', show: isAdmin, keys: ['calculator'] },
       ]},
     ]},
+    { id: 'databank', label: 'Databank', icon: 'bi-database-fill', groups: [
+      { items: [
+        { href: '/databank',        icon: 'bi-search',      label: 'Search Customers', show: can('databank'), keys: ['databank'] },
+        { href: '/databank/access', icon: 'bi-shield-lock', label: 'Databank Access',  show: isAdmin,         keys: ['databank-access'] },
+      ]},
+    ]},
     { id: 'operations', label: 'Operations', icon: 'bi-gear-wide-connected', groups: [
       { items: [
         { href: '/form-22',               icon: 'bi-patch-check-fill', label: 'Form 22',        show: can('quotations'), keys: ['form22'] },

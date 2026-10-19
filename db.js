@@ -1351,4 +1351,38 @@ if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_ist_dates_v1'").get()) {
   } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('India-time date fix failed:', e.message); }
 }
 
+// ── Databank: prospect customers (incl. competitor machine owners), one row per 10-digit mobile ──
+db.exec(`
+  CREATE TABLE IF NOT EXISTS databank (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT UNIQUE NOT NULL,
+    name TEXT DEFAULT '',
+    location TEXT DEFAULT '',
+    village TEXT DEFAULT '',
+    district TEXT DEFAULT '',
+    last_remark TEXT DEFAULT '',
+    data_source TEXT DEFAULT '',
+    last_activity DATE,
+    remark_by INTEGER REFERENCES users(id),
+    remark_at DATETIME,
+    search_text TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_databank_district ON databank(district, village);
+  CREATE INDEX IF NOT EXISTS idx_databank_village  ON databank(village COLLATE NOCASE);
+  CREATE INDEX IF NOT EXISTS idx_databank_name     ON databank(name COLLATE NOCASE);
+
+  CREATE TABLE IF NOT EXISTS databank_remarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    databank_id INTEGER NOT NULL REFERENCES databank(id) ON DELETE CASCADE,
+    remark TEXT NOT NULL,
+    created_by INTEGER REFERENCES users(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_databank_remarks ON databank_remarks(databank_id);
+`);
+// Databank is granted per user by the admin (Databank → Access), not by role
+try { db.exec("ALTER TABLE users ADD COLUMN databank_access INTEGER DEFAULT 0"); } catch(e) {}
+
 module.exports = { db, getSettings, getFY, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };
