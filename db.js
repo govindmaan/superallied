@@ -836,6 +836,9 @@ function getSettings() {
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
 
+// Today's date as YYYY-MM-DD in server local time, shared by attendance and expense routes
+function today() { return new Date().toLocaleDateString('en-CA'); }
+
 function getFY(date = new Date()) {
   const m = date.getMonth() + 1;
   const y = date.getFullYear();
@@ -1421,4 +1424,4 @@ try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catc
 // Spare parts: date of the price list each part's price came from
 try { db.exec("ALTER TABLE spare_parts ADD COLUMN price_date DATE"); } catch(e) {}
 
-module.exports = { db, getSettings, getFY, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };
+module.exports = { db, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

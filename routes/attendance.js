@@ -2,11 +2,9 @@ const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 const router  = express.Router();
-const { db, createNotification } = require('../db');
+const { db, createNotification, today } = require('../db');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function today() { return new Date().toLocaleDateString('en-CA'); }
-
 function savePhoto(base64, folder, uploadsDir) {
   if (!base64 || !base64.startsWith('data:image')) return null;
   const buf = Buffer.from(base64.split(',')[1], 'base64');

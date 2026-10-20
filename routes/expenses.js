@@ -1,8 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { db }  = require('../db');
-
-function today() { return new Date().toLocaleDateString('en-CA'); }
+const { db, today }  = require('../db');
 
 // ── Save journey start (called immediately after check-in) ────────────────────
 router.post('/journey/start', (req, res) => {

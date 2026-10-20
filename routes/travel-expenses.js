@@ -1,10 +1,9 @@
 const express = require('express');
 const path    = require('path');
 const router  = express.Router();
-const { db, auditLog, createNotification, nextExpenseNumber, numberToWords } = require('../db');
+const { db, auditLog, createNotification, nextExpenseNumber, numberToWords, today } = require('../db');
 const { analyzeImage } = require('../services/expenseImageAnalyzer');
 
-function today() { return new Date().toLocaleDateString('en-CA'); }
 function isApprover(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_approval'); }
 function canClaim(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_claim'); }
 
