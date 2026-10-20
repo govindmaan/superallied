@@ -1418,4 +1418,7 @@ try { db.exec("ALTER TABLE users ADD COLUMN databank_access INTEGER DEFAULT 0");
 // Route map: GPS accuracy (m) for enquiry visits
 try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catch(e) {}
 
+// Spare parts: date of the price list each part's price came from
+try { db.exec("ALTER TABLE spare_parts ADD COLUMN price_date DATE"); } catch(e) {}
+
 module.exports = { db, getSettings, getFY, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

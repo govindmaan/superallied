@@ -15,7 +15,8 @@ router.get('/', (req, res) => {
     parts = db.prepare('SELECT * FROM spare_parts ORDER BY material_description LIMIT 200').all();
   }
   const total = db.prepare('SELECT COUNT(*) as c FROM spare_parts').get().c;
-  res.render('spare-parts/list', { title: 'Spare Parts Master', parts, q, total });
+  const priceDate = db.prepare('SELECT MAX(price_date) AS d FROM spare_parts').get().d;
+  res.render('spare-parts/list', { title: 'Spare Parts Master', parts, q, total, priceDate });
 });
 
 // ── AJAX autocomplete ─────────────────────────────────────────────────────────
@@ -105,19 +106,51 @@ router.get('/export/csv', (req, res) => {
 });
 
 // ── Excel import ──────────────────────────────────────────────────────────────
+// Price lists converted from PDF carry line breaks inside cells ("RND Part⏎no.",
+// "7T00D0040⏎075 -CE") and repeat header names ("GST" twice). Read every sheet
+// through readSheet so headers are single-line and unique (GST, GST_1) and both
+// the column mapping and the import see exactly the same names.
+const oneLine = v => String(v ?? '').replace(/\s*[\r\n]+\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+
+function readSheet(buf) {
+  const wb = XLSX.read(buf, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const grid = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1, raw: true });
+  const seen = {};
+  const headers = (grid[0] || []).map(h => {
+    const base = oneLine(h);
+    if (!base) return '';
+    seen[base] = (seen[base] || 0) + 1;
+    return seen[base] === 1 ? base : `${base}_${seen[base] - 1}`;
+  });
+  const rows = grid.slice(1)
+    .filter(r => r.some(c => String(c).trim() !== ''))
+    .map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? '']).filter(([h]) => h)));
+  return { headers: headers.filter(Boolean), rows };
+}
+
+// Part numbers / codes: a line break is a wrap inside the number, so join without a space
+const codeText = v => String(v ?? '').replace(/\s*[\r\n]+\s*/g, '').trim();
+
+// Excel date serial, "31.07.2026", "31/07/2026" or "2026-07-31" -> "2026-07-31"
+function toIsoDate(v) {
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number' && v > 20000 && v < 80000) return new Date(Date.UTC(1899, 11, 30) + v * 864e5).toISOString().slice(0, 10);
+  const s = oneLine(v);
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);           if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  return null;
+}
+
 // ── Parse preview (for field mapping) ────────────────────────────────────────
 router.post('/parse-preview', (req, res) => {
   try {
     const { data } = req.body;
     if (!data) return res.json({ ok: false, error: 'No data.' });
-    const buf  = Buffer.from(data, 'base64');
-    const wb   = XLSX.read(buf, { type: 'buffer' });
-    const ws   = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
-    if (!rows.length) return res.json({ ok: false, error: 'Empty file.' });
-    const headers = rows[0].map(h => String(h).trim()).filter(Boolean);
-    const sample  = rows.slice(1, 4).map(r => headers.map((_, i) => String(r[i]||'')));
-    res.json({ ok: true, headers, sample });
+    const { headers, rows } = readSheet(Buffer.from(data, 'base64'));
+    if (!headers.length) return res.json({ ok: false, error: 'Empty file.' });
+    const sample = rows.slice(0, 3).map(r => headers.map(h => oneLine(r[h])));
+    res.json({ ok: true, headers, sample, rowCount: rows.length });
   } catch(e) { res.json({ ok: false, error: e.message }); }
 });
 
@@ -125,20 +158,20 @@ router.post('/import/excel', (req, res) => {
   try {
     const { data, mode, mapping } = req.body; // mode: 'insert' or 'upsert'
     if (!data) return res.json({ ok: false, error: 'No data received.' });
-    const buf  = Buffer.from(data, 'base64');
-    const wb   = XLSX.read(buf, { type: 'buffer' });
-    const ws   = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    const mp   = mapping || {};
+    const { rows } = readSheet(Buffer.from(data, 'base64'));
+    // Mapping values are header names; clean them the same way as the sheet's headers
+    const mp = Object.fromEntries(Object.entries(mapping || {}).map(([k, v]) => [k, oneLine(v)]).filter(([, v]) => v));
 
     let inserted = 0, updated = 0, skipped = 0, errors = [];
 
     // Helper: mapping-aware column getter with legacy fallbacks
-    const gStr = (row, field, ...legacy) => {
-      if (mp[field]) return String(row[mp[field]] ?? '').trim();
-      for (const k of legacy) { const v = row[k]; if (v !== undefined && String(v).trim()) return String(v).trim(); }
+    const gRaw = (row, field, ...legacy) => {
+      if (mp[field]) return row[mp[field]] ?? '';
+      for (const k of legacy) { const v = row[k]; if (v !== undefined && String(v).trim()) return v; }
       return '';
     };
+    const gStr  = (row, field, ...legacy) => oneLine(gRaw(row, field, ...legacy));
+    const gCode = (row, field, ...legacy) => codeText(gRaw(row, field, ...legacy));
     const gNum = (row, field, ...legacy) => {
       if (mp[field]) return parseFloat(row[mp[field]]) || 0;
       for (const k of legacy) { const v = row[k]; if (v !== undefined && v !== '') return parseFloat(v) || 0; }
@@ -149,7 +182,7 @@ router.post('/import/excel', (req, res) => {
     try {
     for (const row of rows) {
       const desc = gStr(row,'material_description','Material Description','material_description');
-      const sap  = gStr(row,'sap_part_no','SAP Part No.','SAP Part no.','sap_part_no');
+      const sap  = gCode(row,'sap_part_no','SAP Part No.','SAP Part no.','sap_part_no');
       if (!desc) { skipped++; continue; }
 
       const ndpBasic = gNum(row,'ndp_basic','NDP Basic','    NDP Basic','ndp_basic');
@@ -159,8 +192,9 @@ router.post('/import/excel', (req, res) => {
       const mrpGst   = gNum(row,'mrp_gst','GST_1','        GST_1','mrp_gst') || Math.round(mrpBasic * taxRate / 100 * 100) / 100;
       const ndpPrice = gNum(row,'ndp_price','NDP','          NDP','ndp_price') || ndpBasic + ndpGst;
       const mrpPrice = gNum(row,'mrp_price','MRP','          MRP','mrp_price') || mrpBasic + mrpGst;
-      const rnd      = gStr(row,'rnd_part_no','RND Part No.','RND Part no.','rnd_part_no');
-      const hsn      = gStr(row,'hsn_code','HSN CODE','HSN Code','HSN','hsn_code');
+      const rnd      = gCode(row,'rnd_part_no','RND Part No.','RND Part no.','rnd_part_no');
+      const hsn      = gCode(row,'hsn_code','HSN CODE','HSN Code','HSN','hsn_code');
+      const priceDate = toIsoDate(gRaw(row,'price_date','Pricing Date','Price Date','price_date'));
 
       try {
         if (mode === 'upsert' && sap) {
@@ -168,21 +202,21 @@ router.post('/import/excel', (req, res) => {
           if (existing) {
             db.prepare(`UPDATE spare_parts SET rnd_part_no=?,material_description=?,hsn_code=?,
               tax_rate=?,ndp_basic=?,ndp_gst=?,ndp_price=?,mrp_basic=?,mrp_gst=?,mrp_price=?,
-              updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-              .run(rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice, existing.id);
+              price_date=COALESCE(?, price_date), updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+              .run(rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice, priceDate, existing.id);
             updated++;
           } else {
             db.prepare(`INSERT INTO spare_parts (sap_part_no,rnd_part_no,material_description,
-              hsn_code,tax_rate,ndp_basic,ndp_gst,ndp_price,mrp_basic,mrp_gst,mrp_price)
-              VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-              .run(sap, rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice);
+              hsn_code,tax_rate,ndp_basic,ndp_gst,ndp_price,mrp_basic,mrp_gst,mrp_price,price_date)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+              .run(sap, rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice, priceDate);
             inserted++;
           }
         } else {
           db.prepare(`INSERT INTO spare_parts (sap_part_no,rnd_part_no,material_description,
-            hsn_code,tax_rate,ndp_basic,ndp_gst,ndp_price,mrp_basic,mrp_gst,mrp_price)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-            .run(sap, rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice);
+            hsn_code,tax_rate,ndp_basic,ndp_gst,ndp_price,mrp_basic,mrp_gst,mrp_price,price_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+            .run(sap, rnd, desc, hsn, taxRate, ndpBasic, ndpGst, ndpPrice, mrpBasic, mrpGst, mrpPrice, priceDate);
           inserted++;
         }
       } catch(e) { errors.push(`${sap||desc}: ${e.message}`); skipped++; }

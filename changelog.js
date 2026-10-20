@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-10-20',
     items: [
+      { commit: '', type: 'fixed', title: 'Spare parts price list import',
+        details: ['RND part numbers are now imported from price lists converted from PDF (line breaks inside cells and headers).',
+                  'NDP and MRP totals, and the two GST columns, are matched to the right columns.',
+                  'The pricing date is imported; Parts Master shows the price list date.'] },
       { commit: '', type: 'improved', title: 'Enquiry visits on the route map',
         details: ['Enquiry visits now appear on the DSE Route Map with site visits, in time order, joined by road routes.',
                   'Blue markers are enquiry visits (red are site visits); the popup links to the enquiry.'] },

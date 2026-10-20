@@ -4,7 +4,7 @@
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
       <h4 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2 text-warning"></i>Spare Parts Master</h4>
-      <small class="text-muted"><%= total %> parts in catalog</small>
+      <small class="text-muted"><%= total %> parts in catalog<% if (priceDate) { %> · price list dated <%= new Date(priceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %><% } %></small>
     </div>
     <div class="d-flex gap-2">
       <a href="/spare-parts/export/sample" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Sample Excel</a>
@@ -228,16 +228,17 @@ function openEdit(p) {
 }
 
 const PARTS_FIELDS = [
+  { key:'price_date',           label:'Pricing Date',        required:false, hints:['pricing date','price date','price list date'] },
   { key:'sap_part_no',          label:'SAP Part No.',        required:false, hints:['sap part no','sap part no.','sap no','sap','part no','part number'] },
   { key:'rnd_part_no',          label:'RND Part No.',        required:false, hints:['rnd part no','rnd part no.','rnd no','rnd'] },
   { key:'material_description', label:'Material Description',required:true,  hints:['material description','description','part description','item','name'] },
   { key:'hsn_code',             label:'HSN Code',            required:false, hints:['hsn code','hsn','hsn/sac'] },
   { key:'tax_rate',             label:'Tax Rate (%)',         required:false, hints:['tax_rate','tax rate','gst rate','gst %','tax%'] },
   { key:'ndp_basic',            label:'NDP Basic',           required:false, hints:['ndp basic','ndp_basic','ndp base'] },
-  { key:'ndp_gst',              label:'NDP GST Amount',      required:false, hints:['ndp gst','ndp_gst'] },
+  { key:'ndp_gst',              label:'NDP GST Amount',      required:false, hints:['ndp gst','ndp_gst','gst'] },
   { key:'ndp_price',            label:'NDP Total Price',     required:false, hints:['ndp','ndp price','ndp total','ndp_price'] },
   { key:'mrp_basic',            label:'MRP Basic',           required:false, hints:['mrp basic','mrp_basic','mrp base'] },
-  { key:'mrp_gst',              label:'MRP GST Amount',      required:false, hints:['mrp gst','mrp_gst'] },
+  { key:'mrp_gst',              label:'MRP GST Amount',      required:false, hints:['mrp gst','mrp_gst','gst 1'] },
   { key:'mrp_price',            label:'MRP Total Price',     required:false, hints:['mrp','mrp price','mrp total','mrp_price'] },
 ];
 
@@ -260,12 +261,20 @@ function ab2b64p(buf) {
   return btoa(bin);
 }
 
+// Exact header names win first (so "NDP" is NDP total, not "NDP Basic"); then a
+// partial match, skipping headers that are an exact name for some other field.
 function partsAutoDetect(headers) {
-  const norm = h => h.toLowerCase().replace(/[^a-z0-9]/g,' ').trim();
-  const mapping = {};
+  const norm = h => h.toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+  const mapping = {}, used = new Set();
+  const exactFor = h => PARTS_FIELDS.find(f => f.hints.includes(norm(h)));
   PARTS_FIELDS.forEach(f => {
-    const match = headers.find(h => f.hints.some(hint => norm(h) === hint || norm(h).includes(hint)));
-    if (match) mapping[f.key] = match;
+    const match = headers.find(h => !used.has(h) && f.hints.includes(norm(h)));
+    if (match) { mapping[f.key] = match; used.add(match); }
+  });
+  PARTS_FIELDS.forEach(f => {
+    if (mapping[f.key]) return;
+    const match = headers.find(h => !used.has(h) && !exactFor(h) && f.hints.some(hint => hint.length > 3 && norm(h).includes(hint)));
+    if (match) { mapping[f.key] = match; used.add(match); }
   });
   return mapping;
 }
