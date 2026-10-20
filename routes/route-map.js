@@ -3,8 +3,10 @@ const router  = express.Router();
 const { db } = require('../db');
 
 // ── DSE daily route map ───────────────────────────────────────────────────────
-// Plots one DSE's site visits for one day in the order they were recorded
-// (visit_time, then id) and joins consecutive visits with road routes.
+// Plots one DSE's visits for one day — site punch-ins (field_visits) and enquiry
+// visits (enquiry_visits) together — in the order they were recorded (time, then
+// site before enquiry, then id) and joins consecutive visits with road routes.
+// An enquiry visit is placed by when it was saved, since that is when its GPS was taken.
 // Road routing comes from OSRM (free public server by default; set OSRM_URL to
 // use your own). Every leg is cached in route_legs, so a pair is routed once.
 // The route is the road path *between recorded visit points*: it is not a GPS
@@ -43,14 +45,24 @@ function resolveUser(req, res) {
   return u ? { user: u } : { error: 404 };
 }
 
-function visitsForDay(userId, date) {
-  return db.prepare(`
-    SELECT id, customer_name, contact_person, phone, purpose, remarks, visit_time, lat, lng,
-           gps_accuracy, location_status, address
-    FROM field_visits
-    WHERE user_id = ? AND date(visit_time, '+330 minutes') = ?
-    ORDER BY visit_time ASC, id ASC`).all(userId, date);
+// Both kinds of visit as one list. Old migrated enquiry visits (no recorder) are left out.
+const VISITS_SQL = `
+  SELECT 'site' AS kind, id, customer_name, contact_person, phone, purpose, remarks, visit_time,
+         lat, lng, gps_accuracy, location_status, address, NULL AS enquiry_id, NULL AS enquiry_number, NULL AS entered_date, 0 AS kind_order
+  FROM field_visits WHERE user_id = ? AND date(visit_time, '+330 minutes') BETWEEN ? AND ?
+  UNION ALL
+  SELECT 'enquiry', v.id, e.customer_name, '', e.phone, v.purpose,
+         TRIM(COALESCE(v.outcome, '') || CASE WHEN v.demo_given = 1 THEN ' (demo given)' ELSE '' END), v.created_at,
+         v.lat, v.lng, v.gps_accuracy, CASE WHEN v.lat IS NULL THEN 'missing' ELSE 'gps' END, v.visit_location,
+         e.id, e.enquiry_number, v.visit_date, 1
+  FROM enquiry_visits v JOIN enquiries e ON e.id = v.enquiry_id
+  WHERE v.created_by = ? AND date(v.created_at, '+330 minutes') BETWEEN ? AND ?
+  ORDER BY visit_time ASC, kind_order ASC, id ASC`;
+
+function visitsBetween(userId, from, to) {
+  return db.prepare(VISITS_SQL).all(userId, from, to, userId, from, to);
 }
+const visitsForDay = (userId, date) => visitsBetween(userId, date, date);
 
 // ── Road routing with cache ───────────────────────────────────────────────────
 const keyPart = (p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
@@ -181,7 +193,9 @@ router.get('/api/day', async (req, res) => {
     const lat = v.lat == null ? NaN : Number(v.lat), lng = v.lng == null ? NaN : Number(v.lng);
     const ok = validCoords(lat, lng);
     return {
-      seq: i + 1, id: v.id, visitNo: `VIS-${String(v.id).padStart(5, '0')}`,
+      seq: i + 1, id: v.id, kind: v.kind,
+      visitNo: v.kind === 'site' ? `VIS-${String(v.id).padStart(5, '0')}` : `${v.enquiry_number} · visit ${v.id}`,
+      enquiryId: v.enquiry_id, enteredDate: v.entered_date,
       customer: v.customer_name, contact: v.contact_person, phone: v.phone, purpose: v.purpose, remarks: v.remarks,
       time: isoTime(v.visit_time), address: v.address,
       lat: ok ? lat : null, lng: ok ? lng : null, accuracy: v.gps_accuracy,
@@ -230,12 +244,13 @@ router.get('/api/range', async (req, res) => {
   const span = (new Date(to + 'T00:00:00Z') - new Date(from + 'T00:00:00Z')) / 864e5 + 1;
   if (span > MAX_RANGE_DAYS) return res.status(400).json({ error: `Choose a range of at most ${MAX_RANGE_DAYS} days.` });
 
-  const rows = db.prepare(`
-    SELECT id, visit_time, lat, lng, date(visit_time, '+330 minutes') AS day
-    FROM field_visits WHERE user_id = ? AND date(visit_time, '+330 minutes') BETWEEN ? AND ?
-    ORDER BY visit_time ASC, id ASC`).all(who.user.id, from, to);
+  const rows = visitsBetween(who.user.id, from, to);
   const byDay = new Map();
-  rows.forEach(r => { if (!byDay.has(r.day)) byDay.set(r.day, []); byDay.get(r.day).push(r); });
+  rows.forEach(r => {
+    const day = new Date(isoTime(r.visit_time)).toLocaleDateString('en-CA');   // India date
+    if (!byDay.has(day)) byDay.set(day, []);
+    byDay.get(day).push(r);
+  });
 
   const days = [];
   for (const [day, list] of byDay) {
@@ -243,7 +258,7 @@ router.get('/api/range', async (req, res) => {
     const legs = await routeLegs(located, { cacheOnly: true });
     const known = legs.every(l => l && l.ok);
     days.push({
-      date: day, visits: list.length, located: located.length,
+      date: day, visits: list.length, located: located.length, enquiry: list.filter(v => v.kind === 'enquiry').length,
       first: isoTime(list[0].visit_time), last: isoTime(list[list.length - 1].visit_time),
       routeKm: known ? Math.round(legs.reduce((t, l) => t + l.distance_m, 0) / 10) / 100 : null,
     });

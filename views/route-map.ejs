@@ -48,7 +48,7 @@
     <div class="card-header bg-white fw-semibold" id="rangeTitle">Days</div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0 align-middle">
-        <thead class="table-light"><tr><th>Date</th><th class="text-end">Visits</th><th class="text-end">With GPS</th><th>First</th><th>Last</th><th class="text-end">Road km</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th>Date</th><th class="text-end">Visits <span class="fw-normal text-muted">(enquiry)</span></th><th class="text-end">With GPS</th><th>First</th><th>Last</th><th class="text-end">Road km</th><th></th></tr></thead>
         <tbody id="rangeBody"></tbody>
       </table>
     </div>
@@ -73,6 +73,8 @@
           <div class="map-state" id="mapState"></div>
         </div>
         <div class="card-footer bg-white small text-muted d-flex flex-wrap gap-3 align-items-center">
+          <span><span class="lg-dot" style="background:#cc0000"></span>Site visit</span>
+          <span><span class="lg-dot" style="background:#0d6efd"></span>Enquiry visit</span>
           <span><span class="lg-line"></span> Road route between visits (calculated)</span>
           <span><span class="lg-line lg-fail"></span> Road route unavailable — not counted</span>
           <span id="mapNote"></span>
@@ -85,7 +87,7 @@
         <div class="list-group list-group-flush" id="visitList"></div>
       </div>
       <div class="small text-muted mt-2 px-1">
-        Visits are shown in the order they were recorded (never re-ordered). The road distance is the routed distance between consecutive visit points<%= osrmPublic ? ', calculated with the free OpenStreetMap (OSRM) routing service' : '' %>; it is not a GPS track of the exact path driven.
+        Site punch-ins and enquiry visits are shown together in the order they were recorded (never re-ordered); an enquiry visit is placed by when it was saved. The road distance is the routed distance between consecutive visit points<%= osrmPublic ? ', calculated with the free OpenStreetMap (OSRM) routing service' : '' %>; it is not a GPS track of the exact path driven.
       </div>
     </div>
   </div>
@@ -104,13 +106,16 @@
 .vmark { width: 30px; height: 30px; border-radius: 50%; background: #cc0000; color: #fff; font-weight: 700; font-size: 13px;
          display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .vmark.multi { width: auto; min-width: 30px; padding: 0 7px; border-radius: 15px; font-size: 12px; }
-.vmark.first { background: #198754; } .vmark.last { background: #212529; }
+.vmark.enq { background: #0d6efd; }
+.vmark.mixed { background: linear-gradient(90deg, #cc0000 50%, #0d6efd 50%); }
+.lg-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
 .varrow { color: #cc0000; font-size: 18px; line-height: 1; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
 .lg-line { display: inline-block; width: 26px; height: 0; border-top: 4px solid #cc0000; vertical-align: middle; margin-right: 4px; }
 .lg-line.lg-fail { border-top: 3px dashed #868e96; }
 .vlist-item { cursor: pointer; }
 .vlist-item .seq { width: 28px; height: 28px; border-radius: 50%; background: #cc0000; color: #fff; font-weight: 700; font-size: 12px;
                    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.vlist-item .seq.enq { background: #0d6efd; }
 .vlist-item .seq.nogps { background: #adb5bd; }
 .leg-row { font-size: 12px; color: #6c757d; padding: 4px 16px 4px 52px; background: #fafafa; }
 .leaflet-popup-content { margin: 10px 12px; font-size: 13px; }
@@ -162,7 +167,13 @@
   function popupHtml(v) {
     const phone = v.phone ? `<a href="tel:${esc(v.phone)}"><i class="bi bi-telephone-fill"></i> ${esc(v.phone)}</a>` : '<span class="text-muted">—</span>';
     const acc = v.accuracy ? ` <span class="${v.accuracy > 200 ? 'text-warning' : 'text-muted'}">(±${v.accuracy} m${v.accuracy > 200 ? ', low accuracy' : ''})</span>` : '';
-    return `<div class="fw-bold mb-1">#${v.seq} · ${esc(v.customer)}</div>
+    const kind = v.kind === 'enquiry'
+      ? `<span class="badge bg-primary">Enquiry visit</span> <a href="/enquiries/${v.enquiryId}" target="_blank">open enquiry</a>`
+      : '<span class="badge bg-danger">Site visit</span>';
+    const visitDay = new Date(v.time).toLocaleDateString('en-CA');
+    const entered = v.kind === 'enquiry' && v.enteredDate && v.enteredDate !== visitDay
+      ? `<div class="small text-warning-emphasis">Visit date entered as ${esc(v.enteredDate)}; placed here by when it was saved.</div>` : '';
+    return `<div class="mb-1">${kind}</div><div class="fw-bold mb-1">#${v.seq} · ${esc(v.customer)}</div>${entered}
       ${v.contact ? `<div><span class="text-muted">Met:</span> ${esc(v.contact)}</div>` : ''}
       <div><span class="text-muted">Phone:</span> ${phone}</div>
       <div><span class="text-muted">Purpose:</span> ${esc(v.purpose || '—')}</div>
@@ -206,10 +217,10 @@
       const g = groups.find(g => map.distance([g.lat, g.lng], [v.lat, v.lng]) < 20);
       if (g) g.items.push(v); else groups.push({ lat: v.lat, lng: v.lng, items: [v] });
     });
-    const firstSeq = located[0]?.seq, lastSeq = located[located.length - 1]?.seq;
     groups.forEach(g => {
       const label = g.items.map(v => v.seq).join('·');
-      const cls = g.items.length > 1 ? 'multi' : g.items[0].seq === firstSeq ? 'first' : g.items[0].seq === lastSeq && located.length > 1 ? 'last' : '';
+      const kinds = new Set(g.items.map(v => v.kind));
+      const cls = (g.items.length > 1 ? 'multi ' : '') + (kinds.size > 1 ? 'mixed' : kinds.has('enquiry') ? 'enq' : '');
       const m = L.marker([g.lat, g.lng], { riseOnHover: true, title: `Visit ${label}`,
         icon: L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -14],
           html: `<div class="vmark ${cls}">${label}</div>` }) }).addTo(layer)
@@ -224,10 +235,10 @@
     d.visits.forEach(v => {
       const el = document.createElement('div');
       el.className = 'list-group-item vlist-item d-flex gap-2 align-items-start';
-      el.innerHTML = `<span class="seq ${v.lat == null ? 'nogps' : ''}">${v.seq}</span>
+      el.innerHTML = `<span class="seq ${v.lat == null ? 'nogps' : v.kind === 'enquiry' ? 'enq' : ''}">${v.seq}</span>
         <div class="flex-grow-1" style="min-width:0">
           <div class="d-flex justify-content-between gap-2"><span class="fw-semibold text-truncate">${esc(v.customer)}</span><span class="small text-muted text-nowrap">${tm(v.time)}</span></div>
-          <div class="small text-muted text-truncate">${esc(v.purpose || '—')}${v.phone ? ` · <a href="tel:${esc(v.phone)}" onclick="event.stopPropagation()">${esc(v.phone)}</a>` : ''}</div>
+          <div class="small text-muted text-truncate">${v.kind === 'enquiry' ? '<span class="badge bg-primary-subtle text-primary-emphasis me-1">Enquiry</span>' : ''}${esc(v.purpose || '—')}${v.phone ? ` · <a href="tel:${esc(v.phone)}" onclick="event.stopPropagation()">${esc(v.phone)}</a>` : ''}</div>
           ${v.lat == null ? `<div class="small text-warning-emphasis"><i class="bi bi-geo-alt"></i> ${v.location === 'invalid' ? 'Invalid GPS — not on map' : 'No GPS — not on map'}${v.address ? ': ' + esc(v.address) : ''}</div>` : ''}
         </div>`;
       if (v.lat != null) el.addEventListener('click', () => { map.setView([v.lat, v.lng], Math.max(map.getZoom(), 15)); markerByVisit[v.seq].openPopup(); });
@@ -280,7 +291,7 @@
       body.innerHTML = d.days.length ? '' : '<tr><td colspan="7" class="text-center text-muted py-3">No visits in this period.</td></tr>';
       d.days.forEach(day => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="text-nowrap">${dLong(day.date)}</td><td class="text-end">${day.visits}</td><td class="text-end">${day.located}</td>
+        tr.innerHTML = `<td class="text-nowrap">${dLong(day.date)}</td><td class="text-end">${day.visits}${day.enquiry ? ` <span class="text-muted">(${day.enquiry})</span>` : ''}</td><td class="text-end">${day.located}</td>
           <td>${tm(day.first)}</td><td>${tm(day.last)}</td><td class="text-end">${day.routeKm == null ? '<span class="text-muted">open to calculate</span>' : km(day.routeKm)}</td>
           <td class="text-end"><button class="btn btn-sm btn-outline-danger">Show route</button></td>`;
         tr.querySelector('button').addEventListener('click', () => { $('f_date').value = day.date; loadDay(day.date); });

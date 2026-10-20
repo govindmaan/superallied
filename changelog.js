@@ -4,6 +4,17 @@
 
 module.exports = [
   {
+    date: '2026-10-20',
+    items: [
+      { commit: '', type: 'improved', title: 'Enquiry visits on the route map',
+        details: ['Enquiry visits now appear on the DSE Route Map with site visits, in time order, joined by road routes.',
+                  'Blue markers are enquiry visits (red are site visits); the popup links to the enquiry.'] },
+      { commit: '', type: 'improved', title: 'Enquiry visit captures location automatically',
+        details: ['Location is taken when you open the Visit tab, with a clear message if it is blocked or unavailable.',
+                  'Fixed: the visit date defaulted to yesterday before 5:30 am.'] },
+    ],
+  },
+  {
     date: '2026-10-19',
     items: [
       { commit: 'cfa6195', type: 'new', title: 'DSE Route Map',

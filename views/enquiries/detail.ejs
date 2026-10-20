@@ -243,14 +243,15 @@
             <div class="tab-pane fade" id="tabVisit">
               <form method="post" action="/enquiries/<%= enquiry.id %>/visit" id="visitForm">
                 <div class="row g-2">
-                  <div class="col-md-6"><label class="form-label small">Visit Date</label><input type="date" class="form-control form-control-sm" name="visit_date" value="<%= new Date().toISOString().slice(0,10) %>"></div>
+                  <div class="col-md-6"><label class="form-label small">Visit Date</label><input type="date" class="form-control form-control-sm" name="visit_date" value="<%= new Date().toLocaleDateString('en-CA') %>"></div>
                   <div class="col-md-6"><label class="form-label small">Visit Location</label><input type="text" class="form-control form-control-sm" name="visit_location"></div>
                   <div class="col-md-6"><label class="form-label small">Purpose</label><input type="text" class="form-control form-control-sm" name="purpose" placeholder="e.g. Demo, negotiation"></div>
                   <div class="col-md-6"><label class="form-label small">Competitor Machine (if any)</label><input type="text" class="form-control form-control-sm" name="competitor_machine"></div>
                   <div class="col-12"><label class="form-label small">Outcome</label><textarea class="form-control form-control-sm" name="outcome" rows="2"></textarea></div>
                   <div class="col-6 form-check"><input class="form-check-input" type="checkbox" name="demo_given" value="1" id="chkDemoGiven"><label class="form-check-label small" for="chkDemoGiven">Demo Given</label></div>
                 </div>
-                <input type="hidden" name="lat" id="visitLat"><input type="hidden" name="lng" id="visitLng"><input type="hidden" name="photo" id="visitPhoto">
+                <input type="hidden" name="lat" id="visitLat"><input type="hidden" name="lng" id="visitLng"><input type="hidden" name="accuracy" id="visitAcc"><input type="hidden" name="photo" id="visitPhoto">
+                <div class="small mt-2" id="gpsStatus"></div>
                 <div class="d-flex gap-2 mt-2 flex-wrap">
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="captureGPS()"><i class="bi bi-crosshair me-1"></i><span id="gpsLabel">Use My Location</span></button>
                   <label class="btn btn-sm btn-outline-secondary mb-0">
@@ -321,15 +322,31 @@ function readPhoto(input, targetId) {
   reader.readAsDataURL(file);
 }
 
+// Device GPS for the visit (shown on the DSE route map). Captured automatically when the
+// Visit tab opens; the button retries. Nothing is guessed if location is unavailable.
 function captureGPS() {
-  const label = document.getElementById('gpsLabel');
+  const label = document.getElementById('gpsLabel'), status = document.getElementById('gpsStatus');
+  ['visitLat', 'visitLng', 'visitAcc'].forEach(id => { document.getElementById(id).value = ''; });
   label.textContent = 'Getting location…';
+  status.innerHTML = '';
+  if (!navigator.geolocation) { label.textContent = 'Retry location'; status.innerHTML = '<span class="text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> This device cannot share its location. The visit will be saved without GPS.</span>'; return; }
   navigator.geolocation.getCurrentPosition(pos => {
     document.getElementById('visitLat').value = pos.coords.latitude;
     document.getElementById('visitLng').value = pos.coords.longitude;
+    document.getElementById('visitAcc').value = pos.coords.accuracy;
+    const acc = Math.round(pos.coords.accuracy);
     label.textContent = 'Location captured ✓';
-  }, () => { label.textContent = 'GPS unavailable'; }, { enableHighAccuracy: true, timeout: 10000 });
+    status.innerHTML = `<span class="${acc > 200 ? 'text-warning-emphasis' : 'text-success'}"><i class="bi bi-geo-alt-fill"></i> Location captured (±${acc} m)${acc > 200 ? ' — low accuracy, tap to retry in the open' : ''}</span>`;
+  }, err => {
+    label.textContent = 'Retry location';
+    const why = err.code === 1 ? 'Location permission is blocked — allow it in your browser settings and tap Retry.'
+              : err.code === 3 ? 'Location took too long — tap Retry.' : 'Location unavailable — turn on GPS and tap Retry.';
+    status.innerHTML = `<span class="text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> ${why} Without it the visit won't appear on the route map.</span>`;
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 }
+document.querySelector('[data-bs-target="#tabVisit"], [href="#tabVisit"]')?.addEventListener('shown.bs.tab', () => {
+  if (!document.getElementById('visitLat').value) captureGPS();
+});
 
 // Voice-to-text for remarks (Chrome/Edge only — feature-detected)
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;

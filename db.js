@@ -1132,6 +1132,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS idx_visit_enquiry ON enquiry_visits(enquiry_id);
+  CREATE INDEX IF NOT EXISTS idx_enqvisit_user_time ON enquiry_visits(created_by, created_at);
 
   CREATE TABLE IF NOT EXISTS enquiry_quotations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1413,5 +1414,8 @@ db.exec(`
 `);
 // Databank is granted per user by the admin (Databank → Access), not by role
 try { db.exec("ALTER TABLE users ADD COLUMN databank_access INTEGER DEFAULT 0"); } catch(e) {}
+
+// Route map: GPS accuracy (m) for enquiry visits
+try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catch(e) {}
 
 module.exports = { db, getSettings, getFY, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

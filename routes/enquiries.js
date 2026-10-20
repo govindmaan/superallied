@@ -336,7 +336,11 @@ router.post('/:id/visit', (req, res) => {
   const enquiry = loadEnquiryOrDeny(req, res);
   if (!enquiry) return;
   const user = res.locals.user;
-  const { visit_date, visit_location, purpose, demo_given, competitor_machine, outcome, lat, lng } = req.body;
+  const { visit_date, visit_location, purpose, demo_given, competitor_machine, outcome } = req.body;
+  // Keep only real device coordinates; anything else is stored as "no GPS"
+  const lat = Number(req.body.lat), lng = Number(req.body.lng), acc = Number(req.body.accuracy);
+  const hasGps = req.body.lat !== '' && req.body.lat != null && Number.isFinite(lat) && Number.isFinite(lng)
+    && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
 
   let photoPath = '';
   if (req.body.photo && req.body.photo.startsWith('data:image')) {
@@ -347,10 +351,10 @@ router.post('/:id/visit', (req, res) => {
     photoPath = `/uploads/enquiries/${fname}`;
   }
 
-  db.prepare(`INSERT INTO enquiry_visits (enquiry_id, visit_date, visit_location, purpose, demo_given, competitor_machine, outcome, lat, lng, photo, created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+  db.prepare(`INSERT INTO enquiry_visits (enquiry_id, visit_date, visit_location, purpose, demo_given, competitor_machine, outcome, lat, lng, gps_accuracy, photo, created_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(enquiry.id, visit_date || null, visit_location || '', purpose || '', demo_given ? 1 : 0, competitor_machine || '', outcome || '',
-         lat ? parseFloat(lat) : null, lng ? parseFloat(lng) : null, photoPath, user.id);
+         hasGps ? lat : null, hasGps ? lng : null, hasGps && Number.isFinite(acc) ? Math.round(acc) : null, photoPath, user.id);
   bumpStage(enquiry.id, 'sales_visit');
   db.prepare('UPDATE enquiries SET updated_at=CURRENT_TIMESTAMP WHERE id=?').run(enquiry.id);
 
