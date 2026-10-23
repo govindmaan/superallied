@@ -33,7 +33,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 // ── Employee List ─────────────────────────────────────────────────────────────
-const ALL_ROLES = ['admin','manager','hr','sales','office','service','staff','employee'];
+const ALL_ROLES = ['admin','manager','hr','sales','office','service','staff','employee','accountant','accounts_manager'];
 
 router.get('/employees', (req, res) => {
   const { q, dept, role, status } = req.query;

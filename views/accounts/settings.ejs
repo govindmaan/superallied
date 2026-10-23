@@ -1,0 +1,33 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-primary"></i>Accounts Settings</h4>
+  <small class="text-muted">Numbering, approval rules and branches. Business name, address and GSTIN printed on receipts come from <a href="/settings">Settings</a>.</small></div>
+<div class="row g-3">
+<form method="POST" action="/accounts/settings" class="col-lg-7"><div class="card border-0 shadow-sm p-3">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Receipt number prefix</label><input name="acc_receipt_prefix" value="<%= s.acc_receipt_prefix %>" class="form-control" maxlength="20">
+      <div class="form-text">Numbers look like <b><%= s.acc_receipt_prefix %>/<%= today.slice(2, 4) %>-..../0001</b> and restart each financial year (April).</div></div>
+    <div class="col-md-6"><label class="form-label">Cancellation document prefix</label><input name="acc_cancel_prefix" value="<%= s.acc_cancel_prefix %>" class="form-control" maxlength="20"></div>
+    <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="acc_cancel_needs_approval" value="1" id="ap" <%= s.acc_cancel_needs_approval !== '0' ? 'checked' : '' %>>
+      <label class="form-check-label" for="ap">Receipt cancellations by an accountant need accounts-manager approval</label></div></div>
+    <div class="col-md-6"><label class="form-label">Flag challans without invoice after (days)</label><input name="acc_challan_invoice_days" value="<%= s.acc_challan_invoice_days %>" class="form-control" inputmode="numeric"></div>
+    <div class="col-md-6"><label class="form-label">Default invoice due (days after invoice date)</label><input name="acc_default_due_days" value="<%= s.acc_default_due_days %>" class="form-control" inputmode="numeric"></div>
+    <div class="col-md-6"><label class="form-label">Max upload size (MB, 1–15)</label><input name="acc_max_upload_mb" value="<%= s.acc_max_upload_mb %>" class="form-control" inputmode="numeric"></div>
+    <div class="col-md-6"><label class="form-label">Branches (comma separated)</label><input name="acc_branches" value="<%= s.acc_branches %>" class="form-control"></div>
+  </div>
+  <button class="btn btn-primary mt-3">Save</button>
+</div></form>
+<div class="col-lg-5"><div class="card border-0 shadow-sm p-3 small">
+  <h6 class="fw-bold">Who can do what</h6>
+  <table class="table table-sm mb-2"><tbody>
+    <tr><td><b>Accountant</b></td><td>Upload/edit unverified invoices, record payments & receipts, allocate, request cancellations & adjustments, reports.</td></tr>
+    <tr><td><b>Accounts manager</b></td><td>Everything an accountant can, plus verify invoices & payments, approve cancellations, adjustments and reversals.</td></tr>
+    <tr><td><b>Manager</b></td><td>Read-only dashboards, registers, reports and audit log.</td></tr>
+    <tr><td><b>Sales / office</b></td><td>Read-only: their own customers’ invoices, receipts and balances.</td></tr>
+    <tr><td><b>Admin</b></td><td>Everything, plus these settings.</td></tr></tbody></table>
+  <div class="text-muted">Current accounts permissions by role:</div>
+  <ul class="mb-0"><% perms.forEach(p => { %><li><b><%= p.role %></b>: <%= p.p %></li><% }) %></ul>
+  <div class="text-muted mt-2">Give someone a role in <a href="/users">Users</a> or HR → Employees. Permissions are enforced on the server for every action.</div>
+</div></div>
+</div>
+<%- include('_bottom') %>

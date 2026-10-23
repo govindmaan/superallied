@@ -1,0 +1,24 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-clipboard-check me-2 text-primary"></i>Review before saving</h4>
+  <small class="text-muted">Draft — not counted anywhere yet. Check every value against the Tally invoice, then confirm.</small></div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm"><div class="card-body"><%- include('_invoice-facts', { i }) %></div></div>
+    <% if (warnings.length) { %>
+    <div class="alert alert-warning mt-3 small"><b><i class="bi bi-exclamation-triangle me-1"></i>Please check:</b><ul class="mb-0 mt-1"><% warnings.forEach(w => { %><li><%= w %></li><% }) %></ul></div>
+    <% } else { %><div class="alert alert-success mt-3 small mb-0"><i class="bi bi-check2-circle me-1"></i>No mismatches found against the customer, quotation and challan records.</div><% } %>
+    <% if (extracted && extracted.found) { %>
+    <div class="alert alert-info small mt-3 mb-0"><b>Read from the PDF (unverified):</b>
+      <%= ['invoice_number', 'invoice_date', 'customer_gstin', 'total_amount'].filter(k => extracted[k]).map(k => k.replace(/_/g, ' ') + ' ' + extracted[k]).join(' · ') || 'nothing recognisable' %></div>
+    <% } %>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <form method="POST" action="/accounts/invoices/<%= i.id %>/confirm"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Confirm & save invoice</button></form>
+      <a href="/accounts/invoices/<%= i.id %>/edit" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i>Edit details</a>
+      <form method="POST" action="/accounts/invoices/<%= i.id %>/discard" data-confirm="Discard this draft and its file? Nothing has been saved yet."><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn btn-outline-danger">Discard draft</button></form>
+    </div>
+  </div>
+  <div class="col-lg-6"><div class="card border-0 shadow-sm p-2"><%- include('_invoice-file', { i }) %></div></div>
+</div>
+<%- include('_bottom') %>

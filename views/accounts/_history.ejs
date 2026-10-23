@@ -1,0 +1,17 @@
+<% if (history && history.length) { %>
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-1"></i>History</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 small">
+    <thead class="table-light"><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
+    <tbody>
+    <% history.forEach(h => { let d = {}; try { d = JSON.parse(h.details || '{}'); } catch (e) { d = { note: h.details }; } %>
+      <tr><td class="text-nowrap"><%= dbTime(h.created_at)?.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) %></td>
+        <td><%= h.full_name || 'System' %></td><td><%= h.action.replace(/_/g, ' ') %></td>
+        <td class="acc-json"><% if (d.reason) { %><div><b>Reason:</b> <%= d.reason %></div><% } %>
+          <% if (d.before && Object.keys(d.before).length) { %><div><b>Before:</b> <%= JSON.stringify(d.before) %></div><% } %>
+          <% if (d.after && Object.keys(d.after).length) { %><div><b>After:</b> <%= JSON.stringify(d.after) %></div><% } %>
+          <% if (d.remarks) { %><div><b>Remarks:</b> <%= d.remarks %></div><% } %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+</div>
+<% } %>

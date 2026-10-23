@@ -1,0 +1,111 @@
+<%- include('_top') %>
+<% const st = invoiceStatus(i); const isRecv = i.doc_type !== 'credit_note'; const live = ['uploaded', 'verified'].includes(i.status); %>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0 fw-bold"><%= DOC_TYPES[i.doc_type] %> <span class="docno fs-5"><%= i.invoice_number %></span>
+      <span class="badge <%= st.cls %>"><%= st.label %></span>
+      <% if (i.status === 'verified') { %><span class="badge bg-primary"><i class="bi bi-patch-check-fill"></i> Verified by <%= i.verified_by_name %></span><% } %></h4>
+    <div class="doc-chain mt-2">
+      <% if (i.quotation_number) { %><a class="chip" href="/quotations/<%= i.quotation_id %>">Quotation <%= i.quotation_number %></a><span class="arrow">→</span><% } %>
+      <% i.challans.forEach(ch => { %><a class="chip" href="/accounts/challans/<%= ch.id %>">Challan <%= ch.challan_number %></a><span class="arrow">→</span><% }) %>
+      <span class="chip fw-bold"><%= DOC_TYPES[i.doc_type] %> <%= i.invoice_number %></span>
+      <% i.allocations.filter(a => a.receipt_number && a.status !== 'reversed').forEach(a => { %><span class="arrow">→</span><a class="chip" href="/accounts/receipts/<%= a.receipt_id %>">Receipt <%= a.receipt_number %></a><% }) %>
+      <% i.notes.forEach(n => { %><span class="arrow">·</span><a class="chip" href="/accounts/invoices/<%= n.id %>"><%= DOC_TYPES[n.doc_type] %> <%= n.invoice_number %></a><% }) %>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap no-print">
+    <% if (accCan('accounts') && live && isRecv && i.available > 0) { %>
+      <a class="btn btn-sm btn-danger" href="/accounts/receipts/new?customer_id=<%= i.customer_id %>&purpose=invoice_payment&invoice_id=<%= i.id %>"><i class="bi bi-receipt me-1"></i>Receive payment</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/accounts/allocations?customer_id=<%= i.customer_id %>&invoice_id=<%= i.id %>">Allocate advance</a>
+    <% } %>
+    <% if (accCan('accounts') && live && !isRecv && i.balance_amount > 0) { %>
+      <a class="btn btn-sm btn-outline-secondary" href="/accounts/allocations?customer_id=<%= i.customer_id %>&credit_note_id=<%= i.id %>">Apply credit note</a><% } %>
+    <% if (accCan('accounts') && i.status === 'uploaded' || accCan('accounts_approve') && i.status === 'verified') { %>
+      <a class="btn btn-sm btn-outline-primary" href="/accounts/invoices/<%= i.id %>/edit"><i class="bi bi-pencil me-1"></i>Edit</a><% } %>
+    <% if (accCan('accounts_approve') && i.status === 'uploaded') { %>
+      <form method="POST" action="/accounts/invoices/<%= i.id %>/verify" data-confirm="Mark this invoice verified against Tally? Accountants will no longer be able to edit it."><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="btn btn-sm btn-primary"><i class="bi bi-patch-check me-1"></i>Verify</button></form><% } %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm"><div class="card-body"><%- include('_invoice-facts', { i }) %></div></div>
+    <div class="card border-0 shadow-sm mt-3"><div class="card-body">
+      <div class="row text-center g-2">
+        <div class="col"><div class="kpi-label">Total</div><div class="fw-bold">₹<%= money(i.total_amount) %></div></div>
+        <div class="col"><div class="kpi-label"><%= isRecv ? 'Paid / adjusted' : 'Used' %></div><div class="fw-bold text-success">₹<%= money(i.allocated_amount) %></div></div>
+        <div class="col"><div class="kpi-label"><%= isRecv ? 'Outstanding' : 'Unused credit' %></div><div class="fw-bold <%= i.balance_amount ? 'text-danger' : '' %>">₹<%= money(i.balance_amount) %></div></div>
+        <% if (isRecv && i.balance_amount !== i.available) { %><div class="col"><div class="kpi-label">Cheques pending</div><div class="fw-bold text-warning">₹<%= money(i.balance_amount - i.available) %></div></div><% } %>
+      </div>
+    </div></div>
+    <% if (warnings.length) { %><div class="alert alert-warning small mt-3 mb-0"><b>Checks:</b><ul class="mb-0"><% warnings.forEach(w => { %><li><%= w %></li><% }) %></ul></div><% } %>
+    <% if (i.status === 'cancelled') { %><div class="alert alert-dark small mt-3 mb-0">Cancelled by <%= i.cancelled_by_name %> on <%= i.cancelled_at %>: <%= i.cancel_reason %></div><% } %>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm p-2"><%- include('_invoice-file', { i }) %>
+      <div class="small mt-2"><b>File revisions</b> (previous files are never overwritten):
+        <ul class="mb-1"><% i.files.forEach(f => { %><li><a href="/accounts/invoices/<%= i.id %>/file/<%= f.revision %>">Revision <%= f.revision %></a> · <%= f.original_name %> · <%= f.full_name %> · <%= f.uploaded_at %><%= f.is_current ? ' · current' : '' %><%= f.replace_reason ? ' — ' + f.replace_reason : '' %></li><% }) %></ul></div>
+      <% if (accCan('accounts') && live && (i.status === 'uploaded' || accCan('accounts_approve'))) { %>
+      <details class="small no-print"><summary class="text-primary">Replace file (keeps the old one)</summary>
+        <div class="d-flex flex-column gap-2 mt-2"><input type="file" id="repFile" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
+          <input id="repReason" class="form-control form-control-sm" placeholder="Reason, e.g. re-exported from Tally with signature">
+          <button type="button" id="repGo" class="btn btn-sm btn-outline-primary">Upload new revision</button><div id="repMsg"></div></div></details><% } %>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-diagram-3 me-1"></i><%= isRecv ? 'Payments and credits allocated to this invoice' : 'Where this credit note was applied' %></div>
+  <div class="table-responsive"><table class="table table-sm mb-0 align-middle small">
+    <thead class="table-light"><tr><th>Date</th><th>Source</th><th><%= isRecv ? '' : 'Invoice' %></th><th class="money">Amount</th><th>Status</th><th>By</th><th></th></tr></thead>
+    <tbody>
+    <% if (!i.allocations.length) { %><tr><td colspan="7" class="text-center text-muted py-3">Nothing allocated yet.</td></tr><% } %>
+    <% i.allocations.forEach(a => { %>
+      <tr class="<%= a.status === 'reversed' ? 'cancelled' : '' %>"><td><%= String(a.allocated_at).slice(0, 10) %></td>
+        <td><%- a.receipt_number ? `Receipt <a href="/accounts/receipts/${a.receipt_id}" class="docno">${a.receipt_number}</a> · ${MODES[a.mode]}` : a.cn_number ? `Credit note ${a.cn_number}` : `Approved ${String(a.adjustment_type).replace('_', '-')}` %></td>
+        <td><%= isRecv ? '' : a.target_number %></td><td class="money"><%= money(a.amount) %></td>
+        <td class="keep"><%= a.status === 'pending' ? 'Pending cheque clearance' : a.status %><%= a.status === 'reversed' ? ' by ' + a.reversed_by_name + ': ' + a.reverse_reason : '' %></td>
+        <td><%= a.by_name %></td>
+        <td class="text-end keep"><% if (accCan('accounts_approve') && a.status !== 'reversed') { %>
+          <form method="POST" action="/accounts/allocations/<%= a.id %>/reverse" class="d-flex gap-1 justify-content-end" data-confirm="Reverse this allocation? The invoice balance and the payment's unallocated balance will be restored.">
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="reason" class="form-control form-control-sm" style="max-width:160px" placeholder="Reason" minlength="5" required>
+            <button class="btn btn-sm btn-outline-danger">Reverse</button></form><% } %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+</div>
+
+<% if (isRecv && (i.adjustments.length || (accCan('accounts') && live && i.available > 0))) { %>
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-1"></i>Controlled adjustments <span class="fw-normal text-muted small">— the only way to close an invoice without money; needs a second person’s approval</span></div>
+  <div class="card-body small">
+    <% i.adjustments.forEach(a => { %><div class="mb-1"><b><%= inr(a.amount) %></b> <%= a.adjustment_type.replace('_', '-') %> — <%= a.reason %> · requested by <%= a.req_name %> · <b><%= a.status %></b><%= a.dec_name ? ' by ' + a.dec_name : '' %><%= a.decision_remarks ? ': ' + a.decision_remarks : '' %></div><% }) %>
+    <% if (accCan('accounts') && live && i.available > 0) { %>
+    <form method="POST" action="/accounts/invoices/<%= i.id %>/adjustments" class="row g-2 mt-1 no-print" data-confirm="Send this adjustment for approval?">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="col-md-2"><input name="amount" class="form-control form-control-sm" placeholder="Amount ₹" inputmode="decimal" required></div>
+      <div class="col-md-2"><select name="adjustment_type" class="form-select form-select-sm"><option value="round_off">Round-off</option><option value="write_off">Write-off</option><option value="discount">Discount</option><option value="tds">TDS deducted</option><option value="other">Other</option></select></div>
+      <div class="col-md-6"><input name="reason" class="form-control form-control-sm" placeholder="Reason (at least 10 characters)" minlength="10" required></div>
+      <div class="col-md-2"><button class="btn btn-sm btn-outline-primary w-100">Request</button></div>
+    </form><% } %>
+  </div>
+</div><% } %>
+
+<% if (accCan('accounts_approve') && live) { %>
+<form method="POST" action="/accounts/invoices/<%= i.id %>/cancel" class="card border-0 shadow-sm p-3 mt-3 no-print" data-confirm="Mark this Tally document cancelled here? (Cancel it in Tally too.) Its file and history are kept.">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="d-flex gap-2 flex-wrap align-items-center"><span class="small fw-semibold">Cancel document</span>
+    <input name="reason" class="form-control form-control-sm" style="max-width:360px" placeholder="Reason (required). Reverse allocations first." minlength="5" required>
+    <button class="btn btn-sm btn-outline-danger">Cancel</button></div>
+</form><% } %>
+
+<%- include('_history', { history }) %>
+<%- include('_bottom') %>
+<script>
+document.getElementById('repGo')?.addEventListener('click', async () => {
+  const f = document.getElementById('repFile').files[0], msg = document.getElementById('repMsg');
+  if (!f) { msg.innerHTML = '<span class="text-danger">Choose a file.</span>'; return; }
+  const j = await SA.postJSON('/accounts/invoices/<%= i.id %>/file', { reason: document.getElementById('repReason').value, file: { name: f.name, data: await SA.fileToData(f) } });
+  if (j.ok) location.reload(); else msg.innerHTML = `<span class="text-danger">${SA.esc(j.error)}</span>`;
+});
+</script>

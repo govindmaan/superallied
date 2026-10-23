@@ -1,0 +1,21 @@
+<%- include('_top') %>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h4 class="mb-0 fw-bold"><i class="bi bi-truck-flatbed me-2 text-primary"></i>Delivery Challans</h4>
+    <small class="text-muted">Register of delivery challans, linked to quotations and Tally invoices.</small></div>
+  <% if (accCan('accounts')) { %><a href="/accounts/challans/new" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Record challan</a><% } %>
+</div>
+<%- include('_filters', { action: '/accounts/challans', show: ['date', 'customer', 'salesperson', 'branch', 'status', 'q'], qPlaceholder: 'Challan no., customer, chassis',
+  statuses: [['', 'Active'], ['all', 'Including cancelled']] }) %>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
+  <thead class="table-light"><tr><th>Challan</th><th>Date</th><th>Customer</th><th>Machine</th><th>Quotation</th><th class="money">Value</th><th>Tally invoice</th><th class="money">Invoice balance</th></tr></thead>
+  <tbody>
+  <% if (!rows.length) { %><tr><td colspan="8" class="text-center text-muted py-4">No delivery challans found.</td></tr><% } %>
+  <% rows.forEach(ch => { %>
+    <tr class="<%= ch.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/challans/<%= ch.id %>"><%= ch.challan_number %></a></td><td><%= ch.challan_date %></td>
+      <td><%= ch.customer_name %></td><td class="small"><%= [ch.machine_name, ch.machine_details, ch.chassis_number && 'Chassis ' + ch.chassis_number].filter(Boolean).join(' · ') %></td>
+      <td><%= ch.quotation_number || '—' %></td><td class="money"><%= ch.challan_value != null ? money(ch.challan_value) : '—' %></td>
+      <td class="keep"><%- ch.invoice_numbers ? `<span class="docno">${ch.invoice_numbers}</span>` : ch.invoice_expected ? '<span class="badge bg-warning text-dark">Awaiting invoice</span>' : '<span class="text-muted small">Not expected</span>' %></td>
+      <td class="money"><%= ch.invoice_numbers ? money(ch.invoice_balance) : '' %></td></tr>
+  <% }) %>
+  </tbody></table></div></div>
+<%- include('_bottom') %>

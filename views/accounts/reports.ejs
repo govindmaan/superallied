@@ -1,0 +1,16 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-clipboard-data-fill me-2 text-primary"></i>Outstanding & Reports</h4>
+  <small class="text-muted">Each report filters on screen and downloads the same rows as PDF, Excel or CSV.</small></div>
+<% const groups = [['Collections', ['daily-collection', 'monthly-collection', 'receipt-register', 'cash-register', 'bank-register', 'cheque-status']],
+  ['Outstanding & advances', ['customer-outstanding', 'invoice-outstanding', 'overdue-invoices', 'customer-advances', 'unallocated-payments']],
+  ['Documents', ['challan-vs-invoice', 'quotations-awaiting-advance', 'challans-awaiting-invoice', 'invoice-upload-register']],
+  ['Control', ['cancellations', 'audit']]];
+   const byKey = Object.fromEntries(defs.map(d => [d.key, d])); %>
+<div class="row g-3">
+<% groups.forEach(([g, keys]) => { %>
+  <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold"><%= g %></div>
+    <div class="list-group list-group-flush"><% keys.filter(k => byKey[k] && (!byKey[k].audit || accCan('accounts_approve') || accCan('accounts_reports'))).forEach(k => { %>
+      <a class="list-group-item list-group-item-action small" href="/accounts/reports/<%= k %>"><%= byKey[k].title %></a><% }) %></div></div></div>
+<% }) %>
+</div>
+<%- include('_bottom') %>

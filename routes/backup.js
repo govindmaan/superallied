@@ -4,6 +4,7 @@ const fs      = require('fs');
 const path    = require('path');
 const { execSync, execFileSync } = require('child_process');
 const { db } = require('../db');
+const { FILES_DIR: ACC_FILES_DIR } = require('../services/accounts/files');
 
 const DB_PATH    = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'quotation.db');
 const DATA_DIR   = path.dirname(DB_PATH);
@@ -48,13 +49,14 @@ function timestamp() {
   return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 }
 
-// Database + uploaded files in one .tar.gz, for moving to another server
+// Database + uploaded files (incl. private Accounts invoices/receipts) in one .tar.gz, for moving to another server
 function exportAll(destTar, uploadsDir) {
   const stage = path.join(BACKUP_DIR, `.stage-${Date.now()}`);
   fs.mkdirSync(stage);
   try {
     snapshotDb(path.join(stage, 'quotation.db'));
     if (fs.existsSync(uploadsDir)) fs.cpSync(uploadsDir, path.join(stage, 'uploads'), { recursive: true });
+    if (fs.existsSync(ACC_FILES_DIR)) fs.cpSync(ACC_FILES_DIR, path.join(stage, 'private', 'accounts'), { recursive: true });
     execFileSync('tar', ['-czf', destTar, '-C', stage, '.'], { timeout: 120000 });
   } finally {
     fs.rmSync(stage, { recursive: true, force: true });

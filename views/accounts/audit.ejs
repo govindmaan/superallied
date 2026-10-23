@@ -1,0 +1,24 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-shield-check me-2 text-primary"></i>Accounts Audit Log</h4>
+  <small class="text-muted">Every financial action with who, when and before/after values. Entries cannot be edited or deleted from the app.</small></div>
+<form method="GET" class="card border-0 shadow-sm mb-3 p-3"><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-2"><label class="form-label small mb-0">From</label><input type="date" name="from" value="<%= f.from %>" class="form-control form-control-sm"></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-0">To</label><input type="date" name="to" value="<%= f.to %>" class="form-control form-control-sm"></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-0">User</label><select name="user_id" class="form-select form-select-sm"><option value="">All</option><% users.forEach(u => { %><option value="<%= u.id %>" <%= f.user_id === u.id ? 'selected' : '' %>><%= u.full_name || u.username %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-0">Record type</label><select name="entity" class="form-select form-select-sm"><option value="">All</option>
+    <% ['acc_invoice', 'acc_receipt', 'acc_payment', 'acc_allocation', 'acc_challan', 'acc_customer', 'acc_report', 'acc_settings'].forEach(e => { %><option value="<%= e %>" <%= entity === e ? 'selected' : '' %>><%= e.replace('acc_', '') %></option><% }) %></select></div>
+  <div class="col-6 col-md-2"><label class="form-label small mb-0">Action contains</label><input name="action" value="<%= action %>" class="form-control form-control-sm" placeholder="e.g. cancel"></div>
+  <div class="col-md-auto d-flex gap-2"><button class="btn btn-sm btn-primary">Apply</button><a class="btn btn-sm btn-outline-secondary" href="/accounts/reports/audit?<%= new URLSearchParams({ from: f.from, to: f.to }) %>">Export</a></div>
+</div></form>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-sm mb-0 small align-middle"><thead class="table-light"><tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>Details</th></tr></thead><tbody>
+<% if (!rows.length) { %><tr><td colspan="5" class="text-center text-muted py-4">No entries.</td></tr><% } %>
+<% rows.forEach(a => { let d = {}; try { d = JSON.parse(a.details || '{}'); } catch (e) { d = { note: a.details }; } %>
+  <tr><td class="text-nowrap"><%= dbTime(a.created_at)?.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) %></td><td><%= a.full_name || a.username || 'System' %></td>
+    <td class="fw-semibold"><%= a.action.replace(/_/g, ' ') %></td><td><%= a.entity.replace('acc_', '') %> #<%= a.entity_id %></td>
+    <td class="acc-json"><% Object.entries(d).forEach(([k, v]) => { %><div><b><%= k %>:</b> <%= typeof v === 'object' ? JSON.stringify(v) : v %></div><% }) %></td></tr><% }) %>
+</tbody></table></div></div>
+<div class="d-flex justify-content-between mt-2">
+  <% if (page > 1) { %><a href="?<%= new URLSearchParams({ ...f, entity, action, page: page - 1 }) %>" class="btn btn-sm btn-outline-secondary">← Newer</a><% } else { %><span></span><% } %>
+  <% if (more) { %><a href="?<%= new URLSearchParams({ ...f, entity, action, page: page + 1 }) %>" class="btn btn-sm btn-outline-secondary">Older →</a><% } %>
+</div>
+<%- include('_bottom') %>

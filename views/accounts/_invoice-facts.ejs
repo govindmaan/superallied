@@ -1,0 +1,16 @@
+<dl class="row mb-0 small">
+  <dt class="col-5">Customer</dt><dd class="col-7"><a href="/accounts/customers/<%= i.customer_id %>"><%= i.customer_name %></a> <span class="text-muted">ID <%= i.customer_id %></span></dd>
+  <dt class="col-5">Document</dt><dd class="col-7"><%= DOC_TYPES[i.doc_type] %> <span class="docno"><%= i.invoice_number %></span> · FY <%= i.financial_year %></dd>
+  <dt class="col-5">Invoice date</dt><dd class="col-7"><%= i.invoice_date %></dd>
+  <dt class="col-5">GSTIN on invoice</dt><dd class="col-7"><%= i.customer_gstin || '—' %> <span class="text-muted">(master: <%= i.master_gstin || '—' %>)</span></dd>
+  <dt class="col-5">Basic / taxable value</dt><dd class="col-7 num text-start"><%= inr(i.basic_value) %></dd>
+  <dt class="col-5">GST</dt><dd class="col-7"><%= inr(i.gst_amount) %></dd>
+  <dt class="col-5">Total</dt><dd class="col-7 fw-bold"><%= inr(i.total_amount) %></dd>
+  <dt class="col-5">Due date / terms</dt><dd class="col-7"><%= i.due_date || '—' %> · <%= i.payment_terms || '—' %></dd>
+  <dt class="col-5">Quotation</dt><dd class="col-7"><%- i.quotation_number ? `<a href="/quotations/${i.quotation_id}">${i.quotation_number}</a>` : '—' %></dd>
+  <dt class="col-5">Delivery challan(s)</dt><dd class="col-7"><%- i.challans.length ? i.challans.map(ch => `<a href="/accounts/challans/${ch.id}">${ch.challan_number}</a>`).join(', ') : (i.challan_expected ? 'None linked' : 'Not expected') %></dd>
+  <% if (i.against_invoice_id) { %><dt class="col-5">Against invoice</dt><dd class="col-7"><a href="/accounts/invoices/<%= i.against_invoice_id %>"><%= i.against_number %></a></dd><% } %>
+  <dt class="col-5">Machine / equipment</dt><dd class="col-7"><%= i.machine_details || '—' %></dd>
+  <dt class="col-5">Salesperson / branch</dt><dd class="col-7"><%= i.salesperson_name || '—' %> / <%= i.branch || '—' %></dd>
+  <dt class="col-5">Remarks</dt><dd class="col-7"><%= i.remarks || '—' %></dd>
+</dl>

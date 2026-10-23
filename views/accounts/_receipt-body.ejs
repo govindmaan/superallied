@@ -1,0 +1,42 @@
+<%#  Shared by the receipt page and the receipt PDF. Needs r (receiptData), s (settings), money, inr, MODES, PURPOSES. %>
+<% const cancelled = r.receipt_status === 'cancelled';
+   const approved = (r.cancellation || []).find(c => c.status === 'approved');
+   const purposeLine = r.purpose === 'quotation_advance' ? `Advance received against quotation ${r.quotation_number}`
+     : r.purpose === 'challan_payment' ? `Payment received against delivery challan ${r.challan_number}` + (r.challanInvoices.length ? ` (Tally invoice ${r.challanInvoices.join(', ')})` : '')
+     : r.purpose === 'invoice_payment' ? `Payment received against Tally invoice${r.allocations.filter(a => a.status !== 'reversed').length > 1 ? 's' : ''} ${[...new Set(r.allocations.filter(a => a.status !== 'reversed').map(a => a.invoice_number))].join(', ')}`
+     : r.purpose === 'on_account' ? 'Advance received — pending allocation' : 'Payment received';
+   const live = r.allocations.filter(a => a.status !== 'reversed'); %>
+<div class="rc">
+  <% if (cancelled) { %><div class="rc-stamp">CANCELLED</div><% } %>
+  <div class="rc-head">
+    <div><div class="rc-co"><%= s.company_name %></div>
+      <div class="rc-small"><%= s.company_address %><br>GSTIN <%= s.company_gstin %><%= s.contact_phone ? ' · Ph ' + s.contact_phone : '' %><%= s.company_email ? ' · ' + s.company_email : '' %></div></div>
+    <div class="text-end"><div class="rc-title">PAYMENT RECEIVED</div><div class="rc-small">Payment receipt — not a GST tax invoice</div></div>
+  </div>
+  <table class="rc-meta"><tr>
+    <td><span>Receipt no.</span><b><%= r.receipt_number %></b></td><td><span>Receipt date</span><b><%= r.receipt_date %></b></td><td><span>Payment date</span><b><%= r.payment_date %></b></td>
+  </tr></table>
+  <div class="rc-purpose"><%= purposeLine %></div>
+  <table class="rc-grid">
+    <tr><th>Received from</th><td><b><%= r.customer_name %></b> <span class="rc-small">(Customer ID <%= r.customer_id %>)</span><br>
+      <span class="rc-small"><%= [r.address, r.city, r.state].filter(Boolean).join(', ') %><%= r.gstin ? ' · GSTIN ' + r.gstin : '' %><%= r.phone ? ' · Ph ' + r.phone : '' %></span></td></tr>
+    <tr><th>Amount received</th><td><span class="rc-amt">₹ <%= money(r.amount) %></span><br><span class="rc-small"><%= r.words %></span></td></tr>
+    <tr><th>Payment mode</th><td><%= MODES[r.mode] %><%= r.reference ? ' · ' + (r.mode === 'cheque' ? 'Cheque no. ' : 'Ref / UTR ') + r.reference : '' %><%= r.bank_name ? ' · ' + r.bank_name : '' %><%= r.cheque_date ? ' · dated ' + r.cheque_date : '' %>
+      <% if (r.mode === 'cheque') { %><br><span class="rc-small">Subject to realisation. Status: <%= r.clearance_status %><%= r.clearance_date ? ' on ' + r.clearance_date : '' %></span><% } %></td></tr>
+    <tr><th>Quotation</th><td><%= r.quotation_number || [...new Set(live.map(a => a.inv_quotation).filter(Boolean))].join(', ') || '—' %><% if (r.qfin && r.purpose === 'quotation_advance') { %> <span class="rc-small">· quotation value ₹<%= money(r.qfin.value) %> · balance after receipts ₹<%= money(r.qfin.remaining) %></span><% } %></td></tr>
+    <tr><th>Delivery challan</th><td><%= r.challan_number || '—' %></td></tr>
+    <tr><th>Tally invoice(s)</th><td><%= [...new Set([...live.map(a => a.invoice_number), ...r.challanInvoices])].join(', ') || '—' %></td></tr>
+  </table>
+  <% if (live.length || r.unallocated_amount) { %>
+  <table class="rc-alloc"><thead><tr><th>Allocation</th><th>Invoice date</th><th class="r">Invoice total</th><th class="r">Allocated</th></tr></thead><tbody>
+    <% live.forEach(a => { %><tr><td>Tally invoice <%= a.invoice_number %><%= a.status === 'pending' ? ' (on cheque clearance)' : '' %></td><td><%= a.invoice_date %></td><td class="r"><%= money(a.total_amount) %></td><td class="r"><%= money(a.amount) %></td></tr><% }) %>
+    <% if (r.unallocated_amount && !cancelled) { %><tr><td colspan="3"><%= r.purpose === 'quotation_advance' ? 'Advance held against quotation ' + r.quotation_number + ' — pending allocation' : 'Advance held — pending allocation' %></td><td class="r"><%= money(r.unallocated_amount) %></td></tr><% } %>
+  </tbody></table><% } %>
+  <% if (r.remarks) { %><div class="rc-small mt">Remarks: <%= r.remarks %></div><% } %>
+  <% if (cancelled && approved) { %><div class="rc-cancel">Cancelled under <%= approved.cancellation_number %> on <%= String(approved.decided_at).slice(0, 10) %>. Reason: <%= approved.reason %></div><% } %>
+  <table class="rc-sign"><tr>
+    <td>Received by<br><b><%= r.received_by_name || '' %></b><%= r.prepared_by_name && r.prepared_by_name !== r.received_by_name ? '' : '' %></td>
+    <td><% if (r.prepared_by_name && r.prepared_by_name !== r.received_by_name) { %>Prepared by<br><b><%= r.prepared_by_name %></b><% } %></td>
+    <td class="r">For <%= s.company_name %><br><br><br>Authorised signatory</td>
+  </tr></table>
+</div>

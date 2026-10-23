@@ -1,0 +1,44 @@
+<%- include('_top') %>
+<% const canA = accCan('accounts_approve'); %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-check2-all me-2 text-primary"></i>Approvals & Verification</h4>
+  <small class="text-muted"><%= canA ? 'Items waiting for an accounts manager.' : 'Items waiting for an accounts manager. You can see them; only a manager can decide.' %></small></div>
+
+<div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white fw-semibold">Receipt cancellations (<%= cancellations.length %>)</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 align-middle small"><thead class="table-light"><tr><th>Receipt</th><th>Customer</th><th class="money">Amount</th><th>Reason</th><th>Requested by</th><th></th></tr></thead><tbody>
+  <% if (!cancellations.length) { %><tr><td colspan="6" class="text-center text-muted py-3">Nothing waiting.</td></tr><% } %>
+  <% cancellations.forEach(x => { %><tr><td><a class="docno" href="/accounts/receipts/<%= x.rid %>"><%= x.receipt_number %></a></td><td><%= x.customer_name %></td><td class="money"><%= money(x.amount) %></td>
+    <td><%= x.reason %></td><td><%= x.req_name %><div class="text-muted"><%= x.requested_at %></div></td>
+    <td><% if (canA) { %><form method="POST" action="/accounts/cancellations/<%= x.id %>/decide" class="d-flex gap-1 flex-wrap justify-content-end" data-confirm="Apply this decision? Approving reverses the receipt's allocations.">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="remarks" class="form-control form-control-sm" style="max-width:160px" placeholder="Remarks">
+      <button name="decision" value="approve" class="btn btn-sm btn-danger">Approve</button><button name="decision" value="reject" class="btn btn-sm btn-outline-secondary">Reject</button></form><% } %></td></tr><% }) %>
+  </tbody></table></div></div>
+
+<div class="card border-0 shadow-sm mb-3"><div class="card-header bg-white fw-semibold">Adjustments (<%= adjustments.length %>)</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 align-middle small"><thead class="table-light"><tr><th>Invoice</th><th>Customer</th><th>Type</th><th class="money">Amount</th><th class="money">Invoice open</th><th>Reason</th><th>Requested by</th><th></th></tr></thead><tbody>
+  <% if (!adjustments.length) { %><tr><td colspan="8" class="text-center text-muted py-3">Nothing waiting.</td></tr><% } %>
+  <% adjustments.forEach(a => { %><tr><td><a class="docno" href="/accounts/invoices/<%= a.invoice_id %>"><%= a.invoice_number %></a></td><td><%= a.customer_name %></td><td><%= a.adjustment_type.replace('_', '-') %></td>
+    <td class="money"><%= money(a.amount) %></td><td class="money"><%= money(a.balance_amount) %></td><td><%= a.reason %></td><td><%= a.req_name %></td>
+    <td><% if (canA) { %><form method="POST" action="/accounts/adjustments/<%= a.id %>/decide" class="d-flex gap-1 flex-wrap justify-content-end" data-confirm="Apply this decision?">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="remarks" class="form-control form-control-sm" style="max-width:140px" placeholder="Remarks">
+      <button name="decision" value="approve" class="btn btn-sm btn-primary">Approve</button><button name="decision" value="reject" class="btn btn-sm btn-outline-secondary">Reject</button></form><% } %></td></tr><% }) %>
+  </tbody></table></div></div>
+
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Invoices to verify against Tally (<%= invoices.length %>)</div>
+    <div class="table-responsive"><table class="table table-sm mb-0 align-middle small"><tbody>
+    <% if (!invoices.length) { %><tr><td class="text-center text-muted py-3">Nothing waiting.</td></tr><% } %>
+    <% invoices.forEach(i => { %><tr><td><a class="docno" href="/accounts/invoices/<%= i.id %>"><%= i.invoice_number %></a> <span class="text-muted"><%= DOC_TYPES[i.doc_type] %></span></td><td><%= i.customer_name %></td><td class="money"><%= money(i.total_amount) %></td>
+      <td class="text-end"><% if (canA) { %><form method="POST" action="/accounts/invoices/<%= i.id %>/verify" class="d-inline" data-confirm="Verified against Tally?"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="back" value="approvals"><button class="btn btn-sm btn-outline-primary">Verify</button></form><% } %></td></tr><% }) %>
+    </tbody></table></div></div></div>
+  <div class="col-lg-6"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-semibold">Payments to verify (<%= payments.length %>)</div>
+    <div class="table-responsive"><table class="table table-sm mb-0 align-middle small"><tbody>
+    <% if (!payments.length) { %><tr><td class="text-center text-muted py-3">Nothing waiting.</td></tr><% } %>
+    <% payments.slice(0, 50).forEach(p => { %><tr><td><a class="docno" href="/accounts/receipts/<%= p.receipt_id %>"><%= p.receipt_number %></a></td><td><%= p.customer_name %></td><td><%= MODES[p.mode] %> <%= p.reference %></td><td class="money"><%= money(p.amount) %></td>
+      <td><%= p.mode === 'cheque' && p.clearance_status !== 'cleared' ? 'cheque ' + p.clearance_status : '' %></td></tr><% }) %>
+    </tbody></table></div><div class="small text-muted p-2">Verify each payment from its receipt page (bank statement reference and credit date).</div></div></div>
+</div>
+<% if (drafts.length) { %>
+<div class="card border-0 shadow-sm mt-3"><div class="card-header bg-white fw-semibold">Unconfirmed invoice drafts (<%= drafts.length %>)</div>
+  <div class="list-group list-group-flush small"><% drafts.forEach(i => { %><a class="list-group-item list-group-item-action" href="/accounts/invoices/<%= i.id %>/review"><span class="docno"><%= i.invoice_number %></span> · <%= i.customer_name %> · <%= inr(i.total_amount) %> · by <%= i.created_by_name %></a><% }) %></div></div>
+<% } %>
+<%- include('_bottom') %>

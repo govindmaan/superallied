@@ -1,0 +1,70 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Payment Allocation</h4>
+  <small class="text-muted">Match money already received (advances, unallocated payments, credit notes) to the customer’s Tally invoices. The same money can never be allocated twice.</small></div>
+<form method="GET" class="card border-0 shadow-sm p-3 mb-3"><div class="row g-2 align-items-end">
+  <div class="col-md-6"><label class="form-label small mb-0">Customer</label><select name="customer_id" class="form-select" data-search onchange="this.form.submit()"><option value="">Choose customer…</option>
+    <% customers.forEach(c => { %><option value="<%= c.id %>" <%= c.id === cid ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %></option><% }) %></select></div>
+  <div class="col-auto"><button class="btn btn-primary">Open</button></div></div></form>
+
+<% if (cid) { %>
+<form method="POST" action="/accounts/allocations" id="alForm" data-confirm="Save these allocations?">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="customer_id" value="<%= cid %>">
+  <div class="row g-3">
+    <div class="col-lg-5"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">1 · Money to allocate</div>
+      <div class="list-group list-group-flush" id="sources"><div class="p-3 text-muted small">Loading…</div></div></div></div>
+    <div class="col-lg-7"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold d-flex justify-content-between">2 · Open invoices <button type="button" id="fill" class="btn btn-sm btn-outline-secondary">Fill oldest first</button></div>
+      <div class="table-responsive"><table class="table table-sm alloc-table mb-0"><thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="money">Open</th><th class="money">Allocate ₹</th></tr></thead><tbody id="invs"></tbody></table></div>
+      <div class="p-3"><div id="sum" class="small mb-2"></div><input name="remarks" class="form-control form-control-sm mb-2" placeholder="Remarks (optional)" maxlength="300">
+        <button class="btn btn-primary" id="save"><i class="bi bi-check-lg me-1"></i>Save allocation</button></div></div></div>
+  </div>
+</form>
+<% } %>
+
+<div class="card border-0 shadow-sm mt-3"><div class="card-header bg-white fw-semibold">Recent allocations</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 small align-middle"><thead class="table-light"><tr><th>When</th><th>Customer</th><th>From</th><th>Invoice</th><th class="money">Amount</th><th>Status</th><th>By</th><th></th></tr></thead><tbody>
+  <% if (!recent.length) { %><tr><td colspan="8" class="text-muted text-center py-3">None yet.</td></tr><% } %>
+  <% recent.forEach(a => { %><tr class="<%= a.status === 'reversed' ? 'cancelled' : '' %>"><td><%= a.allocated_at %></td><td><%= a.customer_name %></td>
+    <td><%- a.receipt_number ? `<a href="/accounts/receipts/${a.receipt_id}">${a.receipt_number}</a>` : a.cn_number ? 'Credit note ' + a.cn_number : 'Adjustment' %></td>
+    <td><a href="/accounts/invoices/<%= a.invoice_id %>" class="docno"><%= a.invoice_number %></a></td><td class="money"><%= money(a.amount) %></td><td class="keep"><%= a.status %><%= a.reverse_reason ? ' — ' + a.reverse_reason : '' %></td><td><%= a.by_name %></td>
+    <td class="keep text-end"><% if (accCan('accounts_approve') && a.status !== 'reversed') { %><form method="POST" action="/accounts/allocations/<%= a.id %>/reverse" class="d-flex gap-1 justify-content-end" data-confirm="Reverse this allocation?">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="reason" class="form-control form-control-sm" style="max-width:150px" placeholder="Reason" minlength="5" required><button class="btn btn-sm btn-outline-danger">Reverse</button></form><% } %></td></tr><% }) %>
+  </tbody></table></div></div>
+<%- include('_bottom') %>
+<% if (cid) { %>
+<script>
+const pre = <%- JSON.stringify(pre) %>;
+let docs;
+(async () => {
+  docs = await (await fetch('/accounts/api/customers/<%= cid %>/docs')).json();
+  const src = [...docs.payments.filter(p => p.clearance !== 'bounced').map(p => ({ key: 'p:' + p.id, avail: p.unallocated, sel: p.id === pre.payment_id,
+      label: `Receipt <b>${SA.esc(p.receipt_number)}</b> · ${p.payment_date} · ${SA.esc(p.purpose)} · ${SA.esc(p.mode)}${p.clearance !== 'cleared' && p.mode === 'Cheque' ? ' <span class="badge bg-warning text-dark">cheque ' + p.clearance + ' — allocation stays pending</span>' : ''}` })),
+    ...docs.credits.map(c => ({ key: 'cn:' + c.id, avail: c.balance, sel: c.id === pre.credit_note_id, label: `Credit note <b>${SA.esc(c.invoice_number)}</b> · ${c.invoice_date}` }))];
+  document.getElementById('sources').innerHTML = src.length ? src.map((s, i) => `<label class="list-group-item d-flex gap-2"><input type="radio" name="source" value="${s.key}" data-avail="${s.avail}" class="form-check-input mt-1" ${s.sel || (!pre.payment_id && !pre.credit_note_id && i === 0) ? 'checked' : ''} required>
+      <span class="flex-grow-1 small">${s.label}</span><span class="fw-bold">${SA.money(s.avail)}</span></label>`).join('')
+    : '<div class="p-3 text-muted small">No unallocated money or unused credit notes for this customer.</div>';
+  const inv = docs.invoices.filter(i => i.available > 0);
+  document.getElementById('invs').innerHTML = inv.length ? inv.map(i => `<tr><td><input type="hidden" name="alloc_invoice" value="${i.id}"><a class="docno" target="_blank" href="/accounts/invoices/${i.id}">${SA.esc(i.invoice_number)}</a></td>
+      <td>${i.invoice_date}</td><td>${i.due_date || '—'}</td><td class="money">${SA.money(i.available)}</td>
+      <td><input name="alloc_amount" data-max="${i.available}" data-id="${i.id}" class="form-control form-control-sm" inputmode="decimal"></td></tr>`).join('')
+    : '<tr><td colspan="5" class="text-muted text-center">No open invoices.</td></tr>';
+  document.querySelectorAll('#alForm input').forEach(i => i.addEventListener('input', sum));
+  document.querySelectorAll('input[name=source]').forEach(i => i.addEventListener('change', sum));
+  if (pre.invoice_id) { const x = document.querySelector(`input[data-id="${pre.invoice_id}"]`); const s = document.querySelector('input[name=source]:checked');
+    if (x && s) { x.value = SA.rupees(Math.min(+x.dataset.max, +s.dataset.avail)); } }
+  if (!src.length || !inv.length) document.getElementById('save').disabled = true;
+  sum();
+})();
+function sum() {
+  const s = document.querySelector('input[name=source]:checked'), avail = s ? +s.dataset.avail : 0;
+  const ins = [...document.querySelectorAll('input[name=alloc_amount]')], tot = ins.reduce((t, i) => t + (SA.toPaise(i.value) || 0), 0);
+  const over = ins.some(i => SA.toPaise(i.value) > +i.dataset.max);
+  document.getElementById('sum').innerHTML = `Allocating <b>${SA.money(tot)}</b> of ${SA.money(avail)} available · remaining <b>${SA.money(Math.max(0, avail - tot))}</b>`
+    + (tot > avail ? ' <span class="text-danger fw-bold">— more than available</span>' : '') + (over ? ' <span class="text-danger fw-bold">— more than an invoice’s open balance</span>' : '');
+  document.getElementById('save').disabled = !tot || tot > avail || over;
+}
+document.getElementById('fill').addEventListener('click', () => {
+  const s = document.querySelector('input[name=source]:checked'); let left = s ? +s.dataset.avail : 0;
+  document.querySelectorAll('input[name=alloc_amount]').forEach(i => { const a = Math.min(left, +i.dataset.max); i.value = a > 0 ? SA.rupees(a) : ''; left -= Math.max(0, a); }); sum();
+});
+</script>
+<% } %>

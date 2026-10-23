@@ -1,0 +1,46 @@
+<%- include('_top') %>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div><h4 class="mb-0 fw-bold">Delivery challan <span class="docno fs-5"><%= ch.challan_number %></span>
+      <% if (ch.status === 'cancelled') { %><span class="badge bg-dark">Cancelled</span><% } %></h4>
+    <div class="doc-chain mt-2">
+      <% if (ch.quotation_number) { %><a class="chip" href="/quotations/<%= ch.quotation_id %>">Quotation <%= ch.quotation_number %></a><span class="arrow">→</span><% } %>
+      <span class="chip fw-bold">Challan <%= ch.challan_number %></span>
+      <% invoices.forEach(i => { %><span class="arrow">→</span><a class="chip" href="/accounts/invoices/<%= i.id %>"><%= DOC_TYPES[i.doc_type] %> <%= i.invoice_number %></a><% }) %>
+      <% payments.forEach(p => { %><span class="arrow">→</span><a class="chip" href="/accounts/receipts/<%= p.receipt_id %>">Receipt <%= p.receipt_number %></a><% }) %>
+    </div></div>
+  <div class="d-flex gap-2 no-print">
+    <% if (accCan('accounts') && ch.status === 'active') { %>
+      <a class="btn btn-sm btn-outline-primary" href="/accounts/invoices/upload?customer_id=<%= ch.customer_id %>&challan_id=<%= ch.id %>">Upload its invoice</a>
+      <a class="btn btn-sm btn-danger" href="/accounts/receipts/new?customer_id=<%= ch.customer_id %>&purpose=challan_payment&challan_id=<%= ch.id %>">Receive payment</a>
+    <% } %>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7"><div class="card border-0 shadow-sm"><div class="card-body">
+    <dl class="row mb-0 small">
+      <dt class="col-4">Customer</dt><dd class="col-8"><a href="/accounts/customers/<%= ch.customer_id %>"><%= ch.customer_name %></a> <%= ch.customer_gstin ? '· ' + ch.customer_gstin : '' %></dd>
+      <dt class="col-4">Date</dt><dd class="col-8"><%= ch.challan_date %></dd>
+      <dt class="col-4">Machine</dt><dd class="col-8"><%= [ch.machine_name, ch.machine_details].filter(Boolean).join(' · ') || '—' %></dd>
+      <dt class="col-4">Chassis / engine</dt><dd class="col-8"><%= ch.chassis_number || '—' %> / <%= ch.engine_number || '—' %></dd>
+      <dt class="col-4">Challan value</dt><dd class="col-8"><%= ch.challan_value != null ? inr(ch.challan_value) : 'Not recorded' %></dd>
+      <dt class="col-4">Salesperson / branch</dt><dd class="col-8"><%= ch.salesperson_name || '—' %> / <%= ch.branch || '—' %></dd>
+      <dt class="col-4">Invoice expected</dt><dd class="col-8"><%= ch.invoice_expected ? 'Yes' : 'No' %></dd>
+      <dt class="col-4">Remarks</dt><dd class="col-8"><%= ch.remarks || '—' %></dd>
+      <% if (ch.status === 'cancelled') { %><dt class="col-4">Cancelled</dt><dd class="col-8"><%= ch.cancelled_at %> — <%= ch.cancel_reason %></dd><% } %>
+    </dl></div></div></div>
+  <div class="col-lg-5"><div class="card border-0 shadow-sm"><div class="card-body small">
+    <div class="d-flex justify-content-between"><span>Tally invoice total</span><b>₹<%= money(ch.invoice_total) %></b></div>
+    <div class="d-flex justify-content-between"><span>Received (allocated to its invoices + unallocated challan payments)</span><b>₹<%= money(received) %></b></div>
+    <div class="d-flex justify-content-between"><span>Invoice outstanding</span><b class="text-danger">₹<%= money(ch.invoice_balance) %></b></div>
+  </div></div>
+  <% if (accCan('accounts_approve') && ch.status === 'active') { %>
+  <form method="POST" action="/accounts/challans/<%= ch.id %>/cancel" class="card border-0 shadow-sm p-3 mt-3 no-print" data-confirm="Cancel this delivery challan?">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label class="form-label small fw-semibold">Cancel challan</label>
+    <input name="reason" class="form-control form-control-sm mb-2" placeholder="Reason (required)" minlength="5" required>
+    <button class="btn btn-sm btn-outline-danger">Cancel challan</button>
+  </form><% } %>
+  </div>
+</div>
+<%- include('_history', { history }) %>
+<%- include('_bottom') %>

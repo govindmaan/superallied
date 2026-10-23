@@ -1,0 +1,169 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-danger"></i>Generate Receipt</h4>
+  <small class="text-muted">Record money actually received. A receipt is never created just because a quotation or challan exists. It is not a GST tax invoice.</small></div>
+
+<form method="POST" action="/accounts/receipts" id="rcForm" class="row g-3" autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="client_token" value="<%= token %>">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm p-3">
+      <h6 class="fw-bold">1 · Customer</h6>
+      <select name="customer_id" id="customer" class="form-select" data-search required><option value="">Choose existing customer…</option>
+        <% customers.forEach(c => { %><option value="<%= c.id %>" <%= +prefill.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %><%= c.city ? ' · ' + c.city : '' %></option><% }) %></select>
+      <div id="custInfo" class="small text-muted mt-1"></div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3 mt-3">
+      <h6 class="fw-bold">2 · What is this money for?</h6>
+      <div class="row g-2" id="purposes">
+        <% Object.entries(PURPOSES).forEach(([k, v]) => { %>
+        <div class="col-md-6"><label class="border rounded p-2 d-flex gap-2 align-items-start h-100" style="cursor:pointer">
+          <input type="radio" name="purpose" value="<%= k %>" class="form-check-input mt-1" <%= (prefill.purpose || 'invoice_payment') === k ? 'checked' : '' %>>
+          <span><b><%= v %></b><br><span class="small text-muted"><%= {
+            quotation_advance: 'Before the Tally invoice exists. Kept as an advance until allocated to the invoice.',
+            challan_payment: 'Against a delivery challan. If its Tally invoice is uploaded, you can allocate to it now.',
+            invoice_payment: 'Against one or more uploaded Tally invoices — full or part payment.',
+            on_account: 'Customer advance not yet tied to a document.',
+            other: 'Any other authorised customer receipt.' }[k] %></span></span></label></div>
+        <% }) %>
+      </div>
+      <div class="mt-3 d-none" id="quoteWrap"><label class="form-label">Quotation <span class="text-danger">*</span></label><select name="quotation_id" id="quotation" class="form-select"><option value="">Choose…</option></select>
+        <div id="quoteInfo" class="small mt-1"></div></div>
+      <div class="mt-3 d-none" id="challanWrap"><label class="form-label">Delivery challan <span class="text-danger">*</span></label><select name="challan_id" id="challan" class="form-select"><option value="">Choose…</option></select>
+        <div id="challanInfo" class="small mt-1"></div></div>
+      <div class="mt-3 d-none" id="allocWrap">
+        <div class="d-flex justify-content-between align-items-end"><label class="form-label mb-1" id="allocLabel">Allocate to invoices</label>
+          <button type="button" class="btn btn-sm btn-outline-secondary mb-1" id="autoFill">Fill oldest first</button></div>
+        <div class="table-responsive"><table class="table table-sm alloc-table mb-1"><thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="money">Open</th><th class="money">Allocate ₹</th></tr></thead>
+          <tbody id="allocBody"></tbody></table></div>
+        <div class="small" id="allocSum"></div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3 mt-3">
+      <h6 class="fw-bold">3 · Payment details</h6>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label">Amount received (₹) <span class="text-danger">*</span></label><input name="amount" id="amount" class="form-control form-control-lg fw-bold" inputmode="decimal" required>
+          <div id="words" class="small text-muted"></div></div>
+        <div class="col-md-4"><label class="form-label">Payment date <span class="text-danger">*</span></label><input type="date" name="payment_date" class="form-control" value="<%= today %>" max="<%= today %>" required></div>
+        <div class="col-md-4"><label class="form-label">Payment mode <span class="text-danger">*</span></label>
+          <select name="mode" id="mode" class="form-select" required><% Object.entries(MODES).forEach(([k, v]) => { %><option value="<%= k %>" <%= k === 'neft' ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label" id="refLabel">UTR / transaction ID</label><input name="reference" id="reference" class="form-control" maxlength="80"></div>
+        <div class="col-md-4"><label class="form-label">Bank name</label><input name="bank_name" class="form-control" maxlength="80"></div>
+        <div class="col-md-4 d-none" id="chqDateWrap"><label class="form-label">Cheque date</label><input type="date" name="cheque_date" class="form-control"></div>
+        <div class="col-md-4"><label class="form-label">Received by</label><select name="received_by" class="form-select"><% staff.forEach(u => { %><option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>><%= u.full_name || u.username %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label">Salesperson</label><select name="salesperson_id" class="form-select"><option value="">From quotation / challan</option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label">Branch</label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
+        <div class="col-12"><label class="form-label">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
+      </div>
+      <div class="alert alert-warning small mt-3 mb-0 d-none" id="chqNote">Cheque: the receipt says “subject to realisation”. Allocations stay pending — the invoice balance only drops when you mark the cheque cleared.</div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm p-3 position-sticky" style="top:16px">
+      <h6 class="fw-bold">Summary</h6>
+      <div id="summary" class="small text-muted">Fill in the form.</div>
+      <hr><button type="button" class="btn btn-danger w-100" id="review"><i class="bi bi-check2-square me-1"></i>Review & save receipt</button>
+      <div class="form-text">Receipt numbers are issued by the server in sequence. Saving twice will not create a second receipt.</div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="confirmModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Confirm payment received</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body" id="confirmBody"></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button><button type="submit" class="btn btn-danger">Confirm & generate receipt</button></div>
+  </div></div></div>
+</form>
+<%- include('_bottom') %>
+<script>
+const $ = (id) => document.getElementById(id), form = $('rcForm');
+const pre = <%- JSON.stringify({ quotation_id: prefill.quotation_id || '', challan_id: prefill.challan_id || '', invoice_id: prefill.invoice_id || '' }) %>;
+let docs = { quotations: [], challans: [], invoices: [] };
+const purpose = () => form.purpose.value;
+
+async function loadDocs() {
+  const cid = $('customer').value;
+  docs = { quotations: [], challans: [], invoices: [] };
+  if (cid) docs = await (await fetch('/accounts/api/customers/' + cid + '/docs')).json();
+  const c = docs.customer;
+  $('custInfo').innerHTML = c ? `ID ${c.id} · ${SA.esc([c.address, c.city, c.state].filter(Boolean).join(', ') || 'no address')} · GSTIN ${SA.esc(c.gstin || '—')}
+    · <a href="/accounts/customers/${c.id}" target="_blank">account</a>` : '';
+  $('quotation').innerHTML = '<option value="">Choose…</option>'; $('challan').innerHTML = '<option value="">Choose…</option>';
+  docs.quotations.forEach(q => $('quotation').add(new Option(`${q.quotation_number} · ${q.machine} · value ${SA.money(q.value)} · received ${SA.money(q.received)}`, q.id, false, String(q.id) === String(pre.quotation_id))));
+  docs.challans.forEach(ch => $('challan').add(new Option(`${ch.challan_number} · ${ch.challan_date}${ch.invoice_numbers ? ' · Inv ' + ch.invoice_numbers : ''}`, ch.id, false, String(ch.id) === String(pre.challan_id))));
+  render();
+}
+function invoicesForAlloc() {
+  if (purpose() === 'challan_payment') { const ch = docs.challans.find(c => String(c.id) === $('challan').value); return ch ? docs.invoices.filter(i => ch.invoice_ids.includes(i.id)) : []; }
+  if (['invoice_payment', 'on_account', 'other'].includes(purpose())) return docs.invoices;
+  return [];
+}
+function render() {
+  const p = purpose();
+  $('quoteWrap').classList.toggle('d-none', p !== 'quotation_advance');
+  $('challanWrap').classList.toggle('d-none', p !== 'challan_payment');
+  const q = docs.quotations.find(x => String(x.id) === $('quotation').value);
+  $('quoteInfo').innerHTML = q ? `Quotation value <b>${SA.money(q.value)}</b> · received so far <b>${SA.money(q.received)}</b> · remaining <b>${SA.money(q.remaining)}</b>` : '';
+  const ch = docs.challans.find(x => String(x.id) === $('challan').value);
+  $('challanInfo').innerHTML = ch ? `${SA.esc(ch.machine || '')}${ch.challan_value != null ? ' · value ' + SA.money(ch.challan_value) : ''} · ${ch.invoice_numbers ? 'Tally invoice ' + SA.esc(ch.invoice_numbers) : 'no Tally invoice yet — payment is kept against the challan'}` : '';
+  const list = invoicesForAlloc().filter(i => i.available > 0);
+  $('allocWrap').classList.toggle('d-none', !list.length && p !== 'invoice_payment');
+  $('allocLabel').textContent = p === 'invoice_payment' ? 'Allocate to invoices *' : 'Optionally allocate to invoices now';
+  const keep = Object.fromEntries([...$('allocBody').querySelectorAll('input[name=alloc_amount]')].map(i => [i.dataset.inv, i.value]));
+  $('allocBody').innerHTML = list.length ? list.map(i => `<tr><td><input type="hidden" name="alloc_invoice" value="${i.id}"><a href="/accounts/invoices/${i.id}" target="_blank" class="docno">${SA.esc(i.invoice_number)}</a> <span class="small text-muted">${SA.esc(i.status)}</span></td>
+      <td>${i.invoice_date}</td><td>${i.due_date || '—'}</td><td class="money">${SA.money(i.available)}</td>
+      <td><input name="alloc_amount" data-inv="${i.id}" data-max="${i.available}" class="form-control form-control-sm" inputmode="decimal" value="${keep[i.id] ?? (String(i.id) === String(pre.invoice_id) ? '' : '')}"></td></tr>`).join('')
+    : '<tr><td colspan="5" class="text-muted text-center">No open invoices for this customer.</td></tr>';
+  $('allocBody').querySelectorAll('input[name=alloc_amount]').forEach(i => i.addEventListener('input', summary));
+  if (pre.invoice_id && !keep[pre.invoice_id]) { const inp = $('allocBody').querySelector(`input[data-inv="${pre.invoice_id}"]`); if (inp && !inp.value) inp.dataset.preselect = 1; }
+  summary();
+}
+function allocTotal() { return [...$('allocBody').querySelectorAll('input[name=alloc_amount]')].reduce((t, i) => t + (SA.toPaise(i.value) || 0), 0); }
+function summary() {
+  const amt = SA.toPaise($('amount').value), tot = allocTotal(), m = $('mode').value;
+  $('words').textContent = isNaN(amt) ? '' : SA.money(amt);
+  const over = [...$('allocBody').querySelectorAll('input[name=alloc_amount]')].filter(i => SA.toPaise(i.value) > +i.dataset.max);
+  $('allocSum').innerHTML = isNaN(amt) ? '' : `Allocated <b>${SA.money(tot)}</b> of ${SA.money(amt)} · left as unallocated advance <b>${SA.money(Math.max(0, amt - tot))}</b>`
+    + (tot > amt ? ' <span class="text-danger fw-bold">— more than the amount received</span>' : '') + (over.length ? ' <span class="text-danger fw-bold">— more than an invoice’s open balance</span>' : '');
+  $('refLabel').textContent = m === 'cheque' ? 'Cheque number *' : m === 'cash' ? 'Reference (optional)' : ['card', 'other'].includes(m) ? 'Reference' : 'UTR / transaction ID *';
+  $('reference').required = ['upi', 'neft', 'rtgs', 'imps', 'cheque', 'bank_transfer'].includes(m);
+  $('chqDateWrap').classList.toggle('d-none', m !== 'cheque'); $('chqNote').classList.toggle('d-none', m !== 'cheque');
+  const c = $('customer').selectedOptions[0];
+  $('summary').innerHTML = `<div><b>${SA.esc(c && c.value ? c.text.split(' · ')[0] : '—')}</b></div><div>${SA.esc(form.querySelector('input[name=purpose]:checked')?.closest('label').querySelector('b').textContent || '')}</div>
+    <div class="fs-5 fw-bold text-dark">${isNaN(amt) ? '' : SA.money(amt)}</div><div>${SA.esc($('mode').selectedOptions[0].text)} ${SA.esc($('reference').value)}</div>`;
+}
+$('autoFill').addEventListener('click', () => {
+  let left = SA.toPaise($('amount').value);
+  if (isNaN(left)) { $('amount').focus(); return; }
+  $('allocBody').querySelectorAll('input[name=alloc_amount]').forEach(i => { const a = Math.min(left, +i.dataset.max); i.value = a > 0 ? SA.rupees(a) : ''; left -= Math.max(0, a); });
+  summary();
+});
+$('customer').addEventListener('change', loadDocs);
+form.querySelectorAll('input[name=purpose]').forEach(r => r.addEventListener('change', render));
+['quotation', 'challan'].forEach(id => $(id).addEventListener('change', render));
+['amount', 'mode', 'reference'].forEach(id => $(id).addEventListener('input', () => { summary(); }));
+$('mode').addEventListener('change', summary);
+$('amount').addEventListener('change', () => { const p = $('allocBody').querySelector('input[data-preselect]'); if (p && !p.value) { p.value = SA.rupees(Math.min(SA.toPaise($('amount').value) || 0, +p.dataset.max)); summary(); } });
+
+$('review').addEventListener('click', () => {
+  if (!form.reportValidity()) return;
+  const amt = SA.toPaise($('amount').value), tot = allocTotal(), p = purpose();
+  const errs = [];
+  if (isNaN(amt) || amt <= 0) errs.push('Enter the amount received (up to 2 decimals).');
+  if (tot > amt) errs.push('Allocations total more than the amount received.');
+  if ([...$('allocBody').querySelectorAll('input[name=alloc_amount]')].some(i => SA.toPaise(i.value) > +i.dataset.max)) errs.push('An allocation is more than that invoice’s open balance.');
+  if (p === 'invoice_payment' && !tot) errs.push('Enter how much goes to each invoice.');
+  if (p === 'quotation_advance' && !$('quotation').value) errs.push('Choose the quotation.');
+  if (p === 'challan_payment' && !$('challan').value) errs.push('Choose the delivery challan.');
+  if (errs.length) { alert(errs.join('\n')); return; }
+  if (p === 'quotation_advance') $('allocBody').querySelectorAll('input[name=alloc_amount]').forEach(i => i.value = '');
+  const lines = [...$('allocBody').querySelectorAll('input[name=alloc_amount]')].filter(i => SA.toPaise(i.value) > 0)
+    .map(i => `<li>${SA.esc(i.closest('tr').querySelector('.docno').textContent)}: ${SA.money(SA.toPaise(i.value))}</li>`).join('');
+  $('confirmBody').innerHTML = $('summary').innerHTML + `<div class="mt-2 small">Payment date ${SA.esc(form.payment_date.value)}</div>`
+    + (lines ? `<div class="mt-2 small"><b>Allocated:</b><ul class="mb-0">${lines}</ul></div>` : '')
+    + (amt - tot > 0 ? `<div class="small mt-1">${SA.money(amt - tot)} stays as an unallocated advance for this customer.</div>` : '')
+    + `<div class="alert alert-secondary small mt-2 mb-0">Only confirm if this money has actually been received.</div>`;
+  new bootstrap.Modal($('confirmModal')).show();
+});
+loadDocs();
+</script>

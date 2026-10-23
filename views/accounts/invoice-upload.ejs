@@ -1,0 +1,138 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>Upload Tally Invoice</h4>
+  <small class="text-muted">Record a document already generated in Tally. This does not create a GST invoice and does not prove GST portal / e-invoice validation.</small></div>
+
+<div id="err" class="alert alert-danger d-none"></div>
+<form id="upForm" class="row g-3" autocomplete="off">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm p-3">
+      <h6 class="fw-bold mb-3">1 · Customer and linked documents</h6>
+      <div class="row g-3">
+        <div class="col-md-7"><label class="form-label">Customer <span class="text-danger">*</span></label>
+          <select name="customer_id" id="customer" class="form-select" data-search required><option value="">Choose existing customer…</option>
+            <% customers.forEach(c => { %><option value="<%= c.id %>" data-gstin="<%= c.gstin %>" <%= +prefill.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %><%= c.gstin ? ' · ' + c.gstin : '' %></option><% }) %></select>
+          <div class="form-text">Not in the list? Add them in <a href="/customers/new" target="_blank">Customers</a> first — the accounts module never creates duplicate customers.</div></div>
+        <div class="col-md-5"><label class="form-label">Document type <span class="text-danger">*</span></label>
+          <select name="doc_type" id="docType" class="form-select"><% Object.entries(DOC_TYPES).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %></select></div>
+        <div class="col-md-6"><label class="form-label">Linked quotation</label><select name="quotation_id" id="quotation" class="form-select"><option value="">None</option></select></div>
+        <div class="col-md-6 d-none" id="againstWrap"><label class="form-label">Against original invoice</label><select name="against_invoice_id" id="against" class="form-select"><option value="">None</option></select>
+          <div class="form-text">A credit note is applied to this invoice’s balance when saved.</div></div>
+        <div class="col-12"><label class="form-label">Linked delivery challan(s)</label>
+          <div id="challans" class="border rounded p-2 small text-muted">Choose a customer to see their challans.</div></div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3 mt-3">
+      <h6 class="fw-bold mb-3">2 · Invoice details <span class="fw-normal small text-muted">exactly as printed on the Tally invoice</span></h6>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label">Tally invoice number <span class="text-danger">*</span></label><input name="invoice_number" class="form-control" required maxlength="60"><div class="suggest" data-for="invoice_number"></div></div>
+        <div class="col-md-4"><label class="form-label">Invoice date <span class="text-danger">*</span></label><input type="date" name="invoice_date" class="form-control" required max="<%= today %>"><div class="suggest" data-for="invoice_date"></div></div>
+        <div class="col-md-4"><label class="form-label">Customer GSTIN on invoice</label><input name="customer_gstin" id="gstin" class="form-control text-uppercase" maxlength="15"><div class="suggest" data-for="customer_gstin"></div></div>
+        <div class="col-md-4"><label class="form-label">Basic / taxable value (₹) <span class="text-danger">*</span></label><input name="basic_value" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="basic_value"></div></div>
+        <div class="col-md-4"><label class="form-label">GST amount (₹) <span class="text-danger">*</span></label><input name="gst_amount" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="gst_amount"></div></div>
+        <div class="col-md-4"><label class="form-label">Total invoice amount (₹) <span class="text-danger">*</span></label><input name="total_amount" id="total" class="form-control fw-bold" inputmode="decimal" required>
+          <div class="form-text" id="sumHint"></div><div class="suggest" data-for="total_amount"></div></div>
+        <div class="col-md-4"><label class="form-label">Due date</label><input type="date" name="due_date" class="form-control"></div>
+        <div class="col-md-8"><label class="form-label">Payment terms</label><input name="payment_terms" class="form-control" maxlength="200" placeholder="e.g. 100% before delivery / 30 days / finance DO"></div>
+        <div class="col-12"><label class="form-label">Machine / equipment details</label><input name="machine_details" id="machine" class="form-control" maxlength="1000" placeholder="Model, chassis no., engine no."></div>
+        <div class="col-md-4"><label class="form-label">Salesperson</label><select name="salesperson_id" id="sp" class="form-select"><option value="">From quotation</option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label">Branch</label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label">Delivery challan expected?</label><select name="challan_expected" class="form-select"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="col-12"><label class="form-label">Internal remarks</label><textarea name="remarks" class="form-control" rows="2" maxlength="1000"></textarea></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm p-3 position-sticky" style="top:16px">
+      <h6 class="fw-bold mb-2">3 · Invoice file <span class="text-danger">*</span></h6>
+      <input type="file" id="file" class="form-control" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" required>
+      <div class="form-text">PDF from Tally, or JPG/PNG scan. Max <%= maxMb %> MB. Stored privately; only authorised users can open it.</div>
+      <div id="extractBox" class="small mt-2"></div>
+      <hr>
+      <button type="submit" id="go" class="btn btn-primary w-100"><i class="bi bi-eye me-1"></i>Continue to review</button>
+      <div class="form-text">Nothing is final until you confirm on the review screen. Duplicate numbers in the same financial year are refused.</div>
+    </div>
+  </div>
+  <input type="hidden" name="client_token" value="<%= token %>">
+</form>
+<%- include('_bottom') %>
+<script>
+const $ = (id) => document.getElementById(id);
+const form = $('upForm'), err = $('err');
+const pre = <%- JSON.stringify({ quotation_id: prefill.quotation_id || '', challan_id: prefill.challan_id || '', against: prefill.against_invoice_id || '', doc_type: prefill.doc_type || '' }) %>;
+let docs = null, extracted = null;
+if (pre.doc_type) $('docType').value = pre.doc_type;
+
+async function loadDocs() {
+  const cid = $('customer').value;
+  $('quotation').innerHTML = '<option value="">None</option>'; $('against').innerHTML = '<option value="">None</option>';
+  if (!cid) { $('challans').textContent = 'Choose a customer to see their challans.'; return; }
+  const opt = $('customer').selectedOptions[0];
+  if (opt && !$('gstin').value) $('gstin').value = opt.dataset.gstin || '';
+  docs = await (await fetch('/accounts/api/customers/' + cid + '/docs')).json();
+  docs.quotations.forEach(q => $('quotation').add(new Option(`${q.quotation_number} · ${q.machine} · ${SA.money(q.value)}`, q.id, false, String(q.id) === String(pre.quotation_id))));
+  docs.invoices.forEach(i => $('against').add(new Option(`${i.invoice_number} · ${i.invoice_date} · bal ${SA.money(i.balance)}`, i.id, false, String(i.id) === String(pre.against))));
+  $('challans').innerHTML = docs.challans.length ? docs.challans.map(ch => `<label class="d-block"><input type="checkbox" name="challan_ids" value="${ch.id}" class="form-check-input me-1"
+      ${String(ch.id) === String(pre.challan_id) ? 'checked' : ''} data-q="${ch.quotation_id || ''}" data-m="${SA.esc(ch.machine)}" data-sp="${ch.salesperson_id || ''}">
+      <b>${SA.esc(ch.challan_number)}</b> · ${ch.challan_date} · ${SA.esc(ch.machine || '')}${ch.challan_value != null ? ' · ' + SA.money(ch.challan_value) : ''}
+      ${ch.invoice_numbers ? '<span class="text-muted">(invoiced: ' + SA.esc(ch.invoice_numbers) + ')</span>' : ''}</label>`).join('')
+    : '<span class="text-muted">No delivery challans recorded for this customer.</span>';
+  $('challans').querySelectorAll('input').forEach(cb => cb.addEventListener('change', fromChallan));
+  $('challans').querySelectorAll('input:checked').forEach(cb => fromChallan({ target: cb }));
+}
+function fromChallan(e) {
+  const cb = e.target; if (!cb.checked) return;
+  if (cb.dataset.q && !$('quotation').value) $('quotation').value = cb.dataset.q;
+  if (cb.dataset.m && !$('machine').value) $('machine').value = cb.dataset.m;
+  if (cb.dataset.sp && !$('sp').value) $('sp').value = cb.dataset.sp;
+}
+$('customer').addEventListener('change', loadDocs);
+$('docType').addEventListener('change', () => $('againstWrap').classList.toggle('d-none', !['credit_note', 'debit_note'].includes($('docType').value)));
+$('docType').dispatchEvent(new Event('change'));
+loadDocs();
+
+// Basic + GST helper (total stays editable for round-off / TCS)
+function sumHint() {
+  const b = SA.toPaise(form.basic_value.value), g = SA.toPaise(form.gst_amount.value), t = SA.toPaise(form.total_amount.value);
+  if (isNaN(b) || isNaN(g)) { $('sumHint').textContent = ''; return; }
+  if (!form.total_amount.value) form.total_amount.placeholder = SA.rupees(b + g);
+  $('sumHint').textContent = isNaN(t) ? `Basic + GST = ${SA.money(b + g)}` : t === b + g ? '✓ equals basic + GST' : `Basic + GST = ${SA.money(b + g)} · difference ${SA.money(t - b - g)}`;
+}
+document.querySelectorAll('.amt, #total').forEach(i => i.addEventListener('input', sumHint));
+$('total').addEventListener('focus', () => { if (!$('total').value && $('total').placeholder) $('total').value = $('total').placeholder; sumHint(); });
+
+// PDF text suggestions (unverified, accountant must confirm)
+$('file').addEventListener('change', async () => {
+  const f = $('file').files[0]; $('extractBox').innerHTML = ''; document.querySelectorAll('.suggest').forEach(s => s.innerHTML = ''); extracted = null;
+  if (!f) return;
+  if (f.size > <%= maxMb %> * 1024 * 1024) { $('extractBox').innerHTML = '<span class="text-danger">File is larger than <%= maxMb %> MB.</span>'; return; }
+  $('extractBox').innerHTML = '<span class="text-muted">Reading file…</span>';
+  const j = await SA.postJSON('/accounts/invoices/extract', { file: { name: f.name, data: await SA.fileToData(f) } });
+  if (!j.ok) { $('extractBox').innerHTML = `<span class="text-danger">${SA.esc(j.error)}</span>`; return; }
+  const s = j.suggestions; extracted = s;
+  $('extractBox').innerHTML = `<div class="alert alert-${s.found ? 'info' : 'secondary'} py-2 mb-0"><i class="bi bi-magic me-1"></i>${SA.esc(s.note)}</div>`;
+  ['invoice_number', 'invoice_date', 'customer_gstin', 'basic_value', 'gst_amount', 'total_amount'].forEach(k => {
+    if (!s[k]) return;
+    const box = document.querySelector(`.suggest[data-for="${k}"]`);
+    box.innerHTML = `From PDF: <b>${SA.esc(s[k])}</b> <button type="button" class="btn btn-outline-primary btn-sm">Use</button>`;
+    box.querySelector('button').onclick = () => { form[k].value = s[k]; sumHint(); };
+  });
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault(); err.classList.add('d-none');
+  const f = $('file').files[0];
+  if (!f) { err.textContent = 'Attach the invoice file.'; err.classList.remove('d-none'); return; }
+  const body = Object.fromEntries(new FormData(form).entries());
+  body.challan_ids = [...form.querySelectorAll('input[name=challan_ids]:checked')].map(c => c.value);
+  body.file = { name: f.name, data: await SA.fileToData(f) };
+  body.extracted = extracted;
+  $('go').disabled = true; $('go').textContent = 'Uploading…';
+  const j = await SA.postJSON('/accounts/invoices', body);
+  if (j.ok) return location.href = j.redirect;
+  $('go').disabled = false; $('go').innerHTML = '<i class="bi bi-eye me-1"></i>Continue to review';
+  err.innerHTML = SA.esc(j.error) + (j.duplicateId ? ` <a href="/accounts/invoices/${j.duplicateId}" class="alert-link">Open the existing record</a>` : '');
+  err.classList.remove('d-none'); window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>

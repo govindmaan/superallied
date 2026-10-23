@@ -1,0 +1,6 @@
+<% const cur = i.files.find(f => f.is_current) || i.files[0]; %>
+<% if (cur) { const src = `/accounts/invoices/${i.id}/file/${cur.revision}?inline=1`; %>
+  <% if (cur.mime === 'application/pdf') { %><iframe src="<%= src %>" style="width:100%;height:520px;border:1px solid #e5e7eb;border-radius:8px"></iframe>
+  <% } else { %><img src="<%= src %>" alt="Invoice scan" class="img-fluid border rounded"><% } %>
+  <div class="small text-muted mt-1"><%= cur.original_name %> · <%= (cur.size_bytes / 1024).toFixed(0) %> KB · revision <%= cur.revision %> · SHA-256 <%= cur.sha256.slice(0, 12) %>…</div>
+<% } %>

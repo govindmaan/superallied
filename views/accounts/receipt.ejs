@@ -1,0 +1,85 @@
+<%- include('_top') %>
+<%- include('_receipt-css') %>
+<% const cancelled = r.receipt_status === 'cancelled'; const pend = r.cancellation.find(c => c.status === 'pending');
+   const shareText = `${s.company_name}: Payment received ${inr(r.amount)} from ${r.customer_name}. Receipt ${r.receipt_number} dated ${r.receipt_date} (${MODES[r.mode]}${r.reference ? ' ' + r.reference : ''}).`;
+   const phone = String(r.phone || '').replace(/\D/g, '').slice(-10); %>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2 no-print">
+  <div><h4 class="mb-0 fw-bold">Receipt <span class="docno fs-5"><%= r.receipt_number %></span>
+    <span class="badge <%= cancelled ? 'bg-dark' : 'bg-success' %>"><%= cancelled ? 'Cancelled' : 'Issued' %></span>
+    <% if (r.mode === 'cheque') { %><span class="badge <%= r.clearance_status === 'cleared' ? 'bg-success' : r.clearance_status === 'bounced' ? 'bg-danger' : 'bg-warning text-dark' %>">Cheque <%= r.clearance_status %></span><% } %>
+    <span class="badge <%= r.verification_status === 'verified' ? 'bg-primary' : 'bg-light text-dark border' %>"><%= r.verification_status === 'verified' ? 'Verified by ' + r.verified_by_name : 'Verification ' + r.verification_status %></span></h4>
+    <div class="doc-chain mt-2">
+      <a class="chip" href="/accounts/customers/<%= r.customer_id %>"><%= r.customer_name %></a>
+      <% if (r.quotation_number) { %><span class="arrow">·</span><a class="chip" href="/quotations/<%= r.quotation_id %>">Quotation <%= r.quotation_number %></a><% } %>
+      <% if (r.challan_number) { %><span class="arrow">·</span><a class="chip" href="/accounts/challans/<%= r.challan_id %>">Challan <%= r.challan_number %></a><% } %>
+      <% [...new Map(r.allocations.filter(a => a.status !== 'reversed').map(a => [a.invoice_id, a])).values()].forEach(a => { %><span class="arrow">·</span><a class="chip" href="/accounts/invoices/<%= a.invoice_id %>">Invoice <%= a.invoice_number %></a><% }) %>
+    </div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-danger" href="/accounts/receipts/<%= r.id %>/pdf"><i class="bi bi-filetype-pdf me-1"></i>Download PDF</a>
+    <% if (cancelled && r.pdf_stored_name) { %><a class="btn btn-sm btn-outline-secondary" href="/accounts/receipts/<%= r.id %>/pdf?original=1">Original as issued</a><% } %>
+    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+    <% if (!cancelled) { %><button class="btn btn-sm btn-success" id="share"><i class="bi bi-whatsapp me-1"></i>Share</button><% } %>
+    <% if (accCan('accounts') && !cancelled && r.unallocated_amount > 0 && r.clearance_status !== 'bounced') { %><a class="btn btn-sm btn-outline-primary" href="/accounts/allocations?customer_id=<%= r.customer_id %>&payment_id=<%= r.payment_id %>">Allocate balance</a><% } %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8"><div class="card border-0 shadow-sm p-4"><%- include('_receipt-body', { r, s }) %></div></div>
+  <div class="col-xl-4 no-print">
+    <% if (r.mode === 'cheque' && accCan('accounts') && !cancelled && ['received', 'deposited'].includes(r.clearance_status)) { %>
+    <form method="POST" action="/accounts/payments/<%= r.payment_id %>/cheque" class="card border-0 shadow-sm p-3 mb-3">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><h6 class="fw-bold">Cheque status</h6>
+      <div class="row g-2"><div class="col-6"><select name="status" class="form-select form-select-sm"><% if (r.clearance_status === 'received') { %><option value="deposited">Deposited</option><% } %><option value="cleared">Cleared</option><option value="bounced">Bounced</option></select></div>
+        <div class="col-6"><input type="date" name="event_date" value="<%= today %>" max="<%= today %>" class="form-control form-control-sm"></div>
+        <div class="col-12"><input name="remarks" class="form-control form-control-sm" placeholder="Remarks (required if bounced)"></div>
+        <div class="col-12"><button class="btn btn-sm btn-primary w-100">Update cheque</button></div></div>
+      <% if (r.cheque.length) { %><ul class="small mt-2 mb-0"><% r.cheque.forEach(e => { %><li><%= e.event_date %> — <%= e.status %> (<%= e.full_name %>)<%= e.remarks ? ': ' + e.remarks : '' %></li><% }) %></ul><% } %>
+    </form><% } %>
+    <% if (accCan('accounts_approve') && !cancelled && r.verification_status === 'pending' && r.clearance_status !== 'bounced') { %>
+    <form method="POST" action="/accounts/payments/<%= r.payment_id %>/verify" class="card border-0 shadow-sm p-3 mb-3">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><h6 class="fw-bold">Verify against bank / cash book</h6>
+      <div class="row g-2"><div class="col-6"><input name="bank_reference" class="form-control form-control-sm" placeholder="Bank statement ref"></div>
+        <div class="col-6"><input type="date" name="clearance_date" value="<%= r.clearance_date || r.payment_date %>" class="form-control form-control-sm"></div>
+        <div class="col-12"><input name="remarks" class="form-control form-control-sm" placeholder="Remarks (required to reject)"></div>
+        <div class="col-6"><button name="decision" value="verified" class="btn btn-sm btn-primary w-100">Verify</button></div>
+        <div class="col-6"><button name="decision" value="rejected" class="btn btn-sm btn-outline-danger w-100">Reject</button></div></div>
+    </form><% } %>
+    <% if (accCan('accounts') && !cancelled && (r.verification_status !== 'verified' || accCan('accounts_approve'))) { %>
+    <details class="card border-0 shadow-sm p-3 mb-3"><summary class="fw-bold small">Correct payment reference</summary>
+      <form method="POST" action="/accounts/payments/<%= r.payment_id %>/reference" class="mt-2"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input name="reference" value="<%= r.reference %>" class="form-control form-control-sm mb-2" placeholder="Reference / UTR / cheque no.">
+        <input name="bank_name" value="<%= r.bank_name %>" class="form-control form-control-sm mb-2" placeholder="Bank">
+        <input name="remarks" value="<%= r.remarks %>" class="form-control form-control-sm mb-2" placeholder="Remarks">
+        <input name="reason" class="form-control form-control-sm mb-2" placeholder="Reason for change (required)" required minlength="5">
+        <button class="btn btn-sm btn-outline-primary">Save</button><div class="form-text">Amount, customer and date cannot be edited — cancel and re-issue instead.</div></form></details><% } %>
+    <% if (accCan('accounts') && !cancelled) { %>
+    <form method="POST" action="/accounts/receipts/<%= r.id %>/cancel" class="card border-0 shadow-sm p-3 mb-3" data-confirm="Cancel this receipt? Its allocations will be reversed. The receipt is kept, marked cancelled.">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><h6 class="fw-bold text-danger">Cancel receipt</h6>
+      <% if (pend) { %><div class="alert alert-warning small py-2">Cancellation requested by <%= pend.req_name %>: “<%= pend.reason %>” — waiting for approval.</div>
+        <% if (accCan('accounts_approve')) { %></form><form method="POST" action="/accounts/cancellations/<%= pend.id %>/decide" class="card border-0 shadow-sm p-3 mb-3" data-confirm="Apply this decision?">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="remarks" class="form-control form-control-sm mb-2" placeholder="Remarks (required to reject)">
+          <div class="d-flex gap-2"><button name="decision" value="approve" class="btn btn-sm btn-danger flex-fill">Approve cancellation</button><button name="decision" value="reject" class="btn btn-sm btn-outline-secondary flex-fill">Reject</button></div><% } %>
+      <% } else { %>
+        <textarea name="reason" class="form-control form-control-sm mb-2" rows="2" placeholder="Reason (required) — e.g. entered by mistake, no money received" minlength="5" required></textarea>
+        <button class="btn btn-sm btn-outline-danger"><%= accCan('accounts_approve') || s.acc_cancel_needs_approval === '0' ? 'Cancel receipt' : 'Request cancellation' %></button>
+        <div class="form-text">Receipts are never deleted.<%= s.acc_cancel_needs_approval !== '0' && !accCan('accounts_approve') ? ' An accounts manager must approve.' : '' %></div>
+      <% } %>
+    </form><% } %>
+    <% if (r.cancellation.length) { %><div class="card border-0 shadow-sm p-3 small"><b>Cancellation requests</b>
+      <% r.cancellation.forEach(c => { %><div class="mt-1"><%= c.requested_at %> · <%= c.req_name %>: “<%= c.reason %>” → <b><%= c.status %></b><%= c.dec_name ? ' by ' + c.dec_name : '' %><%= c.cancellation_number ? ' · ' + c.cancellation_number : '' %><%= c.decision_remarks ? ' — ' + c.decision_remarks : '' %></div><% }) %></div><% } %>
+  </div>
+</div>
+<%- include('_history', { history }) %>
+<%- include('_bottom') %>
+<script>
+document.getElementById('share')?.addEventListener('click', async () => {
+  const text = <%- JSON.stringify(shareText) %>;
+  try {
+    const blob = await (await fetch('/accounts/receipts/<%= r.id %>/pdf')).blob();
+    const file = new File([blob], <%- JSON.stringify('Receipt-' + r.receipt_number.replace(/[^\w\-]+/g, '-') + '.pdf') %>, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  // Desktop / no file sharing: open WhatsApp with the message; attach the downloaded PDF there
+  window.open('https://wa.me/<%= phone ? '91' + phone : '' %>?text=' + encodeURIComponent(text + ' (PDF attached)'), '_blank', 'noopener');
+});
+</script>

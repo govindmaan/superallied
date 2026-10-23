@@ -1,0 +1,29 @@
+<%- include('_top') %>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h4 class="mb-0 fw-bold"><i class="bi bi-person-vcard-fill me-2 text-primary"></i>Customer Accounts</h4>
+    <small class="text-muted">Balances from uploaded Tally invoices, receipts and allocations<%= seeAll ? '' : ' — your customers only' %>.</small></div>
+</div>
+<%- include('_filters', { action: '/accounts/customers', show: ['customer', 'salesperson', 'branch', 'status', 'q'], qPlaceholder: 'Customer name',
+  statuses: [['all', 'All customers with records'], ['', 'With a balance or advance']] }) %>
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
+    <thead class="table-light"><tr><th>Customer</th><th class="money">Invoiced</th><th class="money">Settled</th><th class="money">Outstanding</th>
+      <th class="money">Overdue</th><th class="money">Unallocated advance</th><th class="money">Net receivable</th></tr></thead>
+    <tbody>
+    <% if (!rows.length) { %><tr><td colspan="7" class="text-center text-muted py-4">No customer has accounts records yet. Customers come from the existing customer master — upload an invoice or record a receipt to start.</td></tr><% } %>
+    <% rows.forEach(r => { %>
+      <tr><td><a href="/accounts/customers/<%= r.id %>" class="fw-semibold"><%= r.customer_name %></a><div class="small text-muted">ID <%= r.id %><%= r.gstin ? ' · ' + r.gstin : '' %></div></td>
+        <td class="money"><%= money(r.invoiced) %></td><td class="money"><%= money(r.settled) %></td>
+        <td class="money fw-semibold <%= r.outstanding ? 'text-danger' : '' %>"><%= money(r.outstanding) %></td>
+        <td class="money <%= r.overdue ? 'text-danger' : 'text-muted' %>"><%= money(r.overdue) %></td>
+        <td class="money <%= r.unallocated ? 'text-warning' : 'text-muted' %>"><%= money(r.unallocated + r.unused_credit) %></td>
+        <td class="money fw-bold"><%= money(Math.abs(r.net)) %> <%= r.net > 0 ? 'Dr' : r.net < 0 ? 'Cr' : '' %></td></tr>
+    <% }) %>
+    </tbody>
+    <% if (rows.length) { %><tfoot class="table-light fw-bold"><tr><td>Total</td><td class="money"><%= money(totals.invoiced) %></td><td class="money"><%= money(totals.settled) %></td>
+      <td class="money"><%= money(totals.outstanding) %></td><td class="money"><%= money(totals.overdue) %></td><td class="money"><%= money(totals.unallocated + totals.unused_credit) %></td>
+      <td class="money"><%= money(Math.abs(totals.net)) %> <%= totals.net > 0 ? 'Dr' : totals.net < 0 ? 'Cr' : '' %></td></tr></tfoot><% } %>
+  </table></div>
+</div>
+<p class="small text-muted mt-2">Customers not listed have no invoices or receipts yet. Open any customer from <a href="/customers">Customers</a> or search above.</p>
+<%- include('_bottom') %>

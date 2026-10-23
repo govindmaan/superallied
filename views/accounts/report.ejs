@@ -1,0 +1,23 @@
+<%- include('_top') %>
+<% const fmt = (v, t) => t === 'money' ? money(v) : t === 'int' ? (v ?? 0) : (v ?? '');
+   const showMap = { date: 'date', customer: 'customer', branch: 'branch', salesperson: 'salesperson', mode: 'mode', status: 'status', doctype: 'doctype', user: 'user' }; %>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><a href="/accounts/reports" class="small text-muted">← Reports</a><h4 class="mb-0 fw-bold"><%= def.title %></h4><small class="text-muted"><%= out.rows.length %> rows</small></div>
+  <div class="btn-group btn-group-sm">
+    <a class="btn btn-outline-danger" href="?<%= qs %>&format=pdf"><i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+    <a class="btn btn-outline-success" href="?<%= qs %>&format=xlsx"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+    <a class="btn btn-outline-secondary" href="?<%= qs %>&format=csv">CSV</a>
+  </div>
+</div>
+<%- include('_filters', { action: '/accounts/reports/' + def.key, show: def.filters.map(x => showMap[x]), statuses: def.statuses, users }) %>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle small">
+  <thead class="table-light"><tr><% def.columns.forEach(([k, l, t]) => { %><th class="<%= ['money', 'int'].includes(t) ? 'money' : '' %>"><%= l %></th><% }) %></tr></thead>
+  <tbody>
+  <% if (!out.rows.length) { %><tr><td colspan="<%= def.columns.length %>" class="text-center text-muted py-4">No records for these filters.</td></tr><% } %>
+  <% out.rows.slice(0, 1000).forEach(r => { %><tr><% def.columns.forEach(([k, , t], n) => { %>
+    <td class="<%= ['money', 'int'].includes(t) ? 'money' : '' %> <%= k === 'details' ? 'acc-json' : '' %>"><% if (n === 0 && r.link) { %><a class="docno" href="<%= r.link %>"><%= fmt(r[k], t) %></a><% } else { %><%= fmt(r[k], t) %><% } %></td><% }) %></tr><% }) %>
+  </tbody>
+  <% if (out.rows.length && Object.keys(out.totals).length) { %><tfoot class="table-light fw-bold"><tr><% def.columns.forEach(([k, , t], n) => { %><td class="<%= t === 'money' ? 'money' : '' %>"><%= t === 'money' ? money(out.totals[k]) : n === 0 ? 'Total' : '' %></td><% }) %></tr></tfoot><% } %>
+</table></div>
+<% if (out.rows.length > 1000) { %><div class="p-2 small text-muted">Showing the first 1,000 rows on screen; downloads include all <%= out.rows.length %>.</div><% } %></div>
+<%- include('_bottom') %>

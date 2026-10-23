@@ -1,0 +1,132 @@
+<%- include('_top') %>
+<% const c = a.c, s = a.summary; const drcr = (p) => money(Math.abs(p)) + (p > 0 ? ' Dr' : p < 0 ? ' Cr' : '');
+   const tabs = [['ledger', 'Ledger'], ['quotations', 'Quotations (' + a.quotations.length + ')'], ['challans', 'Delivery challans (' + a.challans.length + ')'],
+     ['invoices', 'Tally invoices (' + a.invoices.length + ')'], ['receipts', 'Receipts (' + a.payments.length + ')'], ['allocations', 'Allocations (' + a.allocations.length + ')']];
+   const range = new URLSearchParams({ from, to }).toString(); %>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0 fw-bold"><%= c.name %> <span class="badge bg-light text-dark border fw-normal">Customer ID <%= c.id %></span></h4>
+    <div class="small text-muted mt-1">
+      <%= [c.address, c.city, c.state].filter(Boolean).join(', ') || 'No billing address on file' %>
+      <%= c.phone ? ' · 📞 ' + c.phone : '' %> · GSTIN <%= c.gstin || '—' %><%= c.pan ? ' · PAN ' + c.pan : '' %>
+      <% if (c.deleted_at) { %><span class="badge bg-dark ms-1">Deleted customer</span><% } %>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap no-print">
+    <% if (accCan('accounts')) { %>
+    <a class="btn btn-sm btn-outline-primary" href="/accounts/invoices/upload?customer_id=<%= c.id %>"><i class="bi bi-cloud-arrow-up me-1"></i>Upload invoice</a>
+    <a class="btn btn-sm btn-danger" href="/accounts/receipts/new?customer_id=<%= c.id %>"><i class="bi bi-receipt me-1"></i>Generate receipt</a>
+    <a class="btn btn-sm btn-outline-secondary" href="/accounts/allocations?customer_id=<%= c.id %>"><i class="bi bi-diagram-3 me-1"></i>Allocate</a>
+    <% } %>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <% [['Invoiced (Tally)', s.invoiced, ''], ['Received', s.received, 'good', s.uncleared ? money(s.uncleared) + ' in cheques not cleared' : ''],
+      ['Outstanding invoices', s.outstanding, s.outstanding ? 'bad' : '', s.overdue ? money(s.overdue) + ' overdue' : 'Nothing overdue'],
+      ['Unallocated advances', s.unallocated + s.unusedCredit, s.unallocated + s.unusedCredit ? 'warn' : '', s.unusedCredit ? 'incl. ' + money(s.unusedCredit) + ' unused credit notes' : 'Money held, not yet matched to invoices']].forEach(([l, v, cls, sub]) => { %>
+  <div class="col-6 col-lg-3"><div class="kpi card border-0 shadow-sm h-100 <%= cls %>"><div class="kpi-label"><%= l %></div><div class="kpi-value">₹<%= money(v) %></div><div class="kpi-sub"><%= sub || '' %></div></div></div>
+  <% }) %>
+</div>
+
+<ul class="nav nav-tabs mb-0 no-print">
+  <% tabs.forEach(([k, l]) => { %><li class="nav-item"><a class="nav-link <%= tab === k ? 'active' : '' %>" href="?tab=<%= k %>&<%= range %>"><%= l %></a></li><% }) %>
+</ul>
+<div class="card border-0 shadow-sm border-top-0" style="border-top-left-radius:0;border-top-right-radius:0">
+
+<% if (tab === 'ledger') { %>
+  <div class="p-3 border-bottom d-flex flex-wrap gap-2 align-items-end justify-content-between no-print">
+    <form class="d-flex gap-2 align-items-end flex-wrap" method="GET">
+      <input type="hidden" name="tab" value="ledger">
+      <div><label class="form-label small mb-0">From</label><input type="date" name="from" value="<%= from %>" class="form-control form-control-sm"></div>
+      <div><label class="form-label small mb-0">To</label><input type="date" name="to" value="<%= to %>" class="form-control form-control-sm"></div>
+      <button class="btn btn-sm btn-primary">Show</button>
+    </form>
+    <div class="btn-group btn-group-sm">
+      <a class="btn btn-outline-danger" href="/accounts/customers/<%= c.id %>/statement.pdf?<%= range %>"><i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+      <a class="btn btn-outline-success" href="/accounts/customers/<%= c.id %>/statement.xlsx?<%= range %>"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+      <a class="btn btn-outline-secondary" href="/accounts/customers/<%= c.id %>/statement.csv?<%= range %>">CSV</a>
+    </div>
+  </div>
+  <div class="px-3 pt-2 small text-muted">Debit = amount the customer owes (Tally invoices, debit notes, reversed receipts). Credit = money received, credit notes, approved adjustments.
+    Balance <b>Dr</b> = receivable from customer, <b>Cr</b> = advance held for customer. Quotations and challans are not entries in the ledger.</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+    <thead class="table-light"><tr><th>Date</th><th>Document</th><th>Description</th><th class="money">Debit</th><th class="money">Credit</th><th class="money">Balance</th></tr></thead>
+    <tbody>
+      <tr class="table-light"><td></td><td></td><td class="fw-semibold">Opening balance</td><td></td><td></td><td class="money fw-semibold"><%= drcr(led.opening) %></td></tr>
+      <% if (!led.rows.length) { %><tr><td colspan="6" class="text-center text-muted py-3">No ledger entries in this period.</td></tr><% } %>
+      <% led.rows.forEach(r => { %>
+      <tr><td class="text-nowrap"><%= r.date %></td><td><a class="docno" href="<%= r.link %>"><%= r.doc %></a></td><td><%= r.description %></td>
+        <td class="money"><%= r.debit ? money(r.debit) : '' %></td><td class="money"><%= r.credit ? money(r.credit) : '' %></td><td class="money fw-semibold"><%= drcr(r.balance) %></td></tr>
+      <% }) %>
+    </tbody>
+    <tfoot class="table-light fw-bold"><tr><td colspan="3">Totals / closing balance</td><td class="money"><%= money(led.totals.debit) %></td><td class="money"><%= money(led.totals.credit) %></td><td class="money"><%= drcr(led.closing) %></td></tr></tfoot>
+  </table></div>
+
+<% } else if (tab === 'quotations') { %>
+  <div class="px-3 pt-2 small text-muted">Operational view — quotations are not receivables. "Received" counts advances and other money linked to the quotation.</div>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>Quotation</th><th>Machine</th><th>Status</th><th class="money">Quotation value</th><th class="money">Advance</th><th class="money">Received (all)</th><th class="money">Remaining vs quote</th><th class="money">Invoiced</th><th></th></tr></thead>
+    <tbody>
+    <% if (!a.quotations.length) { %><tr><td colspan="9" class="text-center text-muted py-3">No quotations.</td></tr><% } %>
+    <% a.quotations.forEach(q => { %>
+      <tr class="<%= q.cancelled_at ? 'cancelled' : '' %>"><td><a class="docno" href="/quotations/<%= q.id %>"><%= q.quotation_number %></a></td><td><%= q.machine_name %></td>
+        <td class="keep"><%= q.cancelled_at ? 'Cancelled' : q.status %></td><td class="money"><%= money(q.fin.value) %></td><td class="money"><%= money(q.fin.advance) %></td>
+        <td class="money"><%= money(q.fin.received) %></td><td class="money"><%= money(q.fin.remaining) %></td><td class="money"><%= money(q.fin.invoiced) %></td>
+        <td class="text-end keep"><% if (accCan('accounts') && !q.cancelled_at) { %><a class="btn btn-sm btn-outline-danger" href="/accounts/receipts/new?customer_id=<%= c.id %>&purpose=quotation_advance&quotation_id=<%= q.id %>">Advance</a><% } %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+
+<% } else if (tab === 'challans') { %>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>Challan</th><th>Date</th><th>Machine</th><th class="money">Value</th><th>Tally invoice</th><th>Status</th></tr></thead>
+    <tbody>
+    <% if (!a.challans.length) { %><tr><td colspan="6" class="text-center text-muted py-3">No delivery challans recorded.</td></tr><% } %>
+    <% a.challans.forEach(ch => { %>
+      <tr class="<%= ch.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/challans/<%= ch.id %>"><%= ch.challan_number %></a></td><td><%= ch.challan_date %></td>
+        <td><%= [ch.machine_name, ch.machine_details].filter(Boolean).join(' · ') %></td><td class="money"><%= ch.challan_value != null ? money(ch.challan_value) : '—' %></td>
+        <td><%= ch.invoice_numbers || (ch.invoice_expected ? 'Awaiting' : 'Not expected') %></td><td class="keep"><%= ch.status %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+
+<% } else if (tab === 'invoices') { %>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>Number</th><th>Type</th><th>Date</th><th>Due</th><th class="money">Total</th><th class="money">Settled</th><th class="money">Balance</th><th>Status</th></tr></thead>
+    <tbody>
+    <% if (!a.invoices.length) { %><tr><td colspan="8" class="text-center text-muted py-3">No Tally invoices uploaded.</td></tr><% } %>
+    <% a.invoices.forEach(i => { const st = invoiceStatus(i); %>
+      <tr class="<%= i.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/invoices/<%= i.id %>"><%= i.invoice_number %></a></td><td><%= DOC_TYPES[i.doc_type] %></td>
+        <td><%= i.invoice_date %></td><td><%= i.due_date || '—' %></td><td class="money"><%= money(i.total_amount) %></td><td class="money"><%= money(i.allocated_amount) %></td>
+        <td class="money fw-semibold"><%= money(i.balance_amount) %></td><td class="keep"><span class="badge <%= st.cls %>"><%= st.label %></span></td></tr>
+    <% }) %>
+    </tbody></table></div>
+
+<% } else if (tab === 'receipts') { %>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>Receipt</th><th>Date</th><th>Purpose</th><th>Mode / ref</th><th class="money">Amount</th><th class="money">Unallocated</th><th>Status</th></tr></thead>
+    <tbody>
+    <% if (!a.payments.length) { %><tr><td colspan="7" class="text-center text-muted py-3">No receipts.</td></tr><% } %>
+    <% a.payments.forEach(p => { %>
+      <tr class="<%= p.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/receipts/<%= p.receipt_id %>"><%= p.receipt_number %></a></td><td><%= p.payment_date %></td>
+        <td><%= PURPOSES[p.purpose] %><div class="small text-muted"><%= [p.quotation_number && 'Q ' + p.quotation_number, p.challan_number && 'DC ' + p.challan_number, p.invoice_numbers && 'Inv ' + p.invoice_numbers].filter(Boolean).join(' · ') %></div></td>
+        <td><%= MODES[p.mode] %> <span class="text-muted small"><%= p.reference %></span><%= p.mode === 'cheque' ? ' · ' + p.clearance_status : '' %></td>
+        <td class="money"><%= money(p.amount) %></td><td class="money"><%= money(p.unallocated_amount) %></td>
+        <td class="keep"><%= p.status === 'cancelled' ? 'Cancelled' : p.verification_status %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+
+<% } else if (tab === 'allocations') { %>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+    <thead class="table-light"><tr><th>Date</th><th>From</th><th>To invoice</th><th class="money">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+    <% if (!a.allocations.length) { %><tr><td colspan="5" class="text-center text-muted py-3">No allocations.</td></tr><% } %>
+    <% a.allocations.forEach(x => { %>
+      <tr class="<%= x.status === 'reversed' ? 'cancelled' : '' %>"><td><%= String(x.allocated_at).slice(0, 10) %></td>
+        <td><%= x.receipt_number ? 'Receipt ' + x.receipt_number : x.cn_number ? 'Credit note ' + x.cn_number : 'Adjustment (' + (x.adjustment_type || '') + ')' %></td>
+        <td><a class="docno" href="/accounts/invoices/<%= x.invoice_id %>"><%= x.invoice_number %></a></td><td class="money"><%= money(x.amount) %></td>
+        <td class="keep"><%= x.status === 'pending' ? 'Pending cheque clearance' : x.status %><%= x.reverse_reason ? ' — ' + x.reverse_reason : '' %></td></tr>
+    <% }) %>
+    </tbody></table></div>
+<% } %>
+</div>
+<%- include('_bottom') %>

@@ -4,6 +4,19 @@
 
 module.exports = [
   {
+    date: '2026-10-23',
+    items: [
+      { commit: '', type: 'new', title: 'Accounts module',
+        details: ['New Accounts section: Accountant Dashboard, Upload Tally Invoice, Generate Receipt, Customer Accounts, Payment Entry, Payment Allocation, Invoice Register, Delivery Challans, Challan Reconciliation, Collection Register, Reports, Approvals and Audit Log.',
+                  'Tally stays the books and GST invoicing system: invoices generated in Tally are uploaded here (PDF or scan) with a review step; duplicate invoice numbers in the same financial year are refused.',
+                  'Payment receipts with server-issued numbers (SA/RCT/26-27/0001), amount in words, PDF on the letterhead, print and WhatsApp share.',
+                  'Payments are allocated to invoices separately, so advances, part payments and one payment across several invoices are never counted twice. Cheques only reduce the invoice when cleared.',
+                  'Receipts are never deleted: cancellation needs a reason and accounts-manager approval, and reverses the allocations.',
+                  'Customer ledger and statement (PDF, Excel, CSV); 17 reports with the same filters on screen and in downloads.',
+                  'New roles: Accountant and Accounts Manager. Salespeople can view their own customers’ invoices and receipts, read-only.'] },
+    ],
+  },
+  {
     date: '2026-10-20',
     items: [
       { commit: '', type: 'fixed', title: 'Spare parts price list import',

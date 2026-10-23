@@ -2,6 +2,7 @@
   const isAdmin = user && user.role === 'admin';
   const isMgr   = user && (user.role === 'admin' || user.role === 'manager');
   const can     = (p) => isAdmin || hasPerm(p);
+  const accAll  = can('accounts') || can('accounts_approve') || can('accounts_reports');
 
   // Menu = sections → groups → links. `show` decides visibility for the logged-in
   // user; a group or section with nothing visible is not rendered at all.
@@ -19,6 +20,24 @@
         { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: 'Salespersons',      show: isMgr, keys: ['salespersons'] },
         { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: 'Sales Reports',     show: isMgr },
         { href: '/calculator',                   icon: 'bi-calculator-fill',   label: 'Profit Calculator', show: isAdmin, keys: ['calculator'] },
+      ]},
+    ]},
+    { id: 'accounts', label: 'Accounts', icon: 'bi-journal-bookmark-fill', groups: [
+      { items: [
+        { href: '/accounts',                icon: 'bi-speedometer',          label: 'Accountant Dashboard', show: accAll },
+        { href: '/accounts/invoices/upload', icon: 'bi-cloud-arrow-up-fill', label: 'Upload Tally Invoice', show: can('accounts') },
+        { href: '/accounts/receipts/new',   icon: 'bi-receipt',              label: 'Generate Receipt',     show: can('accounts') },
+        { href: '/accounts/customers',      icon: 'bi-person-vcard-fill',    label: 'Customer Accounts',    show: accAll || can('accounts_view') },
+        { href: '/accounts/payments',       icon: 'bi-cash-stack',           label: 'Payment Entry',        show: accAll },
+        { href: '/accounts/allocations',    icon: 'bi-diagram-3-fill',       label: 'Payment Allocation',   show: can('accounts') || can('accounts_approve') },
+        { href: '/accounts/invoices',       icon: 'bi-journal-text',         label: 'Invoice Register',     show: accAll || can('accounts_view') },
+        { href: '/accounts/challans',       icon: 'bi-truck-flatbed',        label: 'Delivery Challans',    show: accAll || can('accounts_view') },
+        { href: '/accounts/reconciliation', icon: 'bi-arrow-left-right',     label: 'Delivery Challan Reconciliation', show: accAll },
+        { href: '/accounts/collections',    icon: 'bi-wallet-fill',          label: 'Collection Register',  show: accAll },
+        { href: '/accounts/reports',        icon: 'bi-clipboard-data-fill',  label: 'Outstanding Reports',  show: accAll },
+        { href: '/accounts/approvals',      icon: 'bi-check2-all',           label: 'Approvals',            show: can('accounts') || can('accounts_approve') },
+        { href: '/accounts/audit',          icon: 'bi-shield-check',         label: 'Audit Log',            show: can('accounts_approve') || can('accounts_reports') },
+        { href: '/accounts/settings',       icon: 'bi-sliders',              label: 'Accounts Settings',    show: isAdmin },
       ]},
     ]},
     { id: 'databank', label: 'Databank', icon: 'bi-database-fill', groups: [
@@ -98,7 +117,7 @@
   const activeSection = hit ? hit.s.id : null;
 
   // With no active page (Dashboard, Help), open the section that fits the user's role
-  const roleHome = { sales: 'sales', staff: 'sales', office: 'sales', service: 'service', hr: 'hr', employee: 'hr' };
+  const roleHome = { sales: 'sales', staff: 'sales', office: 'sales', service: 'service', hr: 'hr', employee: 'hr', accountant: 'accounts', accounts_manager: 'accounts' };
   const defaultOpen = activeSection || roleHome[user?.role] || null;
 %>
 
@@ -118,7 +137,7 @@
 
 <%
   // Bottom bar on phones for field staff (sales, service, office…); admin/manager/HR use the sidebar
-  const fieldUser = user && !['admin','manager','hr'].includes(user.role);
+  const fieldUser = user && !['admin','manager','hr','accountant','accounts_manager'].includes(user.role);
   const p = (typeof currentPath !== 'undefined' && currentPath) || '';
   const bottomNav = fieldUser ? [
     { href: '/', icon: 'bi-house-door-fill', label: 'Home', on: p === '/' },
@@ -221,8 +240,8 @@
       <span class="fw-semibold text-truncate d-block" style="max-width:140px;font-size:13px">
         <%= user ? user.full_name || user.username : '' %>
       </span>
-      <% const roleBadge = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success'}; %>
-      <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>" style="font-size:9px"><%= (user?.role||'').toUpperCase() %></span>
+      <% const roleBadge = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success',accountant:'bg-dark',accounts_manager:'bg-dark'}; %>
+      <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>" style="font-size:9px"><%= (user?.role||'').replace('_', ' ').toUpperCase() %></span>
     </div>
     <a href="/help" class="btn btn-sm <%= active==='help'?'btn-light':'btn-outline-light' %> flex-shrink-0" title="Help & Updates" aria-label="Help & Updates">
       <i class="bi bi-question-circle"></i>

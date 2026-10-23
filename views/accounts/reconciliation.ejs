@@ -1,0 +1,38 @@
+<%- include('_top') %>
+<% const flagIcon = { challan_without_invoice: 'bi-truck', invoice_without_challan: 'bi-file-earmark-x', possible_duplicate: 'bi-files', gstin_mismatch: 'bi-person-badge',
+     customer_mismatch: 'bi-people', amount_vs_quotation: 'bi-currency-rupee', amount_vs_challan: 'bi-currency-rupee', cancelled_with_allocations: 'bi-x-octagon' }; %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Delivery Challan Reconciliation</h4>
+  <small class="text-muted">Challans vs Tally invoices vs money received. Flags are for review — Tally invoices and GST amounts are never changed automatically.</small></div>
+<%- include('_filters', { action: '/accounts/reconciliation', show: ['date', 'customer', 'salesperson', 'branch'] }) %>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="kpi card border-0 shadow-sm <%= flags.length ? 'warn' : 'good' %>"><div class="kpi-label">Open flags</div><div class="kpi-value"><%= rec.flags.filter(x => !x.resolved).length %></div><div class="kpi-sub"><%= rec.flags.filter(x => x.resolved).length %> resolved</div></div></div>
+  <div class="col-6 col-lg-3"><div class="kpi card border-0 shadow-sm good"><div class="kpi-label">Fully paid invoices</div><div class="kpi-value"><%= rec.counts.fullyPaid %></div></div></div>
+  <div class="col-6 col-lg-3"><div class="kpi card border-0 shadow-sm warn"><div class="kpi-label">Partially paid invoices</div><div class="kpi-value"><%= rec.counts.partlyPaid %></div></div></div>
+  <div class="col-6 col-lg-3"><a href="/accounts/reports/unallocated-payments" class="kpi card border-0 shadow-sm"><div class="kpi-label">Unallocated payments</div><div class="kpi-value"><%= rec.counts.unallocated.n %></div><div class="kpi-sub"><%= inr(rec.counts.unallocated.s) %></div></a></div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white fw-semibold d-flex justify-content-between"><span>Discrepancies</span>
+    <a class="small" href="?<%= qs %>&resolved=<%= showResolved ? 0 : 1 %>"><%= showResolved ? 'Hide resolved' : 'Show resolved too' %></a></div>
+  <div class="table-responsive"><table class="table table-sm mb-0 align-middle small"><thead class="table-light"><tr><th>Flag</th><th>Documents</th><th>Detail</th><th>Resolution</th></tr></thead><tbody>
+  <% if (!flags.length) { %><tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-check2-circle text-success me-1"></i>No open discrepancies. Challans without an invoice are flagged after <%= rec.days %> days.</td></tr><% } %>
+  <% flags.forEach(x => { %><tr class="<%= x.resolved ? 'table-light' : '' %>"><td><i class="bi <%= flagIcon[x.type] || 'bi-flag' %> me-1 text-danger"></i><b><%= x.title %></b></td>
+    <td><a class="docno" href="<%= x.link %>"><%= x.docs %></a></td><td><%= x.detail %></td>
+    <td><% if (x.resolved) { %><span class="text-success">Resolved by <%= x.resolved.full_name %>: <%= x.resolved.remarks %></span>
+      <% } else if (accCan('accounts')) { %><form method="POST" action="/accounts/reconciliation/resolve" class="d-flex gap-1"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="flag_type" value="<%= x.type %>"><input type="hidden" name="entity_type" value="<%= x.entity_type %>"><input type="hidden" name="entity_id" value="<%= x.entity_id %>">
+        <input name="remarks" class="form-control form-control-sm" placeholder="Explain why this is fine / what was done" minlength="5" required><button class="btn btn-sm btn-outline-success">Resolve</button></form><% } %></td></tr><% }) %>
+  </tbody></table></div></div>
+
+<div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold d-flex justify-content-between"><span>Challan → invoice → payment</span>
+  <a class="small" href="/accounts/reports/challan-vs-invoice?<%= qs %>">Export</a></div>
+  <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle small"><thead class="table-light"><tr><th>Challan</th><th>Date</th><th>Customer</th><th>Machine</th><th class="money">Challan value</th>
+    <th>Quotation</th><th>Tally invoice</th><th>Uploaded</th><th class="money">Received</th><th class="money">Outstanding</th><th>Status</th></tr></thead><tbody>
+  <% if (!rec.challans.length) { %><tr><td colspan="11" class="text-center text-muted py-3">No delivery challans recorded.</td></tr><% } %>
+  <% rec.challans.forEach(ch => { const bad = ['Invoice overdue', 'Cancelled'].includes(ch.recon_status); %>
+    <tr class="<%= ch.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/challans/<%= ch.id %>"><%= ch.challan_number %></a></td><td><%= ch.challan_date %></td><td><%= ch.customer_name %></td>
+      <td><%= [ch.machine_name, ch.chassis_number].filter(Boolean).join(' · ') %></td><td class="money"><%= ch.challan_value != null ? money(ch.challan_value) : '—' %></td><td><%= ch.quotation_number || '—' %></td>
+      <td class="docno"><%= ch.invoice_numbers || '—' %></td><td><%= ch.invoice_uploaded_on || '—' %></td><td class="money"><%= money(ch.received) %></td><td class="money"><%= ch.invoice_numbers ? money(ch.invoice_balance) : '—' %></td>
+      <td class="keep"><span class="badge <%= bad ? 'bg-danger' : /fully/.test(ch.recon_status) ? 'bg-success' : /partly|unpaid|Awaiting/.test(ch.recon_status) ? 'bg-warning text-dark' : 'bg-light text-dark border' %>"><%= ch.recon_status %></span></td></tr><% }) %>
+  </tbody></table></div></div>
+<%- include('_bottom') %>

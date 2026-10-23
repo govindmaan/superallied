@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title><%= def.title %></title>
+<style>body { font-family: Arial, sans-serif; font-size: 10px; color: #111; } h1 { font-size: 15px; margin: 0; } .sub { color: #555; margin: 2px 0 8px; }
+table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; vertical-align: top; } th { background: #f1f1f1; }
+.r { text-align: right; white-space: nowrap; } tfoot td { font-weight: bold; background: #f8f8f8; } thead { display: table-header-group; } tr { page-break-inside: avoid; }</style></head>
+<body>
+<h1><%= s.company_name %> — <%= def.title %></h1>
+<div class="sub"><%= filterText %> · <%= out.rows.length %> rows · generated <%= new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) %></div>
+<table><thead><tr><% def.columns.forEach(([k, l, t]) => { %><th class="<%= ['money', 'int'].includes(t) ? 'r' : '' %>"><%= l %></th><% }) %></tr></thead>
+<tbody><% out.rows.forEach(r => { %><tr><% def.columns.forEach(([k, , t]) => { %><td class="<%= ['money', 'int'].includes(t) ? 'r' : '' %>"><%= t === 'money' ? money(r[k]) : (r[k] ?? '') %></td><% }) %></tr><% }) %></tbody>
+<% if (Object.keys(out.totals).length) { %><tfoot><tr><% def.columns.forEach(([k, , t], n) => { %><td class="<%= t === 'money' ? 'r' : '' %>"><%= t === 'money' ? money(out.totals[k]) : n === 0 ? 'Total' : '' %></td><% }) %></tr></tfoot><% } %>
+</table></body></html>

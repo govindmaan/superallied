@@ -1,0 +1,7 @@
+<%- include('../partials/head', { title }) %>
+<link href="/accounts.css" rel="stylesheet">
+<meta name="csrf-token" content="<%= csrf %>">
+<%- include('../partials/sidebar', { active: 'accounts', user }) %>
+<div class="main-content acc">
+<% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+<% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><i class="bi bi-exclamation-triangle-fill me-1"></i><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>

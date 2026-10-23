@@ -1,0 +1,24 @@
+<%- include('_top') %>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h4 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>Invoice Register</h4>
+    <small class="text-muted">Tally-generated documents uploaded here. GST invoicing itself stays in Tally.</small></div>
+  <% if (accCan('accounts')) { %><a href="/accounts/invoices/upload" class="btn btn-primary btn-sm"><i class="bi bi-cloud-arrow-up me-1"></i>Upload Tally Invoice</a><% } %>
+</div>
+<%- include('_filters', { action: '/accounts/invoices', show: ['date', 'customer', 'salesperson', 'branch', 'doctype', 'status', 'q'], qPlaceholder: 'Invoice no. or customer',
+  statuses: [['', 'All active'], ['unpaid', 'Unpaid'], ['partial', 'Partially paid'], ['paid', 'Paid / adjusted'], ['overdue', 'Overdue'], ['cancelled', 'Cancelled']].concat(accCan('accounts') ? [['draft', 'Drafts']] : []) }) %>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
+  <thead class="table-light"><tr><th>Number</th><th>Type</th><th>Date</th><th>Customer</th><th>Linked</th><th class="money">Total</th><th class="money">Paid / adjusted</th><th class="money">Balance</th><th>Due</th><th>Status</th></tr></thead>
+  <tbody>
+  <% if (!rows.length) { %><tr><td colspan="10" class="text-center text-muted py-4">No invoices match these filters.</td></tr><% } %>
+  <% let tTot = 0, tSet = 0, tBal = 0; rows.forEach(i => { const st = invoiceStatus(i); if (i.doc_type !== 'credit_note' && i.status !== 'cancelled') { tTot += i.total_amount; tSet += i.allocated_amount; tBal += i.balance_amount; } %>
+    <tr class="<%= i.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/invoices/<%= i.id %>"><%= i.invoice_number %></a><div class="small text-muted">FY <%= i.financial_year %></div></td>
+      <td class="small"><%= DOC_TYPES[i.doc_type] %></td><td class="text-nowrap"><%= i.invoice_date %></td><td><%= i.customer_name %></td>
+      <td class="small"><%= [i.quotation_number && 'Q ' + i.quotation_number, i.challan_numbers && 'DC ' + i.challan_numbers].filter(Boolean).join(' · ') || '—' %></td>
+      <td class="money"><%= money(i.total_amount) %></td><td class="money"><%= money(i.allocated_amount) %><%- i.pending_amount ? `<div class="small text-muted">+${money(i.pending_amount)} cheque pending</div>` : '' %></td>
+      <td class="money fw-semibold"><%= money(i.balance_amount) %></td><td class="text-nowrap small"><%= i.due_date || '—' %></td>
+      <td class="keep"><span class="badge <%= st.cls %>"><%= st.label %></span><%- i.status === 'verified' && !['Verified'].includes(st.label) ? ' <i class="bi bi-patch-check-fill text-primary" title="Verified"></i>' : '' %></td></tr>
+  <% }) %>
+  </tbody>
+  <% if (rows.length) { %><tfoot class="table-light fw-bold"><tr><td colspan="5">Total (invoices & debit notes, excl. cancelled)</td><td class="money"><%= money(tTot) %></td><td class="money"><%= money(tSet) %></td><td class="money"><%= money(tBal) %></td><td colspan="2"></td></tr></tfoot><% } %>
+</table></div></div>
+<%- include('_bottom') %>

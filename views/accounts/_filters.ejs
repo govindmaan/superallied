@@ -1,0 +1,64 @@
+<%#
+  Filter bar. Pass: action, show (array of: date, customer, salesperson, branch, doctype, mode, status, q, user),
+  statuses ([[value,label]]), extra hidden fields (hidden: {k:v}).
+%>
+<% const show = locals.show || []; const has = (k) => show.includes(k); %>
+<form method="GET" action="<%= action %>" class="card border-0 shadow-sm mb-3 p-3 acc-filters">
+  <% Object.entries(locals.hidden || {}).forEach(([k, v]) => { if (v) { %><input type="hidden" name="<%= k %>" value="<%= v %>"><% } }) %>
+  <div class="row g-2 align-items-end">
+    <% if (has('date')) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">From</label><input type="date" name="from" value="<%= f.from %>" class="form-control form-control-sm"></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">To</label><input type="date" name="to" value="<%= f.to %>" class="form-control form-control-sm"></div>
+    <% } %>
+    <% if (has('customer')) { %>
+    <div class="col-12 col-md-3"><label class="form-label small mb-0">Customer</label>
+      <select name="customer_id" class="form-select form-select-sm" data-search>
+        <option value="">All customers</option>
+        <% customers.forEach(c => { %><option value="<%= c.id %>" <%= f.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('salesperson')) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Salesperson</label>
+      <select name="salesperson_id" class="form-select form-select-sm"><option value="">All</option>
+        <% salespersons.forEach(s => { %><option value="<%= s.id %>" <%= f.salesperson_id === s.id ? 'selected' : '' %>><%= s.name %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('branch') && branches.length > 1) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Branch</label>
+      <select name="branch" class="form-select form-select-sm"><option value="">All</option>
+        <% branches.forEach(b => { %><option <%= f.branch === b ? 'selected' : '' %>><%= b %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('doctype')) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Document type</label>
+      <select name="doc_type" class="form-select form-select-sm"><option value="">All</option>
+        <% Object.entries(DOC_TYPES).forEach(([k, v]) => { %><option value="<%= k %>" <%= f.doc_type === k ? 'selected' : '' %>><%= v %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('mode')) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Payment mode</label>
+      <select name="mode" class="form-select form-select-sm"><option value="">All</option>
+        <% Object.entries(MODES).forEach(([k, v]) => { %><option value="<%= k %>" <%= f.mode === k ? 'selected' : '' %>><%= v %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('status') && locals.statuses) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <% statuses.forEach(([k, v]) => { %><option value="<%= k %>" <%= (f.status || '') === k ? 'selected' : '' %>><%= v %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('user') && locals.users) { %>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">User</label>
+      <select name="user_id" class="form-select form-select-sm"><option value="">All</option>
+        <% users.forEach(u => { %><option value="<%= u.id %>" <%= f.user_id === u.id ? 'selected' : '' %>><%= u.full_name || u.username %></option><% }) %>
+      </select></div>
+    <% } %>
+    <% if (has('q')) { %>
+    <div class="col-12 col-md-3"><label class="form-label small mb-0">Search</label><input type="search" name="q" value="<%= f.q || '' %>" class="form-control form-control-sm" placeholder="<%= locals.qPlaceholder || 'Number or customer' %>"></div>
+    <% } %>
+    <div class="col-12 col-md-auto d-flex gap-2">
+      <button class="btn btn-sm btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+      <a class="btn btn-sm btn-outline-secondary" href="<%= action %>?<%= new URLSearchParams(Object.entries(locals.hidden || {}).filter(([, v]) => v)).toString() %><%= has('date') ? '&from=&to=' : '' %>">Clear</a>
+    </div>
+  </div>
+</form>

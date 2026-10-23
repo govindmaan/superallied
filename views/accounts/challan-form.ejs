@@ -1,0 +1,38 @@
+<%- include('_top') %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-truck-flatbed me-2 text-primary"></i>Record Delivery Challan</h4>
+  <small class="text-muted">Enter the delivery challan as issued. Challans are operational documents — they are not receivables.</small></div>
+<form method="POST" action="/accounts/challans" class="card border-0 shadow-sm p-3" style="max-width:900px">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Customer <span class="text-danger">*</span></label>
+      <select name="customer_id" id="customer" class="form-select" data-search required><option value="">Choose existing customer…</option>
+        <% customers.forEach(c => { %><option value="<%= c.id %>" <%= +prefill.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %></option><% }) %></select></div>
+    <div class="col-md-6"><label class="form-label">Linked quotation</label>
+      <select name="quotation_id" id="quotation" class="form-select"><option value="">None</option></select></div>
+    <div class="col-md-4"><label class="form-label">Challan number <span class="text-danger">*</span></label><input name="challan_number" class="form-control" required maxlength="60"></div>
+    <div class="col-md-4"><label class="form-label">Challan date <span class="text-danger">*</span></label><input type="date" name="challan_date" class="form-control" value="<%= today %>" max="<%= today %>" required></div>
+    <div class="col-md-4"><label class="form-label">Challan value (₹)</label><input name="challan_value" class="form-control" inputmode="decimal" placeholder="Optional"></div>
+    <div class="col-md-6"><label class="form-label">Machine</label>
+      <select name="machine_id" class="form-select"><option value="">—</option><% machines.forEach(m => { %><option value="<%= m.id %>"><%= m.display_name %></option><% }) %></select></div>
+    <div class="col-md-3"><label class="form-label">Chassis no.</label><input name="chassis_number" class="form-control" maxlength="60"></div>
+    <div class="col-md-3"><label class="form-label">Engine no.</label><input name="engine_number" class="form-control" maxlength="60"></div>
+    <div class="col-12"><label class="form-label">Equipment details</label><input name="machine_details" class="form-control" maxlength="500" placeholder="Model, attachments, accessories"></div>
+    <div class="col-md-4"><label class="form-label">Salesperson</label><select name="salesperson_id" class="form-select"><option value="">From quotation</option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
+    <div class="col-md-4"><label class="form-label">Branch</label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
+    <div class="col-md-4"><label class="form-label">Tally invoice expected?</label><select name="invoice_expected" class="form-select"><option value="1">Yes</option><option value="0">No (e.g. demo / transfer)</option></select></div>
+    <div class="col-12"><label class="form-label">Remarks</label><textarea name="remarks" class="form-control" rows="2" maxlength="500"></textarea></div>
+  </div>
+  <div class="mt-3 d-flex gap-2"><button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save challan</button><a href="/accounts/challans" class="btn btn-outline-secondary">Cancel</a></div>
+</form>
+<%- include('_bottom') %>
+<script>
+const qSel = document.getElementById('quotation');
+async function loadQuotes(cid) {
+  qSel.innerHTML = '<option value="">None</option>';
+  if (!cid) return;
+  const j = await (await fetch('/accounts/api/customers/' + cid + '/docs')).json();
+  (j.quotations || []).forEach(q => qSel.add(new Option(`${q.quotation_number} · ${q.machine} · ${SA.money(q.value)}`, q.id, false, String(q.id) === '<%= prefill.quotation_id || '' %>')));
+}
+document.getElementById('customer').addEventListener('change', e => loadQuotes(e.target.value));
+loadQuotes(document.getElementById('customer').value);
+</script>

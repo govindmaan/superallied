@@ -1424,4 +1424,7 @@ try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catc
 // Spare parts: date of the price list each part's price came from
 try { db.exec("ALTER TABLE spare_parts ADD COLUMN price_date DATE"); } catch(e) {}
 
+// Accounts module (Tally invoices, receipts, allocations) — see services/accounts/schema.js
+require('./services/accounts/schema')(db);
+
 module.exports = { db, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

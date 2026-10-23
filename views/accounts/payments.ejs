@@ -1,0 +1,32 @@
+<%- include('_top') %>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div><h4 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2 text-success"></i>Payment Entry</h4>
+    <small class="text-muted">Every payment received, its receipt, cheque clearance and verification. Use Generate Receipt to record a new payment.</small></div>
+  <% if (accCan('accounts')) { %><a href="/accounts/receipts/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i>Record payment & receipt</a><% } %>
+</div>
+<ul class="nav nav-pills mb-2 small">
+  <% [['', 'All'], ['pending', 'Awaiting verification'], ['verified', 'Verified'], ['rejected', 'Rejected']].forEach(([v, l]) => { %>
+  <li class="nav-item"><a class="nav-link py-1 <%= verification === v ? 'active' : '' %>" href="?<%= new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), verification: v }) %>"><%= l %></a></li><% }) %>
+</ul>
+<%- include('_filters', { action: '/accounts/payments', hidden: { verification }, show: ['date', 'customer', 'salesperson', 'branch', 'mode', 'status', 'q'], qPlaceholder: 'Receipt no., customer, UTR',
+  statuses: [['', 'Active'], ['cancelled', 'Cancelled']] }) %>
+<div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
+  <thead class="table-light"><tr><th>Receipt</th><th>Date</th><th>Customer</th><th>Purpose / linked</th><th>Mode · reference</th><th class="money">Amount</th><th class="money">Unallocated</th><th>Clearance</th><th>Verification</th></tr></thead>
+  <tbody>
+  <% if (!rows.length) { %><tr><td colspan="9" class="text-center text-muted py-4">No payments found.</td></tr><% } %>
+  <% let tot = 0; rows.forEach(p => { if (p.status === 'active' && p.clearance_status !== 'bounced') tot += p.amount; %>
+    <tr class="<%= p.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/receipts/<%= p.receipt_id %>"><%= p.receipt_number %></a></td><td class="text-nowrap"><%= p.payment_date %></td>
+      <td><a href="/accounts/customers/<%= p.customer_id %>"><%= p.customer_name %></a></td>
+      <td class="small"><%= PURPOSES[p.purpose] %><div class="text-muted"><%= [p.quotation_number && 'Q ' + p.quotation_number, p.challan_number && 'DC ' + p.challan_number, p.invoice_numbers && 'Inv ' + p.invoice_numbers].filter(Boolean).join(' · ') %></div></td>
+      <td class="small"><%= MODES[p.mode] %> <span class="text-muted"><%= p.reference %></span></td>
+      <td class="money fw-semibold"><%= money(p.amount) %></td><td class="money <%= p.unallocated_amount ? 'text-warning' : 'text-muted' %>"><%= money(p.unallocated_amount) %></td>
+      <td class="keep small"><%= p.mode === 'cheque' ? p.clearance_status : 'n/a' %></td>
+      <td class="keep small"><span class="badge <%= p.verification_status === 'verified' ? 'bg-primary' : p.verification_status === 'rejected' ? 'bg-danger' : 'bg-light text-dark border' %>"><%= p.verification_status %></span>
+        <% if (accCan('accounts_approve') && p.status === 'active' && p.verification_status === 'pending' && (p.mode !== 'cheque' || p.clearance_status === 'cleared')) { %>
+        <form method="POST" action="/accounts/payments/<%= p.id %>/verify" class="d-inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="clearance_date" value="<%= p.payment_date %>">
+          <button name="decision" value="verified" class="btn btn-link btn-sm p-0 ms-1">verify</button></form><% } %></td></tr>
+  <% }) %>
+  </tbody>
+  <% if (rows.length) { %><tfoot class="table-light fw-bold"><tr><td colspan="5">Total received (excluding cancelled and bounced)</td><td class="money"><%= money(tot) %></td><td colspan="3"></td></tr></tfoot><% } %>
+</table></div></div>
+<%- include('_bottom') %>

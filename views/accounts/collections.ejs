@@ -1,0 +1,26 @@
+<%- include('_top') %>
+<% const tabs = [['all', 'All'], ['cash', 'Cash'], ['bank', 'Bank transfers'], ['upi', 'UPI'], ['cheque', 'Cheques'], ['other', 'Card / other']];
+   const total = live.reduce((t, p) => t + p.amount, 0); %>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-wallet-fill me-2 text-success"></i>Collection Register</h4>
+  <small class="text-muted">Cash and bank register from receipts. Bank matching is manual: enter the bank statement reference and credit date when verifying (no bank feed is connected).</small></div>
+<ul class="nav nav-tabs mb-3">
+  <% tabs.forEach(([k, l]) => { %><li class="nav-item"><a class="nav-link <%= view === k ? 'active' : '' %>" href="?<%= new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), view: k }) %>"><%= l %></a></li><% }) %>
+</ul>
+<%- include('_filters', { action: '/accounts/collections', hidden: { view }, show: ['date', 'customer', 'salesperson', 'branch'] }) %>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">Daily summary</div>
+    <div class="table-responsive"><table class="table table-sm mb-0 small"><thead class="table-light"><tr><th>Date</th><th class="money">Receipts</th><th class="money">Total</th></tr></thead><tbody>
+      <% if (!daily.length) { %><tr><td colspan="3" class="text-center text-muted py-3">No collections.</td></tr><% } %>
+      <% daily.forEach(d => { %><tr><td><%= d.period %></td><td class="money"><%= d.receipts %></td><td class="money"><%= money(d.total) %></td></tr><% }) %>
+    </tbody><tfoot class="table-light fw-bold"><tr><td>Total</td><td></td><td class="money"><%= money(dailyTotals.total || 0) %></td></tr></tfoot></table></div>
+    <div class="p-2 small"><a href="/accounts/reports/daily-collection?<%= qs %>">Daily report & export</a> · <a href="/accounts/reports/<%= view === 'cash' ? 'cash-register' : view === 'cheque' ? 'cheque-status' : 'bank-register' %>?<%= qs %>">Register export</a></div></div></div>
+  <div class="col-lg-8"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold d-flex justify-content-between"><span><%= live.length %> payments</span><span><%= inr(total) %></span></div>
+    <div class="table-responsive"><table class="table table-sm table-hover mb-0 small align-middle"><thead class="table-light"><tr><th>Receipt</th><th>Date</th><th>Customer</th><th class="money">Amount</th><th>Mode · ref</th><th>Linked</th><th>Received by</th><th>Verification</th></tr></thead><tbody>
+    <% if (!rows.length) { %><tr><td colspan="8" class="text-center text-muted py-3">No payments.</td></tr><% } %>
+    <% rows.forEach(p => { %><tr class="<%= p.status === 'cancelled' ? 'cancelled' : '' %>"><td><a class="docno" href="/accounts/receipts/<%= p.receipt_id %>"><%= p.receipt_number %></a></td><td class="text-nowrap"><%= p.payment_date %></td><td><%= p.customer_name %></td>
+      <td class="money fw-semibold"><%= money(p.amount) %></td><td><%= MODES[p.mode] %> <span class="text-muted"><%= p.reference %></span><%= p.mode === 'cheque' ? ' · ' + p.clearance_status : '' %></td>
+      <td><%= [p.quotation_number && 'Q ' + p.quotation_number, p.challan_number && 'DC ' + p.challan_number, p.invoice_numbers && 'Inv ' + p.invoice_numbers].filter(Boolean).join(' · ') || '—' %></td>
+      <td><%= p.received_by_name %></td><td class="keep"><%= p.status === 'cancelled' ? 'cancelled' : p.verification_status %><%= p.bank_reference ? ' · ' + p.bank_reference : '' %></td></tr><% }) %>
+    </tbody></table></div></div></div>
+</div>
+<%- include('_bottom') %>

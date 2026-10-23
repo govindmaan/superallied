@@ -1,0 +1,133 @@
+<%- include('_top') %>
+<%
+  const short = p => { const n = (p || 0) / 100; return n >= 1e7 ? '₹' + (n / 1e7).toFixed(2) + ' Cr' : n >= 1e5 ? '₹' + (n / 1e5).toFixed(2) + ' L' : '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 }); };
+  const k = d.k;
+  const period = (f.from || f.to) ? `${f.from || 'start'} → ${f.to || 'today'}` : 'all dates';
+  const link = (base, extra = {}) => base + '?' + new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(qs)), ...extra }).toString();
+%>
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-journal-bookmark-fill me-2 text-danger"></i>Accountant Dashboard</h4>
+    <small class="text-muted">Period: <%= period %> · Tally is the books of account; figures here come from uploaded Tally documents, receipts and allocations.</small>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <% if (accCan('accounts')) { %>
+    <a href="/accounts/invoices/upload" class="btn btn-outline-primary btn-sm"><i class="bi bi-cloud-arrow-up me-1"></i>Upload Tally Invoice</a>
+    <a href="/accounts/receipts/new" class="btn btn-danger btn-sm"><i class="bi bi-receipt me-1"></i>Generate Receipt</a>
+    <% } %>
+  </div>
+</div>
+
+<%- include('_filters', { action: '/accounts', show: ['date', 'customer', 'salesperson', 'branch', 'doctype', 'mode', 'status'],
+  statuses: [['', 'Any payment status'], ['unpaid', 'Unpaid'], ['partial', 'Partially paid'], ['paid', 'Paid'], ['overdue', 'Overdue']] }) %>
+
+<h6 class="fw-bold text-muted text-uppercase small mb-2">Sale stages <span class="fw-normal text-lowercase">— the same sale appears at each stage, so these are never added together</span></h6>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg">
+    <div class="kpi card border-0 shadow-sm h-100"><div class="kpi-label">Quotation value</div><div class="kpi-value"><%= short(k.quotationsInPeriod.value) %></div>
+      <div class="kpi-sub"><%= k.quotationsInPeriod.count %> machine quotations in period</div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/quotations-awaiting-advance') %>" class="kpi card border-0 shadow-sm h-100 <%= k.awaitingAdvance.count ? 'warn' : '' %>">
+      <div class="kpi-label">Awaiting advance</div><div class="kpi-value"><%= k.awaitingAdvance.count %></div>
+      <div class="kpi-sub"><%= short(k.awaitingAdvance.value) %> quoted, no advance yet</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/customer-advances') %>" class="kpi card border-0 shadow-sm h-100 good">
+      <div class="kpi-label">Advances received</div><div class="kpi-value"><%= short(k.advances.value) %></div>
+      <div class="kpi-sub"><%= k.advances.count %> against quotations · <%= short(k.advances.unallocated) %> not yet allocated</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/challans') %>" class="kpi card border-0 shadow-sm h-100">
+      <div class="kpi-label">Delivery challan value</div><div class="kpi-value"><%= short(k.challanValue.value) %></div>
+      <div class="kpi-sub"><%= k.challanValue.count %> challans (where value recorded)</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/invoices') %>" class="kpi card border-0 shadow-sm h-100">
+      <div class="kpi-label">Tally invoice value</div><div class="kpi-value"><%= short(k.invoiceValue.value) %></div>
+      <div class="kpi-sub"><%= k.invoiceValue.count %> documents by invoice date<%= k.invoiceValue.credit_notes ? ' · credit notes ' + short(k.invoiceValue.credit_notes) : '' %></div></a>
+  </div>
+</div>
+
+<h6 class="fw-bold text-muted text-uppercase small mb-2">Receivables <span class="fw-normal text-lowercase">— as of today, from uploaded invoices and allocations</span></h6>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg">
+    <div class="kpi card border-0 shadow-sm h-100 good"><div class="kpi-label">Paid against invoices</div><div class="kpi-value"><%= short(k.paidAgainstInvoices.value) %></div>
+      <div class="kpi-sub">Allocated to the invoices above (payments, credit notes, approved adjustments)</div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/customer-outstanding') %>" class="kpi card border-0 shadow-sm h-100 <%= k.outstanding.value ? 'bad' : '' %>">
+      <div class="kpi-label">Outstanding invoice balance</div><div class="kpi-value"><%= short(k.outstanding.value) %></div>
+      <div class="kpi-sub"><%= k.outstanding.count %> invoices with a balance</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/overdue-invoices') %>" class="kpi card border-0 shadow-sm h-100 <%= k.overdue.count ? 'bad' : '' %>">
+      <div class="kpi-label">Overdue invoices</div><div class="kpi-value"><%= k.overdue.count %></div>
+      <div class="kpi-sub"><%= short(k.overdue.value) %> past due date</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/unallocated-payments') %>" class="kpi card border-0 shadow-sm h-100 <%= k.unallocated.value ? 'warn' : '' %>">
+      <div class="kpi-label">Advance balance not allocated</div><div class="kpi-value"><%= short(k.unallocated.value) %></div>
+      <div class="kpi-sub"><%= k.unallocated.count %> payments<%= k.unusedCredit.value ? ' · unused credit notes ' + short(k.unusedCredit.value) : '' %></div></a>
+  </div>
+</div>
+
+<h6 class="fw-bold text-muted text-uppercase small mb-2">Collections & uploads <span class="fw-normal text-lowercase">— in the period</span></h6>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/collections') %>" class="kpi card border-0 shadow-sm h-100 good">
+      <div class="kpi-label">Payments received</div><div class="kpi-value"><%= short(k.payments.value) %></div>
+      <div class="kpi-sub"><%= k.payments.count %> payments<%= k.payments.uncleared ? ' · ' + short(k.payments.uncleared) + ' in cheques not cleared' : '' %></div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/receipt-register') %>" class="kpi card border-0 shadow-sm h-100">
+      <div class="kpi-label">Receipts generated</div><div class="kpi-value"><%= k.receipts.count %></div><div class="kpi-sub">Issued, excluding cancelled</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/invoice-upload-register') %>" class="kpi card border-0 shadow-sm h-100">
+      <div class="kpi-label">Invoices uploaded</div><div class="kpi-value"><%= k.invoicesUploaded.count %></div>
+      <div class="kpi-sub"><%= short(k.invoicesUploaded.value) %> by upload date</div></a>
+  </div>
+  <div class="col-6 col-lg">
+    <a href="<%= link('/accounts/reports/challans-awaiting-invoice') %>" class="kpi card border-0 shadow-sm h-100 <%= k.challansAwaiting.late ? 'bad' : k.challansAwaiting.count ? 'warn' : '' %>">
+      <div class="kpi-label">Challans awaiting invoice</div><div class="kpi-value"><%= k.challansAwaiting.count %></div>
+      <div class="kpi-sub"><%= k.challansAwaiting.late %> older than <%= d.challanDays %> days</div></a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-hourglass-split me-1"></i>Awaiting verification or approval</div>
+      <ul class="list-group list-group-flush small">
+        <% [['Payments to verify against bank', d.pending.payments, '/accounts/payments?verification=pending'],
+            ['Cheques not yet cleared', d.pending.cheques, '/accounts/reports/cheque-status?status=received'],
+            ['Invoices uploaded, not verified', d.pending.invoices, '/accounts/approvals'],
+            ['Invoice drafts not confirmed', d.pending.drafts, '/accounts/approvals'],
+            ['Receipt cancellations to approve', d.pending.cancellations, '/accounts/approvals'],
+            ['Adjustments to approve', d.pending.adjustments, '/accounts/approvals']].forEach(([l, n, h]) => { %>
+        <a href="<%= h %>" class="list-group-item list-group-item-action d-flex justify-content-between">
+          <span><%= l %></span><span class="badge <%= n ? 'bg-warning text-dark' : 'bg-light text-muted' %>"><%= n %></span></a>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between"><span><i class="bi bi-activity me-1"></i>Recent transactions & document activity</span>
+        <% if (accCan('accounts_approve') || accCan('accounts_reports')) { %><a href="/accounts/audit" class="small">Full audit log</a><% } %></div>
+      <div class="table-responsive"><table class="table table-sm mb-0 small">
+        <tbody>
+        <% if (!d.activity.length) { %><tr><td class="text-muted text-center py-4">No accounts activity yet. Start by uploading a Tally invoice or generating a receipt.</td></tr><% } %>
+        <% d.activity.forEach(a => { let det = {}; try { det = JSON.parse(a.details || '{}'); } catch (e) {} %>
+          <tr><td class="text-nowrap text-muted"><%= dbTime(a.created_at)?.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) %></td>
+            <td><%= a.full_name || a.username || 'System' %></td>
+            <td><span class="fw-semibold"><%= a.action.replace(/_/g, ' ') %></span>
+              <% const af = det.after || {}; %><span class="text-muted"><%= af.receipt_number || af.invoice_number || af.number || '' %><%= af.amount ? ' · ' + inr(af.amount) : '' %></span></td>
+            <td class="text-muted"><%= a.entity.replace('acc_', '') %> #<%= a.entity_id %></td></tr>
+        <% }) %>
+        </tbody></table></div>
+    </div>
+  </div>
+</div>
+<%- include('_bottom') %>

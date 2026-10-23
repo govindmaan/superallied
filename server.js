@@ -36,6 +36,7 @@ const partOrdersRoutes      = require('./routes/part-orders');
 const routeMapRoutes        = require('./routes/route-map');
 const backupRoutes          = require('./routes/backup');
 const databankRoutes        = require('./routes/databank');
+const accountsRoutes        = require('./routes/accounts');
 
 // Pre-encode images once at startup
 const LOGO_PATH = path.join(__dirname, 'public', 'bull-logo.jpg');
@@ -325,6 +326,7 @@ function adminDashboardData() {
 app.get('/', requireLogin, (req, res) => {
   const role    = res.locals.user?.role;
   const isAdminLike = ['admin','manager','hr'].includes(role);
+  if (['accountant', 'accounts_manager'].includes(role)) return res.redirect('/accounts');
   const uid     = req.session.userId;
   const today   = new Date().toLocaleDateString('en-CA');
 
@@ -909,7 +911,7 @@ app.post('/users', requireLogin, requireAdmin, (req, res) => {
     return res.redirect('/users/new');
   }
   const hash = bcrypt.hashSync(password, 10);
-  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee'];
+  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager'];
   const safeRole = allowedRoles.includes(role) ? role : 'sales';
   db.prepare('INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)')
     .run(username.trim(), hash, full_name?.trim() || '', safeRole);
@@ -1203,6 +1205,7 @@ app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       pa
 app.use('/route-map',         requireLogin,                                   routeMapRoutes);
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
+app.use('/accounts',          requireLogin,                                   accountsRoutes);  // checks its own permissions
 
 // Old "My Route" page now lives in the route map
 app.get('/my-route', requireLogin, (req, res) => res.redirect('/route-map'));
