@@ -94,9 +94,21 @@ function requireAdmin(req, res, next) {
 
 // Inject user, settings, permissions, notification count into all views
 app.use((req, res, next) => {
-  const u = req.session.userId
-    ? db.prepare('SELECT id, username, full_name, role, databank_access FROM users WHERE id = ?').get(req.session.userId)
+  let u = req.session.userId
+    ? db.prepare('SELECT id, username, full_name, role, databank_access, must_change_password, sessions_valid_after FROM users WHERE id = ?').get(req.session.userId)
     : null;
+  // Password was reset after this session began: end it
+  if (u?.sessions_valid_after && (req.session.authAt || 0) < u.sessions_valid_after) {
+    return req.session.regenerate(() => {
+      req.session.flash = { error: 'Your password was reset by the admin. Please log in again.' };
+      res.redirect('/login');
+    });
+  }
+  // A reset password must be replaced before anything else can be used
+  if (u?.must_change_password && !['/change-password', '/logout'].includes(req.path)) {
+    if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.redirect('/change-password');
+    return res.status(403).json({ error: 'Please choose a new password first.' });
+  }
   res.locals.user     = u;
   res.locals.currentPath = req.originalUrl.split('?')[0]; // sidebar highlights the matching link
   // SQLite CURRENT_TIMESTAMP values are UTC without a zone ('2026-10-18 09:30:00'); read them as UTC
@@ -199,6 +211,7 @@ app.post('/login', async (req, res) => {
   req.session.regenerate(err => {
     if (err) return fail('Login failed, please try again.');
     req.session.userId = user.id;
+    req.session.authAt = Date.now();
     res.redirect('/');
   });
 });
@@ -877,14 +890,34 @@ app.post('/settings/password', requireLogin, (req, res) => {
     req.session.flash = { error: 'Passwords do not match or too short (min 6).' };
     return res.redirect('/settings');
   }
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(newpwd, 10), user.id);
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(bcrypt.hashSync(newpwd, 10), user.id);
   req.session.flash = { success: 'Password changed.' };
   res.redirect('/settings');
 });
 
+// After an admin reset: choose a new password (the temporary one was just used to log in)
+app.get('/change-password', requireLogin, (req, res) => {
+  res.render('change-password', { title: 'Choose a New Password', forced: !!res.locals.user?.must_change_password });
+});
+
+app.post('/change-password', requireLogin, (req, res) => {
+  const { newpwd, confirm } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  const back = (error) => { req.session.flash = { error }; res.redirect('/change-password'); };
+  if (!newpwd || newpwd.length < 6)              return back('Password must be at least 6 characters.');
+  if (newpwd !== confirm)                        return back('The two passwords do not match.');
+  if (bcrypt.compareSync(newpwd, user.password_hash)) return back('Choose a different password from the temporary one.');
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(bcrypt.hashSync(newpwd, 10), user.id);
+  auditLog(user.id, 'password_changed_after_reset', 'user', user.id, '');
+  req.session.flash = { success: 'Password changed. Welcome back!' };
+  res.redirect('/');
+});
+
 // ── Users (admin only) ────────────────────────────────────────────────────────
 app.get('/users', requireLogin, requireAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, username, full_name, role, is_hr_active, created_at FROM users ORDER BY created_at').all();
+  const users = db.prepare(`SELECT id, username, full_name, role, is_hr_active, created_at, must_change_password,
+      (pin_hash IS NOT NULL) AS has_pin, (locked_until IS NOT NULL AND locked_until > ?) AS locked
+    FROM users ORDER BY created_at`).all(new Date().toISOString());
   res.render('users', { title: 'Users', users });
 });
 
@@ -936,6 +969,30 @@ app.post('/users/:id/deactivate', requireLogin, requireAdmin, (req, res) => {
   db.prepare('UPDATE users SET is_hr_active=0 WHERE id=?').run(uid);
   auditLog(req.session.userId, 'user_deactivated', 'user', uid, `Deactivated "${u.full_name || u.username}"`);
   req.session.flash = { success: `${u.full_name || u.username} deactivated. Their records are preserved; they can no longer log in.` };
+  res.redirect('/users');
+});
+
+// Admin resets a user's password: clears any lockout, signs them out on every
+// device, and (by default) makes them choose their own password at next login.
+app.post('/users/:id/reset-password', requireLogin, requireAdmin, (req, res) => {
+  const uid = +req.params.id;
+  const u = db.prepare('SELECT id, username, full_name FROM users WHERE id = ?').get(uid);
+  if (!u) { req.session.flash = { error: 'User not found.' }; return res.redirect('/users'); }
+  const name = u.full_name || u.username;
+  const { password, confirm, must_change, remove_pin } = req.body;
+  if (!password || password.length < 6) { req.session.flash = { error: `New password for ${name} must be at least 6 characters.` }; return res.redirect('/users'); }
+  if (password !== confirm)             { req.session.flash = { error: `The two passwords for ${name} do not match.` }; return res.redirect('/users'); }
+
+  const self = uid === req.session.userId;
+  const force = !self && must_change === '1';
+  db.prepare(`UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL,
+      must_change_password = ?, sessions_valid_after = ?${remove_pin === '1' ? ', pin_hash = NULL' : ''} WHERE id = ?`)
+    .run(bcrypt.hashSync(password, 10), force ? 1 : 0, self ? null : Date.now(), uid);
+  auditLog(req.session.userId, 'user_password_reset', 'user', uid,
+    `Reset password for "${name}"${force ? ', must change at next login' : ''}${remove_pin === '1' ? ', PIN removed' : ''}`);
+
+  req.session.flash = { success: `Password reset for ${name}.` + (self ? '' : ` They have been signed out${force ? ' and will choose a new password at next login' : ''}.`)
+    + (remove_pin === '1' ? ' Their login PIN was removed.' : '') + ' Share the new password with them directly.' };
   res.redirect('/users');
 });
 

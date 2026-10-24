@@ -32,10 +32,16 @@
               <% const rl = {admin:'Admin',manager:'Manager',sales:'Sales',office:'Office',hr:'HR',service:'Service',staff:'Staff',employee:'Employee'}; %>
               <span class="badge <%= rb[u.role]||'bg-secondary' %>"><%= rl[u.role]||u.role %></span>
             </td>
-            <td><span class="badge <%= u.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= u.is_hr_active===0?'Inactive':'Active' %></span></td>
+            <td>
+              <span class="badge <%= u.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= u.is_hr_active===0?'Inactive':'Active' %></span>
+              <% if (u.locked) { %><span class="badge bg-danger" title="Too many wrong login attempts">Locked</span><% } %>
+              <% if (u.must_change_password) { %><span class="badge bg-warning text-dark" title="Will choose a new password at next login">Reset pending</span><% } %>
+            </td>
             <td class="text-muted small"><%= new Date(u.created_at).toLocaleDateString('en-IN') %></td>
             <td class="text-end">
               <% if (u.id !== user.id) { %>
+                <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-reset-id="<%= u.id %>" data-reset-name="<%= u.full_name || u.username %>"
+                        data-reset-pin="<%= u.has_pin ? 1 : 0 %>"><i class="bi bi-key"></i> Reset password</button>
                 <% if (u.is_hr_active === 0) { %>
                 <form method="POST" action="/users/<%= u.id %>/activate" class="d-inline" data-confirm-activate="<%= u.full_name || u.username %>">
                   <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> Activate</button>
@@ -75,7 +81,69 @@
     </div>
   </div>
 </div>
+<!-- Reset password -->
+<div class="modal fade" id="resetModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" id="resetForm" autocomplete="off">
+        <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-key me-1 text-danger"></i>Reset password — <span id="resetName"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <label class="form-label fw-semibold small" for="resetPwd">New password</label>
+          <div class="input-group mb-1">
+            <input type="text" name="password" id="resetPwd" class="form-control font-monospace" minlength="6" required autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" id="genPwd"><i class="bi bi-shuffle me-1"></i>Generate</button>
+            <button type="button" class="btn btn-outline-secondary" id="copyPwd" title="Copy"><i class="bi bi-clipboard"></i></button>
+          </div>
+          <div class="form-text mb-3">At least 6 characters. Share it with the user directly (call or in person), not in a group.</div>
+          <input type="hidden" name="confirm" id="resetConfirm">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="must_change" value="1" id="mustChange" checked>
+            <label class="form-check-label small" for="mustChange">Ask them to choose their own password at next login</label>
+          </div>
+          <div class="form-check" id="pinRow">
+            <input class="form-check-input" type="checkbox" name="remove_pin" value="1" id="removePin">
+            <label class="form-check-label small" for="removePin">Also remove their 6-digit login PIN</label>
+          </div>
+          <div class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i>This also clears any lockout and signs them out on all devices.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Reset password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(() => {
+  const modal = new bootstrap.Modal(document.getElementById('resetModal'));
+  const pwd = document.getElementById('resetPwd');
+  // Easy to read out on a call: no 0/O, 1/l/I
+  function generate() {
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const buf = new Uint32Array(10); crypto.getRandomValues(buf);
+    pwd.value = Array.from(buf, n => chars[n % chars.length]).join('');
+  }
+  document.querySelectorAll('[data-reset-id]').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('resetForm').action = `/users/${b.dataset.resetId}/reset-password`;
+    document.getElementById('resetName').textContent = b.dataset.resetName;
+    document.getElementById('pinRow').classList.toggle('d-none', b.dataset.resetPin !== '1');
+    document.getElementById('removePin').checked = false;
+    document.getElementById('mustChange').checked = true;
+    generate();
+    modal.show();
+  }));
+  document.getElementById('genPwd').addEventListener('click', generate);
+  document.getElementById('copyPwd').addEventListener('click', () => navigator.clipboard?.writeText(pwd.value));
+  document.getElementById('resetForm').addEventListener('submit', e => {
+    if (pwd.value.length < 6) { e.preventDefault(); pwd.focus(); return; }
+    document.getElementById('resetConfirm').value = pwd.value;   // shown in clear, so no second box
+  });
+})();
+</script>
 <script>
 document.querySelectorAll('[data-confirm-activate]').forEach(f => {
   f.addEventListener('submit', e => { if (!confirm('Activate ' + f.dataset.confirmActivate + '?')) e.preventDefault(); });

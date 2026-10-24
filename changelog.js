@@ -4,6 +4,15 @@
 
 module.exports = [
   {
+    date: '2026-10-24',
+    items: [
+      { commit: '', type: 'new', title: 'Admin can reset user passwords',
+        details: ['Users → Reset password: type or generate a temporary password.',
+                  'Clears any lockout, signs the user out on all devices, and asks them to choose their own password at next login.',
+                  'Users list shows Locked and Reset pending.'] },
+    ],
+  },
+  {
     date: '2026-10-23',
     items: [
       { commit: '', type: 'new', title: 'Accounts module',

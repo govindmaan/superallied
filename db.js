@@ -1427,4 +1427,9 @@ try { db.exec("ALTER TABLE spare_parts ADD COLUMN price_date DATE"); } catch(e) 
 // Accounts module (Tally invoices, receipts, allocations) — see services/accounts/schema.js
 require('./services/accounts/schema')(db);
 
+// Admin password reset: force a new password at next login, and sign the user
+// out everywhere (sessions started before this time, in ms, are ended)
+try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE users ADD COLUMN sessions_valid_after INTEGER"); } catch(e) {}
+
 module.exports = { db, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };
