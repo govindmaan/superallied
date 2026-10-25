@@ -117,16 +117,6 @@
   <colgroup><col style="width:52%"><col style="width:48%"></colgroup>
   <tr>
     <td style="width:52%" class="br">
-      <div class="party bb">
-        <div class="name"><%= s.company_name || 'SUPER ALLIED' %></div>
-        <% if (s.dealer_of) { %><div>AUTH. DEALER <%= String(s.dealer_of).toUpperCase() %></div><% } %>
-        <% if (s.company_address) { %><div><%= String(s.company_address).toUpperCase() %></div><% } %>
-        <% if (s.company_phone_service || s.company_phone_sales) { %><div>HELPLINE NO - <%= s.company_phone_service || s.company_phone_sales %></div><% } %>
-        <% if (s.company_gstin) { %><div>GSTIN/UIN: <%= s.company_gstin %></div><% } %>
-        <div>State Name : <%= s.company_state || 'Uttar Pradesh' %>, Code : <%= s.company_state_code || '09' %></div>
-        <% if (s.contact_phone) { %><div>Contact : <%= s.contact_phone %></div><% } %>
-        <% if (s.company_email) { %><div>E-Mail : <%= s.company_email %></div><% } %>
-      </div>
       <div class="party">
         <div>Buyer (Bill to)</div>
         <div class="name" style="margin-top:2px"><%= q.customer_name %></div>
@@ -148,7 +138,6 @@
             <td><div class="k">Machine Model</div><div class="v"><%= machineModel || '—' %></div></td></tr>
         <tr><td><div class="k">Prepared By</div><div class="v"><%= salesperson.name || '—' %></div></td>
             <td><div class="k">Contact</div><div class="v"><%= salesperson.phone || s.contact_phone || '—' %></div></td></tr>
-        <tr><td colspan="2" style="height:46px"><div class="k">Remarks</div><div style="margin-top:1px"><%= q.remarks || '' %></div></td></tr>
       </table>
     </td>
   </tr>

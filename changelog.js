@@ -6,6 +6,9 @@ module.exports = [
   {
     date: '2026-10-25',
     items: [
+      { commit: '', type: 'improved', title: 'More room for items on spare quotations',
+        details: ['Company details block removed (the letterhead already shows them); buyer details moved to the top left.',
+                  'Remarks box removed from the PDF.'] },
       { commit: '', type: 'fixed', title: 'Spare quotation PDF layout fixes',
         details: ['Long text no longer pushes the right side off the page.',
                   'Equal, larger boxes for customer and authorised signatures; payment QR in its own box.',
