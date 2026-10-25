@@ -4,6 +4,15 @@
 
 module.exports = [
   {
+    date: '2026-10-25',
+    items: [
+      { commit: '', type: 'improved', title: 'WhatsApp now sends the spare quotation PDF',
+        details: ['On a phone, "WhatsApp PDF" opens the share menu with the quotation PDF attached.',
+                  'On a computer, WhatsApp opens with a secure link to the PDF (valid 30 days).',
+                  'The customer copy is always sent.'] },
+    ],
+  },
+  {
     date: '2026-10-24',
     items: [
       { commit: '', type: 'new', title: 'Admin can reset user passwords',

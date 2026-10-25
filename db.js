@@ -1432,4 +1432,9 @@ require('./services/accounts/schema')(db);
 try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0"); } catch(e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN sessions_valid_after INTEGER"); } catch(e) {}
 
+// Spare quotation share link (WhatsApp from a computer): unguessable token, 30 days
+try { db.exec("ALTER TABLE spare_quotations ADD COLUMN share_token TEXT"); } catch(e) {}
+try { db.exec("ALTER TABLE spare_quotations ADD COLUMN share_token_at DATETIME"); } catch(e) {}
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_sq_share_token ON spare_quotations(share_token)");
+
 module.exports = { db, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

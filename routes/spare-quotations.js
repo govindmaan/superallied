@@ -299,10 +299,13 @@ router.post('/:id/approve', (req, res) => {
 });
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
-router.get('/:id/pdf', async (req, res) => {
-  const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
-  if (!q) return res.status(404).send('Not found');
-  const items = db.prepare('SELECT * FROM spare_quotation_items WHERE quotation_id=? ORDER BY id').all(req.params.id);
+// ── PDF ───────────────────────────────────────────────────────────────────────
+// One builder for every PDF of a spare quotation. customerCopy: the version sent
+// to customers (never includes internal admin-only details).
+async function buildSparePdf(app, id, { customerCopy = true } = {}) {
+  const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(id);
+  if (!q) return null;
+  const items = db.prepare('SELECT * FROM spare_quotation_items WHERE quotation_id=? ORDER BY id').all(id);
   const s = getSettings();
 
   const LOGO_PATH = path.join(__dirname, '..', 'public', 'bull-logo.jpg');
@@ -320,25 +323,58 @@ router.get('/:id/pdf', async (req, res) => {
   }
   const qrDataUrl = await QRCode.toDataURL(qrData, { width: 120, margin: 1, errorCorrectionLevel: 'M' });
 
-  const isAdmin = res.locals.user?.role === 'admin';
   const html = await new Promise((resolve, reject) =>
-    res.app.render('spare-quotations/pdf', {
+    app.render('spare-quotations/pdf', {
       q, items, settings: s, formatINR, numberToWords,
-      logoB64, qrDataUrl, isAdmin
+      logoB64, qrDataUrl, isAdmin: !customerCopy
     }, (err, h) => err ? reject(err) : resolve(h)));
 
+  // Slight overflow (e.g. the last line) is shrunk onto one page; long part lists still use more pages
+  const buffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.85 });
+  return { q, buffer, filename: `${q.quotation_no.replace(/\//g, '-')}.pdf` };
+}
+
+// ?copy=customer forces the customer copy (used when sharing on WhatsApp)
+router.get('/:id/pdf', async (req, res) => {
+  const customerCopy = req.query.copy === 'customer' || res.locals.user?.role !== 'admin';
   try {
-    // Slight overflow (e.g. the last line) is shrunk onto one page; long part lists still use more pages
-    const pdfBuffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.85 });
+    const pdf = await buildSparePdf(req.app, req.params.id, { customerCopy });
+    if (!pdf) return res.status(404).send('Not found');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${q.quotation_no.replace(/\//g,'-')}.pdf"`);
-    res.send(pdfBuffer);
+    res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename="${pdf.filename}"`);
+    res.send(pdf.buffer);
   } catch(err) {
     console.error('PDF error:', err);
     req.session.flash = { error: 'PDF generation failed.' };
     res.redirect(`/spare-quotations/${req.params.id}`);
   }
 });
+
+// Share link for WhatsApp on computers (a WhatsApp link can carry text only, not a file).
+// The link opens the customer copy without logging in, for SHARE_DAYS days.
+const SHARE_DAYS = 30;
+router.post('/:id/share-link', (req, res) => {
+  const q = db.prepare('SELECT id, quotation_no, share_token, share_token_at FROM spare_quotations WHERE id=?').get(req.params.id);
+  if (!q) return res.status(404).json({ error: 'Quotation not found.' });
+  const ageDays = q.share_token_at ? (Date.now() - new Date(q.share_token_at.replace(' ', 'T') + 'Z')) / 864e5 : Infinity;
+  let token = q.share_token;
+  if (!token || ageDays > SHARE_DAYS - 7) {           // fresh link if missing or expiring within a week
+    token = require('crypto').randomBytes(24).toString('hex');
+    db.prepare('UPDATE spare_quotations SET share_token=?, share_token_at=CURRENT_TIMESTAMP WHERE id=?').run(token, q.id);
+  }
+  auditLog(req.session.userId, 'spare_quotation_shared', 'spare_quotations', q.id, q.quotation_no);
+  res.json({ url: `${req.protocol}://${req.get('host')}/share/spare-quotation/${token}` });
+});
+
+// Used by the public /share route in server.js
+router.pdfForShareToken = async (app, token) => {
+  if (!/^[0-9a-f]{48}$/.test(token || '')) return null;
+  const q = db.prepare('SELECT id, share_token_at FROM spare_quotations WHERE share_token=?').get(token);
+  if (!q) return null;
+  const ageDays = (Date.now() - new Date(String(q.share_token_at).replace(' ', 'T') + 'Z')) / 864e5;
+  if (!(ageDays <= SHARE_DAYS)) return { expired: true };
+  return buildSparePdf(app, q.id, { customerCopy: true });
+};
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 router.get('/reports/summary', (req, res) => {

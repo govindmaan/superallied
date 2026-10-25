@@ -142,15 +142,19 @@ const TURNSTILE_SECRET   = process.env.TURNSTILE_SECRET_KEY || '';
 const MAX_FAILED_LOGINS = 5;   // per account, then locked for LOCK_MINUTES
 const LOCK_MINUTES      = 15;
 const IP_MAX_ATTEMPTS   = 30;  // per network address per 15 minutes
-const ipAttempts = new Map();  // ip -> { count, since }
-
-function ipRateLimited(ip) {
-  const now = Date.now(), win = 15 * 60000;
-  const rec = ipAttempts.get(ip);
-  if (!rec || now - rec.since > win) { ipAttempts.set(ip, { count: 1, since: now }); return false; }
-  rec.count++;
-  return rec.count > IP_MAX_ATTEMPTS;
+// Per-IP request counter over a 15-minute window; separate counters per purpose
+function ipLimiter(max) {
+  const seen = new Map();  // ip -> { count, since }
+  return (ip) => {
+    const now = Date.now(), win = 15 * 60000;
+    const rec = seen.get(ip);
+    if (!rec || now - rec.since > win) { seen.set(ip, { count: 1, since: now }); return false; }
+    rec.count++;
+    return rec.count > max;
+  };
 }
+const ipRateLimited    = ipLimiter(IP_MAX_ATTEMPTS);  // login attempts
+const shareRateLimited = ipLimiter(120);              // public shared-quotation downloads
 
 async function verifyCaptcha(token, ip) {
   if (!TURNSTILE_SECRET) return true;
@@ -164,6 +168,23 @@ async function verifyCaptcha(token, ip) {
     return false;
   }
 }
+
+// Public: a spare quotation PDF shared on WhatsApp (customer copy, link expires)
+app.get('/share/spare-quotation/:token', async (req, res) => {
+  if (shareRateLimited(req.ip)) return res.status(429).send('Too many requests. Please try again later.');
+  try {
+    const pdf = await spareQuotationsRoutes.pdfForShareToken(req.app, req.params.token);
+    if (!pdf) return res.status(404).send('This quotation link is not valid.');
+    if (pdf.expired) return res.status(410).send('This quotation link has expired. Please ask Super Allied for a new one.');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${pdf.filename}"`);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(pdf.buffer);
+  } catch (e) {
+    console.error('Shared quotation PDF error:', e);
+    res.status(500).send('Could not prepare the quotation. Please try again.');
+  }
+});
 
 app.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
