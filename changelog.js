@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-10-25',
     items: [
+      { commit: '', type: 'fixed', title: 'Spare quotation PDF layout fixes',
+        details: ['Long text no longer pushes the right side off the page.',
+                  'Equal, larger boxes for customer and authorised signatures; payment QR in its own box.',
+                  'Terms & Conditions now follow on the first page instead of a separate page.'] },
       { commit: '', type: 'improved', title: 'Payment QR on quotations follows Settings',
         details: ['Machine and spare quotation PDFs show the bank account from Settings with a payment QR made for it.',
                   'The QR pays your UPI ID, or the bank account directly if no UPI ID is set, with the amount (up to ₹1 lakh) and quotation number filled in.'] },

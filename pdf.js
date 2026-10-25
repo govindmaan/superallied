@@ -83,11 +83,16 @@ async function generatePDFWithLetterhead(html, letterheadPath, { fitOnePage = fa
     await page.emulateMediaType('print');
     await page.setContent(html, { waitUntil: 'networkidle0' });
     let scale = 1, onePage = false;
+    const { w, h } = await page.evaluate(() => ({ w: document.documentElement.scrollWidth, h: document.body.scrollHeight }));
+    // Never let content run past the right margin (it would be cut off): shrink to the width
+    const widthFit = Math.min(1, areaW / w);
     if (fitOnePage) {
-      const h = await page.evaluate(() => document.body.scrollHeight);
-      const fit = (areaH - 4) / h;
+      const fit = Math.min(widthFit, (areaH - 4) / h);
       if (fit >= 1) onePage = true;
       else if (fit >= minScale) { scale = fit; onePage = true; }
+      else scale = widthFit;
+    } else {
+      scale = widthFit;
     }
     contentBytes = await page.pdf({
       format: 'A4',

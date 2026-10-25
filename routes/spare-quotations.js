@@ -5,7 +5,6 @@ const { generatePDFWithLetterhead } = require('../pdf');
 const path = require('path');
 const fs   = require('fs');
 const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
-const { PDFDocument } = require('pdf-lib');
 const { paymentQr } = require('../services/paymentQr');
 
 // ── List ──────────────────────────────────────────────────────────────────────
@@ -330,17 +329,9 @@ async function buildSparePdf(app, id, { customerCopy = true } = {}) {
       machineModel: machine?.model || '',
     }, (err, h) => err ? reject(err) : resolve(h)));
 
-  // Page 1: the quotation, shrunk slightly if it only just overflows (long part lists use more pages).
-  // Last page: Terms & Conditions "overleaf". Both on the letterhead.
-  const main  = await generatePDFWithLetterhead(await render('spare-quotations/pdf'), LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.8 });
-  const terms = await generatePDFWithLetterhead(await render('spare-quotations/pdf-terms'), LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.8 });
-  const out = await PDFDocument.create();
-  for (const part of [main, terms]) {
-    const doc = await PDFDocument.load(part);
-    (await out.copyPages(doc, doc.getPageIndices())).forEach(p => out.addPage(p));
-  }
-  out.setTitle(`Spare Parts Quotation ${q.quotation_no}`);
-  const buffer = Buffer.from(await out.save());
+  // Quotation followed by its terms, on the letterhead. If it only just overflows one page
+  // it is shrunk to fit; otherwise it simply continues onto the next letterhead page.
+  const buffer = await generatePDFWithLetterhead(await render('spare-quotations/pdf'), LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.85 });
   return { q, buffer, filename: `${q.quotation_no.replace(/\//g, '-')}.pdf` };
 }
 

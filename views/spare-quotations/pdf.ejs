@@ -7,7 +7,8 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5px; color: #000; background: transparent; -webkit-print-color-adjust: exact; }
   .page { width: 100%; }
-  table { width: 100%; border-collapse: collapse; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td, th { overflow-wrap: anywhere; word-break: break-word; }
   .box { border: 1px solid #000; }
   .bt { border-top: 1px solid #000; } .bb { border-bottom: 1px solid #000; }
   .bl { border-left: 1px solid #000; } .br { border-right: 1px solid #000; }
@@ -33,12 +34,13 @@
   .items td { border-left: 1px solid #000; border-right: 1px solid #000; padding: 1.5px 4px; vertical-align: top; }
   .items .desc { font-weight: 700; text-transform: uppercase; }
   .items .qty { font-weight: 700; white-space: nowrap; }
+  .items .nw { white-space: nowrap; }
   .items .amt { font-weight: 700; }
   .items .gap td { height: 6px; }
   .items .sub td.amtcell { border-top: 1px solid #000; }
   .items .taxline td { padding-top: 2px; }
   .items .tot td { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 4px; }
-  .items .tot .grand { font-size: 12px; font-weight: 700; }
+  .items .tot .grand { font-size: 12px; font-weight: 700; white-space: nowrap; }
 
   .words { padding: 3px 6px; }
   .words .val { font-size: 10.5px; font-weight: 700; margin-top: 1px; }
@@ -49,8 +51,15 @@
 
   .foot td { vertical-align: top; padding: 4px 6px; }
   .foot .head { text-decoration: underline; }
-  .bank .lbl { display: inline-block; width: 92px; }
-  .sign td { height: 58px; vertical-align: top; padding: 4px 6px; }
+  .bank > div { display: flex; }
+  .bank .lbl { flex: 0 0 96px; }
+  .bank .lbl + b, .bank .lbl ~ b { flex: 1; }
+  /* Terms follow straight on from the quotation (page 1 onwards) */
+  .terms { margin-top: 8px; border: 1px solid #000; padding: 5px 8px 6px; }
+  .terms h3 { font-size: 10px; text-align: center; letter-spacing: .5px; margin-bottom: 4px; }
+  .terms ol { padding-left: 16px; columns: 2; column-gap: 18px; font-size: 8.6px; line-height: 1.4; }
+  .terms li { break-inside: avoid; margin-bottom: 2.5px; }
+  .sign td { height: 86px; vertical-align: top; padding: 4px 6px; }   /* room to sign and stamp */
   .after { text-align: center; margin-top: 4px; font-size: 9px; }
 </style>
 </head>
@@ -105,6 +114,7 @@
 
 <!-- ═══ Seller / Buyer │ Reference grid ═══ -->
 <table class="hdr box">
+  <colgroup><col style="width:52%"><col style="width:48%"></colgroup>
   <tr>
     <td style="width:52%" class="br">
       <div class="party bb">
@@ -149,15 +159,15 @@
   <thead>
     <tr>
       <th style="width:4%">Sl<br>No.</th>
-      <th style="width:<%= showDisc ? 28 : 33 %>%">Description of Goods</th>
+      <th style="width:<%= showDisc ? 25 : 29 %>%">Description of Goods</th>
       <th style="width:9%">HSN/SAC</th>
       <th style="width:6%">GST<br>Rate</th>
       <th style="width:12%">Part No.</th>
-      <th style="width:9%">Quantity</th>
-      <th style="width:9%">Rate</th>
-      <th style="width:4%">per</th>
-      <% if (showDisc) { %><th style="width:5%">Disc.<br>%</th><% } %>
-      <th style="width:<%= showDisc ? 14 : 14 %>%">Amount</th>
+      <th style="width:10%">Quantity</th>
+      <th style="width:10%">Rate</th>
+      <th style="width:5%">per</th>
+      <% if (showDisc) { %><th style="width:4%">Disc.<br>%</th><% } %>
+      <th style="width:15%">Amount</th>
     </tr>
   </thead>
   <tbody>
@@ -167,13 +177,13 @@
       <td class="c"><%= i + 1 %></td>
       <td class="desc"><%= l.description %></td>
       <td><%= l.hsn || '' %></td>
-      <td class="r"><%= parseFloat(l.tax_rate) || 0 %> %</td>
+      <td class="r nw"><%= parseFloat(l.tax_rate) || 0 %>%</td>
       <td class="small"><%= l.part_no || '' %></td>
       <td class="r qty"><%= l.qtyN.toFixed(2) %> PCS</td>
-      <td class="r"><%= n2(l.basic_rate) %></td>
+      <td class="r nw"><%= n2(l.basic_rate) %></td>
       <td>PCS</td>
       <% if (showDisc) { %><td class="r"><%= l.discount_percent ? (+l.discount_percent) + ' %' : '' %></td><% } %>
-      <td class="r amt"><%= n2(l.taxable) %></td>
+      <td class="r amt nw"><%= n2(l.taxable) %></td>
     </tr>
     <% }) %>
     <!-- Subtotal, tax, round off -->
@@ -259,30 +269,42 @@
     </td>
   </tr>
   <tr>
-    <td style="width:52%">
-      <div class="head">Declaration</div>
-      <div>1. Principal company warranty applicable.</div>
-      <div>2. We are not responsible for any transit damage, loss or leakage.</div>
-      <div>3. For applicable Terms &amp; Conditions — please turn overleaf.</div>
-    </td>
-    <td class="bank">
-      <div style="display:flex; gap:8px; align-items:flex-start">
-        <div style="flex:1">
-          <div>Company's Bank Details</div>
-          <div><span class="lbl">A/c Holder's Name</span>: <b><%= String(s.bank_beneficiary || s.company_name || '').toUpperCase() %></b></div>
-          <% if (s.bank_name) { %><div><span class="lbl">Bank Name</span>: <b><%= String(s.bank_name).toUpperCase() %></b></div><% } %>
-          <div><span class="lbl">A/c No.</span>: <b><%= s.bank_account || '' %></b></div>
-          <div><span class="lbl">Branch &amp; IFS Code</span>: <b><%= [s.bank_branch, s.bank_ifsc].filter(Boolean).join(' & ') %></b></div>
-          <% if (s.company_upi) { %><div><span class="lbl">UPI</span>: <b><%= s.company_upi %></b></div><% } %>
-        </div>
-        <% if (qrDataUrl) { %><div class="c small" style="width:74px"><img src="<%= qrDataUrl %>" style="width:64px;height:64px;display:block;margin:0 auto"><div>Scan to pay</div><% if (qr && qr.amount) { %><div class="b">₹ <%= n2(qr.amount) %></div><% } %></div><% } %>
-      </div>
+    <td colspan="2" style="padding:0">
+      <table>
+        <colgroup><col style="width:40%"><col style="width:<%= qrDataUrl ? 43 : 60 %>%"><% if (qrDataUrl) { %><col style="width:17%"><% } %></colgroup>
+        <tr>
+          <td class="br" style="padding:4px 6px">
+            <div class="head">Declaration</div>
+            <div>1. Principal company warranty applicable.</div>
+            <div>2. We are not responsible for any transit damage, loss or leakage.</div>
+          </td>
+          <td class="bank" style="padding:4px 6px">
+            <div>Company's Bank Details</div>
+            <div><span class="lbl">A/c Holder's Name</span><b>: <%= String(s.bank_beneficiary || s.company_name || '').toUpperCase() %></b></div>
+            <% if (s.bank_name) { %><div><span class="lbl">Bank Name</span><b>: <%= String(s.bank_name).toUpperCase() %></b></div><% } %>
+            <div><span class="lbl">A/c No.</span><b>: <%= s.bank_account || '' %></b></div>
+            <div><span class="lbl">IFS Code</span><b>: <%= s.bank_ifsc || '' %></b></div>
+            <% if (s.bank_branch) { %><div><span class="lbl">Branch</span><b>: <%= s.bank_branch %></b></div><% } %>
+            <% if (s.company_upi) { %><div><span class="lbl">UPI ID</span><b>: <%= s.company_upi %></b></div><% } %>
+          </td>
+          <% if (qrDataUrl) { %>
+          <td class="bl c" style="vertical-align:middle; padding:4px">
+            <img src="<%= qrDataUrl %>" style="width:76px;height:76px;display:block;margin:0 auto">
+            <div class="small" style="margin-top:2px">Scan to pay</div>
+            <% if (qr && qr.amount) { %><div class="b">₹ <%= n2(qr.amount) %></div><% } %>
+          </td>
+          <% } %>
+        </tr>
+      </table>
     </td>
   </tr>
 </table>
 <table class="box sign" style="border-top:none">
+  <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
   <tr>
-    <td style="width:52%" class="br">Customer's Seal and Signature</td>
+    <td class="br" style="position:relative">
+      <div>Customer's Seal and Signature</div>
+    </td>
     <td style="position:relative">
       <div class="r b">for <%= String(s.company_name || 'SUPER ALLIED').toUpperCase() %></div>
       <div class="r" style="position:absolute; right:6px; bottom:4px">Authorised Signatory</div>
@@ -291,6 +313,26 @@
 </table>
 <div class="after">SUBJECT TO MEERUT JURISDICTION</div>
 <div class="after" style="margin-top:2px">This is a computer-generated quotation. Thank you for your business!</div>
+
+<div class="terms">
+  <h3>TERMS &amp; CONDITIONS</h3>
+  <ol>
+    <li><b>Quotation Validity:</b> This quotation is valid for <%= q.validity_days || 7 %> days from the date of issue. Prices are subject to change thereafter.</li>
+    <li><b>Taxes:</b> GST and other applicable government taxes/levies shall be charged as applicable on the date of invoicing.</li>
+    <li><b>Payment:</b> Payment shall be made as per agreed payment terms. Delay in payment may attract applicable interest/charges.</li>
+    <li><b>Order Confirmation:</b> An order is confirmed only upon receipt of the required advance/payment and written acceptance by the Company.</li>
+    <li><b>Delivery:</b> Delivery is subject to availability and receipt of agreed payment. Timelines are indicative and may vary due to circumstances beyond the Company's control.</li>
+    <li><b>Transportation:</b> Transportation, insurance, registration, road tax, permits and incidental charges shall be borne by the customer unless specifically included.</li>
+    <li><b>Warranty:</b> Warranty is governed strictly by the manufacturer's terms. It does not cover wear and tear, misuse, negligence, accidents or unauthorised repairs.</li>
+    <li><b>Specifications:</b> Product specifications, features and configurations are subject to change by the manufacturer without prior notice.</li>
+    <li><b>Cancellation &amp; Refund:</b> Cancellation is subject to the Company's approval. Applicable cancellation, processing or restocking charges may be deducted.</li>
+    <li><b>Documentation:</b> Registration, insurance, financing and statutory documentation shall be the customer's responsibility unless specifically agreed otherwise.</li>
+    <li><b>Invoice:</b> The invoice shall be treated as the final document for quantity, model, specifications, price, taxes and other commercial terms.</li>
+    <li><b>Force Majeure:</b> The Company shall not be liable for any delay caused by natural calamities, strikes, government restrictions, shortage of materials or manufacturer-related delays.</li>
+    <li><b>Jurisdiction:</b> Any dispute shall be subject to the jurisdiction of competent courts at Meerut, Uttar Pradesh.</li>
+    <li><b>Acceptance:</b> Placement of an order or acceptance of delivery shall constitute acceptance of these terms and conditions.</li>
+  </ol>
+</div>
 
 </div>
 </body>
