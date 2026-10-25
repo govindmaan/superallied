@@ -889,7 +889,7 @@ app.post('/settings', requireLogin, (req, res) => {
     'company_name','company_gstin','company_address','dealer_of',
     'contact_name','contact_phone','company_phone_sales','company_phone_service',
     'company_email','company_udyam','company_state','company_state_code',
-    'bank_beneficiary','bank_account','bank_ifsc','bank_branch',
+    'bank_beneficiary','bank_name','bank_account','bank_ifsc','bank_branch',
     'rto_default_rate','price_lock_enabled','roundoff_enabled','roundoff_amount',
     'company_upi'
   ];

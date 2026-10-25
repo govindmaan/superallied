@@ -6,6 +6,7 @@ const path = require('path');
 const fs   = require('fs');
 const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
 const QRCode = require('qrcode');
+const { PDFDocument } = require('pdf-lib');
 
 // ── List ──────────────────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
@@ -323,14 +324,30 @@ async function buildSparePdf(app, id, { customerCopy = true } = {}) {
   }
   const qrDataUrl = await QRCode.toDataURL(qrData, { width: 120, margin: 1, errorCorrectionLevel: 'M' });
 
-  const html = await new Promise((resolve, reject) =>
-    app.render('spare-quotations/pdf', {
-      q, items, settings: s, formatINR, numberToWords,
-      logoB64, qrDataUrl, isAdmin: !customerCopy
+  // Extra details for the invoice-style header
+  const sp = q.salesperson_id ? db.prepare('SELECT name, phone FROM salespersons WHERE id=?').get(q.salesperson_id) : null;
+  const machine = q.sold_machine_id
+    ? db.prepare('SELECT model FROM sold_machines WHERE id=?').get(q.sold_machine_id)
+    : (q.machine_no ? db.prepare('SELECT model FROM sold_machines WHERE machine_no=? COLLATE NOCASE').get(q.machine_no) : null);
+
+  const render = (view) => new Promise((resolve, reject) =>
+    app.render(view, {
+      q, items, settings: s, formatINR, numberToWords, logoB64, qrDataUrl, isAdmin: !customerCopy,
+      salesperson: { name: sp?.name || q.salesperson || '', phone: sp?.phone || '' },
+      machineModel: machine?.model || '',
     }, (err, h) => err ? reject(err) : resolve(h)));
 
-  // Slight overflow (e.g. the last line) is shrunk onto one page; long part lists still use more pages
-  const buffer = await generatePDFWithLetterhead(html, LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.85 });
+  // Page 1: the quotation, shrunk slightly if it only just overflows (long part lists use more pages).
+  // Last page: Terms & Conditions "overleaf". Both on the letterhead.
+  const main  = await generatePDFWithLetterhead(await render('spare-quotations/pdf'), LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.8 });
+  const terms = await generatePDFWithLetterhead(await render('spare-quotations/pdf-terms'), LETTERHEAD_PATH, { fitOnePage: true, minScale: 0.8 });
+  const out = await PDFDocument.create();
+  for (const part of [main, terms]) {
+    const doc = await PDFDocument.load(part);
+    (await out.copyPages(doc, doc.getPageIndices())).forEach(p => out.addPage(p));
+  }
+  out.setTitle(`Spare Parts Quotation ${q.quotation_no}`);
+  const buffer = Buffer.from(await out.save());
   return { q, buffer, filename: `${q.quotation_no.replace(/\//g, '-')}.pdf` };
 }
 

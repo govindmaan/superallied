@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-10-25',
     items: [
+      { commit: '', type: 'improved', title: 'New spare quotation PDF layout (GST invoice style)',
+        details: ['Company and buyer details with state codes, a box grid for quotation no., dates, machine and salesperson.',
+                  'Items with HSN, GST rate, part no., quantity and rate; output tax, round off and total; tax summary and amounts in words.',
+                  'Terms & Conditions on the next page; every page on the letterhead. Bank Name can now be set in Settings.'] },
       { commit: '', type: 'improved', title: 'WhatsApp now sends the spare quotation PDF',
         details: ['On a phone, "WhatsApp PDF" opens the share menu with the quotation PDF attached.',
                   'On a computer, WhatsApp opens with a secure link to the PDF (valid 30 days).',

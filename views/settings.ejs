@@ -38,6 +38,7 @@
               <div class="col-md-6"><label class="form-label">Bank Beneficiary</label><input type="text" name="bank_beneficiary" class="form-control" value="<%= s.bank_beneficiary %>"></div>
               <div class="col-md-6"><label class="form-label">Bank Account No.</label><input type="text" name="bank_account" class="form-control font-monospace" value="<%= s.bank_account %>"></div>
               <div class="col-md-6"><label class="form-label">IFSC Code</label><input type="text" name="bank_ifsc" class="form-control font-monospace" value="<%= s.bank_ifsc %>"></div>
+              <div class="col-md-6"><label class="form-label">Bank Name</label><input type="text" name="bank_name" class="form-control" value="<%= s.bank_name || '' %>" placeholder="e.g. Union Bank of India"></div>
               <div class="col-md-6"><label class="form-label">Branch</label><input type="text" name="bank_branch" class="form-control" value="<%= s.bank_branch %>"></div>
               <div class="col-md-6"><label class="form-label">UPI ID <span class="text-muted small">(for QR code on quotation)</span></label><input type="text" name="company_upi" class="form-control font-monospace" value="<%= s.company_upi || '' %>" placeholder="name@upi"></div>
               <hr>
@@ -63,6 +64,7 @@
             <dt class="col-5 text-muted">Bank Beneficiary</dt><dd class="col-7"><%= s.bank_beneficiary %></dd>
             <dt class="col-5 text-muted">Account No.</dt><dd class="col-7 font-monospace small"><%= s.bank_account %></dd>
             <dt class="col-5 text-muted">IFSC</dt><dd class="col-7 font-monospace small"><%= s.bank_ifsc %></dd>
+            <dt class="col-5 text-muted">Bank</dt><dd class="col-7 small"><%= s.bank_name || '—' %></dd>
             <dt class="col-5 text-muted">Branch</dt><dd class="col-7 small"><%= s.bank_branch %></dd>
           </dl>
           <div class="alert alert-info small mt-3 mb-0 py-2"><i class="bi bi-info-circle me-1"></i>Contact Admin to update company or bank details.</div>
