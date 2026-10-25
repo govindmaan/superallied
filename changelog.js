@@ -6,6 +6,8 @@ module.exports = [
   {
     date: '2026-10-25',
     items: [
+      { commit: '', type: 'fixed', title: 'Quotation PDFs aligned with the letterhead',
+        details: ['The right edge now lines up with the BULL logo instead of running past it.'] },
       { commit: '', type: 'improved', title: 'More room for items on spare quotations',
         details: ['Company details block removed (the letterhead already shows them); buyer details moved to the top left.',
                   'Remarks box removed from the PDF.'] },

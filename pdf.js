@@ -59,9 +59,10 @@ async function loadLetterhead(letterheadPath) {
   return bytes;
 }
 
-// Writing area inside the letterhead: A4 minus the margins below. The letterhead's
-// header ends at 24 mm and its footer starts at 272 mm; its text starts 12.6 mm in.
-const LH_MARGIN = { top: 29, right: 12, bottom: 28, left: 12 };   // mm
+// Writing area inside the letterhead: A4 minus the margins below. Measured from the
+// artwork: the header ends 24 mm down and the footer starts at 272 mm; the header text
+// and BULL logo run from 12.6 mm to 191.8 mm across, so content stays inside that band.
+const LH_MARGIN = { top: 29, right: 18, bottom: 28, left: 12.5 };   // mm
 const MM = 96 / 25.4;                                            // CSS px per mm
 
 // Generate PDF with letterhead PDF as background on every page.
