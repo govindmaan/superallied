@@ -216,14 +216,17 @@
       <div style="font-weight:bold; font-size:11px; margin-bottom:4px">Our Bank Details</div>
       <table class="bank-table">
         <tr><td class="lbl">Beneficiary Name</td><td>: <%= settings.bank_beneficiary %></td></tr>
+        <% if (settings.bank_name) { %><tr><td class="lbl">Bank Name</td><td>: <%= settings.bank_name %></td></tr><% } %>
         <tr><td class="lbl">Bank Account Number</td><td>: <%= settings.bank_account %></td></tr>
         <tr><td class="lbl">Bank IFSC</td><td>: <%= settings.bank_ifsc %></td></tr>
         <tr><td class="lbl">Branch</td><td>: <%= settings.bank_branch %></td></tr>
+        <% if (settings.company_upi) { %><tr><td class="lbl">UPI ID</td><td>: <%= settings.company_upi %></td></tr><% } %>
       </table>
     </div>
     <div>
       <% if (paymentQrB64) { %>
         <img src="<%= paymentQrB64 %>" class="qr-img" alt="Payment QR">
+        <% if (qr) { %><div style="font-size:8px; text-align:center">Scan to pay<%= qr.amount ? ' ₹' + formatINR(qr.amount) : '' %></div><% } %>
       <% } else { %>
         <div class="qr-box">Scan to<br>Pay</div>
       <% } %>

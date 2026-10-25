@@ -6,6 +6,9 @@ module.exports = [
   {
     date: '2026-10-25',
     items: [
+      { commit: '', type: 'improved', title: 'Payment QR on quotations follows Settings',
+        details: ['Machine and spare quotation PDFs show the bank account from Settings with a payment QR made for it.',
+                  'The QR pays your UPI ID, or the bank account directly if no UPI ID is set, with the amount (up to ₹1 lakh) and quotation number filled in.'] },
       { commit: '', type: 'improved', title: 'New spare quotation PDF layout (GST invoice style)',
         details: ['Company and buyer details with state codes, a box grid for quotation no., dates, machine and salesperson.',
                   'Items with HSN, GST rate, part no., quantity and rate; output tax, round off and total; tax summary and amounts in words.',

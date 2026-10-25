@@ -8,6 +8,7 @@ const path     = require('path');
 const fs       = require('fs');
 const { db, getSettings, nextQuotationNumber, calcQuotation, formatINR, numberToWords, createNotification, getUserPermissions, checkFollowupNotifications, auditLog } = require('./db');
 const { generatePDF, generatePDFWithLetterhead } = require('./pdf');
+const { paymentQr } = require('./services/paymentQr');
 const LETTERHEAD_PATH = path.join(__dirname, 'Super Allied Letterhead.pdf');
 
 // ── File storage setup ────────────────────────────────────────────────────────
@@ -834,11 +835,13 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
   const s    = getSettings();
   const calc = calcQuotation(q, s);
   const specs = db.prepare('SELECT * FROM machine_specs WHERE machine_id=? ORDER BY display_order').all(q.machine_id);
+  // Payment QR from the master bank / UPI settings (fixed image only if neither is set)
+  const qr = await paymentQr(s, calc.total, q.quotation_number);
   const html = await new Promise((resolve, reject) => {
     const qDate = quotationDateOf(q);
     res.app.render('quotation-pdf', { q, calc, specs, settings: s, formatINR, customerIds: quotationCustomerIds(q),
       quotationDate: fmtLongDate(qDate).toUpperCase(), validTill: fmtLongDate(quotationValidTill(qDate)),
-      terms: machineQuotationTerms(fmtLongDate(quotationValidTill(qDate))), numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: PAYMENT_QR_B64 }, (err, html) => {
+      terms: machineQuotationTerms(fmtLongDate(quotationValidTill(qDate))), numberToWords, bullLogoB64: BULL_LOGO_B64, paymentQrB64: qr?.dataUrl || PAYMENT_QR_B64, qr }, (err, html) => {
       if (err) reject(err); else resolve(html);
     });
   });

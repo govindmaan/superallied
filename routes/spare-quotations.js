@@ -5,8 +5,8 @@ const { generatePDFWithLetterhead } = require('../pdf');
 const path = require('path');
 const fs   = require('fs');
 const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
-const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
+const { paymentQr } = require('../services/paymentQr');
 
 // ── List ──────────────────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
@@ -313,16 +313,9 @@ async function buildSparePdf(app, id, { customerCopy = true } = {}) {
   const logoB64 = fs.existsSync(LOGO_PATH)
     ? `data:image/jpeg;base64,${fs.readFileSync(LOGO_PATH).toString('base64')}` : '';
 
-  // UPI QR — use UPI format if UPI ID set, else plain text
-  let qrData;
-  if (s.company_upi) {
-    const upiName = encodeURIComponent(s.company_name || 'Super Allied');
-    const upiNote = encodeURIComponent(q.quotation_no);
-    qrData = `upi://pay?pa=${s.company_upi}&pn=${upiName}&am=${q.grand_total}&cu=INR&tn=${upiNote}`;
-  } else {
-    qrData = `${s.company_name || 'Super Allied'} | ${q.quotation_no} | ₹${q.grand_total}`;
-  }
-  const qrDataUrl = await QRCode.toDataURL(qrData, { width: 120, margin: 1, errorCorrectionLevel: 'M' });
+  // Payment QR from the master bank / UPI settings, with this quotation's amount
+  const qr = await paymentQr(s, q.grand_total, q.quotation_no);
+  const qrDataUrl = qr?.dataUrl || '';
 
   // Extra details for the invoice-style header
   const sp = q.salesperson_id ? db.prepare('SELECT name, phone FROM salespersons WHERE id=?').get(q.salesperson_id) : null;
@@ -332,7 +325,7 @@ async function buildSparePdf(app, id, { customerCopy = true } = {}) {
 
   const render = (view) => new Promise((resolve, reject) =>
     app.render(view, {
-      q, items, settings: s, formatINR, numberToWords, logoB64, qrDataUrl, isAdmin: !customerCopy,
+      q, items, settings: s, formatINR, numberToWords, logoB64, qrDataUrl, qr, isAdmin: !customerCopy,
       salesperson: { name: sp?.name || q.salesperson || '', phone: sp?.phone || '' },
       machineModel: machine?.model || '',
     }, (err, h) => err ? reject(err) : resolve(h)));

@@ -40,7 +40,7 @@
               <div class="col-md-6"><label class="form-label">IFSC Code</label><input type="text" name="bank_ifsc" class="form-control font-monospace" value="<%= s.bank_ifsc %>"></div>
               <div class="col-md-6"><label class="form-label">Bank Name</label><input type="text" name="bank_name" class="form-control" value="<%= s.bank_name || '' %>" placeholder="e.g. Union Bank of India"></div>
               <div class="col-md-6"><label class="form-label">Branch</label><input type="text" name="bank_branch" class="form-control" value="<%= s.bank_branch %>"></div>
-              <div class="col-md-6"><label class="form-label">UPI ID <span class="text-muted small">(for QR code on quotation)</span></label><input type="text" name="company_upi" class="form-control font-monospace" value="<%= s.company_upi || '' %>" placeholder="name@upi"></div>
+              <div class="col-md-6"><label class="form-label">UPI ID <span class="text-muted small">(payment QR on quotations — if blank, the QR pays the bank account above)</span></label><input type="text" name="company_upi" class="form-control font-monospace" value="<%= s.company_upi || '' %>" placeholder="name@upi"></div>
               <hr>
               <div class="col-md-6"><label class="form-label">RTO Default Percentage (%)</label><input type="number" name="rto_default_rate" class="form-control" value="<%= s.rto_default_rate || 6 %>" min="0" max="100" step="0.1"></div>
               <div class="col-md-6"><label class="form-label">Price Lock Enabled</label><select name="price_lock_enabled" class="form-select"><option value="1" <%=s.price_lock_enabled==='1'?'selected':''%>>Yes (MRP only)</option><option value="0" <%=s.price_lock_enabled==='0'?'selected':''%>>No (Allow override)</option></select></div>

@@ -275,7 +275,7 @@
           <div><span class="lbl">Branch &amp; IFS Code</span>: <b><%= [s.bank_branch, s.bank_ifsc].filter(Boolean).join(' & ') %></b></div>
           <% if (s.company_upi) { %><div><span class="lbl">UPI</span>: <b><%= s.company_upi %></b></div><% } %>
         </div>
-        <% if (qrDataUrl) { %><div class="c small"><img src="<%= qrDataUrl %>" style="width:58px;height:58px;display:block"><span>Scan to Pay</span></div><% } %>
+        <% if (qrDataUrl) { %><div class="c small" style="width:74px"><img src="<%= qrDataUrl %>" style="width:64px;height:64px;display:block;margin:0 auto"><div>Scan to pay</div><% if (qr && qr.amount) { %><div class="b">₹ <%= n2(qr.amount) %></div><% } %></div><% } %>
       </div>
     </td>
   </tr>
