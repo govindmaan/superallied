@@ -76,13 +76,16 @@ function monthCalendar(uid, m, todayStr) {
 }
 
 // One day's detail for the calendar: check-in/out photos and times, bike km
+function dayDetail(uid, date) {
+  const att = db.prepare('SELECT check_in_time, check_in_photo, check_in_lat, check_in_lng, check_out_time, check_out_photo, check_out_lat, check_out_lng FROM attendance WHERE user_id=? AND date=?').get(uid, date);
+  const journey = db.prepare('SELECT start_km, start_photo, end_km, end_photo, total_km FROM expense_journeys WHERE user_id=? AND date=?').get(uid, date);
+  const visits = db.prepare("SELECT COUNT(*) AS c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, date).c;
+  return { date, att: att || null, journey: journey || null, visits };
+}
+
 router.get('/api/day/:date', (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) return res.status(400).json({ error: 'Bad date' });
-  const uid = req.session.userId;
-  const att = db.prepare('SELECT check_in_time, check_in_photo, check_in_lat, check_in_lng, check_out_time, check_out_photo, check_out_lat, check_out_lng FROM attendance WHERE user_id=? AND date=?').get(uid, req.params.date);
-  const journey = db.prepare('SELECT start_km, start_photo, end_km, end_photo, total_km FROM expense_journeys WHERE user_id=? AND date=?').get(uid, req.params.date);
-  const visits = db.prepare("SELECT COUNT(*) AS c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, req.params.date).c;
-  res.json({ date: req.params.date, att: att || null, journey: journey || null, visits });
+  res.json(dayDetail(req.session.userId, req.params.date));
 });
 
 // ── API: check-in ─────────────────────────────────────────────────────────────
@@ -136,4 +139,7 @@ router.post('/api/checkout', (req, res) => {
   res.json({ ok: true, time: now });
 });
 
+// Shared with HR → Employee Attendance
+router.monthCalendar = monthCalendar;
+router.dayDetail = dayDetail;
 module.exports = router;

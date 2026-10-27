@@ -45,7 +45,7 @@
           %>
           <tr>
             <td>
-              <div class="fw-semibold small"><%= r.full_name %></div>
+              <a href="/hr/attendance/employee?user=<%= r.user_id %>&m=<%= dateFilter.slice(0, 7) %>" class="fw-semibold small text-decoration-none" title="Month calendar with photos"><%= r.full_name %> <i class="bi bi-calendar3 text-muted"></i></a>
               <small class="font-monospace text-muted"><%= r.employee_code %></small>
             </td>
             <td class="small"><%= r.department || '—' %></td>

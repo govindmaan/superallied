@@ -6,7 +6,7 @@ const session  = require('express-session');
 const bcrypt   = require('bcryptjs');
 const path     = require('path');
 const fs       = require('fs');
-const { db, getSettings, nextQuotationNumber, calcQuotation, formatINR, numberToWords, createNotification, getUserPermissions, checkFollowupNotifications, auditLog } = require('./db');
+const { db, getSettings, nextQuotationNumber, calcQuotation, formatINR, numberToWords, createNotification, getUserPermissions, checkFollowupNotifications, auditLog, nextEmployeeCode } = require('./db');
 const { generatePDF, generatePDFWithLetterhead } = require('./pdf');
 const { paymentQr } = require('./services/paymentQr');
 const LETTERHEAD_PATH = path.join(__dirname, 'Super Allied Letterhead.pdf');
@@ -970,8 +970,8 @@ app.post('/users', requireLogin, requireAdmin, (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager'];
   const safeRole = allowedRoles.includes(role) ? role : 'sales';
-  db.prepare('INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)')
-    .run(username.trim(), hash, full_name?.trim() || '', safeRole);
+  db.prepare('INSERT INTO users (username, password_hash, full_name, role, employee_code) VALUES (?,?,?,?,?)')
+    .run(username.trim(), hash, full_name?.trim() || '', safeRole, nextEmployeeCode());
   req.session.flash = { success: `User "${username.trim()}" created successfully.` };
   res.redirect('/users');
 });
@@ -1286,7 +1286,13 @@ app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       pa
 app.use('/route-map',         requireLogin,                                   routeMapRoutes);
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
-app.use('/accounts',          requireLogin,                                   accountsRoutes);  // checks its own permissions
+// Accounts: accountant and accounts manager profiles (and admin) only; the module also checks its own permissions
+function requireAccountsRole(req, res, next) {
+  if (['admin', 'accountant', 'accounts_manager'].includes(res.locals.user?.role)) return next();
+  req.session.flash = { error: 'Accounts is only available to the accountant and accounts manager.' };
+  res.redirect('/');
+}
+app.use('/accounts',          requireLogin, requireAccountsRole,              accountsRoutes);
 
 // Old "My Route" page now lives in the route map
 app.get('/my-route', requireLogin, (req, res) => res.redirect('/route-map'));

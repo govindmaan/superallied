@@ -4,7 +4,7 @@ const fs      = require('fs');
 const router  = express.Router();
 const QRCode  = require('qrcode');
 const bcrypt  = require('bcryptjs');
-const { db, getSettings, formatINR, numberToWords, createNotification, auditLog } = require('../db');
+const { db, getSettings, formatINR, numberToWords, createNotification, auditLog, nextEmployeeCode } = require('../db');
 const { generatePDF } = require('../pdf');
 
 // ── HR Dashboard ──────────────────────────────────────────────────────────────
@@ -62,9 +62,9 @@ router.get('/employees/new', (req, res) => {
 
 // ── Create employee ───────────────────────────────────────────────────────────
 router.post('/employees', (req, res) => {
-  const { username, password, full_name, role, employee_code, designation,
+  const { username, password, full_name, role, designation,
           department, mobile, emergency_contact, date_of_joining, manager_id,
-          vehicle_type, vehicle_number } = req.body;
+          vehicle_type, vehicle_number } = req.body;   // employee code is assigned automatically
 
   if (!username?.trim() || !password) {
     req.session.flash = { error: 'Username and password are required.' };
@@ -82,7 +82,7 @@ router.post('/employees', (req, res) => {
      mobile,emergency_contact,date_of_joining,manager_id,vehicle_type,vehicle_number)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(username.trim(), hash, full_name||'', safeRole,
-      employee_code||'', designation||'', department||'',
+      nextEmployeeCode(), designation||'', department||'',
       mobile||'', emergency_contact||'', date_of_joining||null,
       manager_id ? +manager_id : null, vehicle_type||'', vehicle_number||'');
 
@@ -119,16 +119,16 @@ router.get('/employees/:id/edit', (req, res) => {
 });
 
 router.post('/employees/:id', (req, res) => {
-  const { full_name, role, employee_code, designation, department,
+  const { full_name, role, designation, department,
           mobile, emergency_contact, date_of_joining, manager_id, is_hr_active, photo_path,
-          vehicle_type, vehicle_number } = req.body;
+          vehicle_type, vehicle_number } = req.body;   // employee code is fixed once assigned
   const safeRole = ALL_ROLES.includes(role) ? role : 'sales';
 
-  db.prepare(`UPDATE users SET full_name=?,role=?,employee_code=?,designation=?,department=?,
+  db.prepare(`UPDATE users SET full_name=?,role=?,designation=?,department=?,
     mobile=?,emergency_contact=?,date_of_joining=?,manager_id=?,is_hr_active=?,photo_path=?,
     vehicle_type=?,vehicle_number=?
     WHERE id=?`)
-    .run(full_name||'', safeRole, employee_code||'', designation||'', department||'',
+    .run(full_name||'', safeRole, designation||'', department||'',
       mobile||'', emergency_contact||'', date_of_joining||null,
       manager_id ? +manager_id : null,
       is_hr_active === '0' ? 0 : 1,
@@ -238,6 +238,26 @@ router.get('/attendance', (req, res) => {
   res.render('hr/attendance', { title: 'Attendance — ' + dateFilter,
     records, employees, dateFilter, empFilter: emp||'',
     total: employees.length, present, checked_out });
+});
+
+// ── Admin: one employee's month — present/absent calendar, check-in/out photos & location
+const attendanceRoutes = require('./attendance');
+router.get('/attendance/employee', (req, res) => {
+  const employees = db.prepare("SELECT id, full_name, username, employee_code, designation FROM users WHERE is_hr_active=1 ORDER BY full_name").all();
+  const emp = employees.find(e => e.id === +req.query.user) || null;
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  res.render('hr/attendance-employee', {
+    title: emp ? `Attendance — ${emp.full_name || emp.username}` : 'Employee Attendance',
+    employees, emp, todayStr,
+    cal: emp ? attendanceRoutes.monthCalendar(emp.id, req.query.m, todayStr) : null,
+  });
+});
+
+router.get('/attendance/employee/:uid/day/:date', (req, res) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) return res.status(400).json({ error: 'Bad date' });
+  const u = db.prepare('SELECT id FROM users WHERE id=?').get(+req.params.uid);
+  if (!u) return res.status(404).json({ error: 'Employee not found' });
+  res.json(attendanceRoutes.dayDetail(u.id, req.params.date));
 });
 
 // ── Admin: All leaves ─────────────────────────────────────────────────────────

@@ -75,6 +75,8 @@
         <div class="card-footer bg-white small text-muted d-flex flex-wrap gap-3 align-items-center">
           <span><span class="lg-dot" style="background:#cc0000"></span>Site visit</span>
           <span><span class="lg-dot" style="background:#0d6efd"></span>Enquiry visit</span>
+          <span><span class="lg-dot" style="background:#198754;border-radius:3px"></span>Check-in</span>
+          <span><span class="lg-dot" style="background:#212529;border-radius:3px"></span>Check-out</span>
           <span><span class="lg-line"></span> Road route between visits (calculated)</span>
           <span><span class="lg-line lg-fail"></span> Road route unavailable — not counted</span>
           <span id="mapNote"></span>
@@ -107,6 +109,7 @@
          display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .vmark.multi { width: auto; min-width: 30px; padding: 0 7px; border-radius: 15px; font-size: 12px; }
 .vmark.enq { background: #0d6efd; }
+.vmark.endmark { width: 38px; height: 24px; border-radius: 6px; font-size: 11px; letter-spacing: .5px; }
 .vmark.mixed { background: linear-gradient(90deg, #cc0000 50%, #0d6efd 50%); }
 .lg-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
 .varrow { color: #cc0000; font-size: 18px; line-height: 1; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
@@ -131,6 +134,7 @@
   const tm = iso => iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
   const dLong = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   const km = n => n == null ? '—' : (n < 10 ? n.toFixed(2) : n.toFixed(1)) + ' km';
+  const stopName = k => k === 'start' ? 'Check-in' : k === 'end' ? 'Check-out' : '#' + k;
 
   const map = L.map('routeMap', { zoomControl: true }).setView([28.98, 77.70], 11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
@@ -191,7 +195,7 @@
     $('s_name').textContent = d.user.name; $('s_name').title = d.user.name;
     $('s_date').textContent = dLong(d.date);
     $('s_total').textContent = s.total + (s.missing ? ` (${s.missing} no GPS)` : '');
-    $('s_km').textContent = s.located < 2 ? '—' : !s.legsOk && s.legsFailed ? 'Unavailable *' : km(s.routeKm) + (s.legsFailed ? ' *' : '');
+    $('s_km').textContent = s.stops < 2 ? '—' : !s.legsOk && s.legsFailed ? 'Unavailable *' : km(s.routeKm) + (s.legsFailed ? ' *' : '');
     $('s_first').textContent = tm(s.first); $('s_last').textContent = tm(s.last);
     $('listCount').textContent = s.total ? `${s.total} visit${s.total === 1 ? '' : 's'}` : '';
     $('mapNote').textContent = s.legsFailed ? `* ${s.legsFailed} leg${s.legsFailed === 1 ? '' : 's'} could not be routed and ${s.legsFailed === 1 ? 'is' : 'are'} not in the total.` : '';
@@ -201,12 +205,11 @@
       if (l.ok && l.same) return;
       if (l.ok) {
         L.polyline(l.geometry, { color: '#cc0000', weight: 4, opacity: .85 }).addTo(layer)
-          .bindTooltip(`#${l.from} → #${l.to}: ${km(l.km)}${l.minutes != null ? ' · ~' + l.minutes + ' min drive' : ''}`, { sticky: true });
+          .bindTooltip(`${stopName(l.from)} → ${stopName(l.to)}: ${km(l.km)}${l.minutes != null ? ' · ~' + l.minutes + ' min drive' : ''}`, { sticky: true });
         addArrows(l.geometry);
       } else {
-        const a = d.visits.find(v => v.seq === l.from), b = d.visits.find(v => v.seq === l.to);
-        L.polyline([[a.lat, a.lng], [b.lat, b.lng]], { color: '#868e96', weight: 3, dashArray: '6 6', opacity: .9 }).addTo(layer)
-          .bindTooltip(`#${l.from} → #${l.to}: road route unavailable (sequence only, not counted)`, { sticky: true });
+        L.polyline([l.a, l.b], { color: '#868e96', weight: 3, dashArray: '6 6', opacity: .9 }).addTo(layer)
+          .bindTooltip(`${stopName(l.from)} → ${stopName(l.to)}: road route unavailable (sequence only, not counted)`, { sticky: true });
       }
     });
 
@@ -228,10 +231,45 @@
       g.items.forEach(v => { markerByVisit[v.seq] = m; });
     });
 
+    // Check-in (start) and check-out (end) markers
+    const endPopup = (p, title) => `<div class="fw-bold mb-1">${title}</div>
+      <div><span class="text-muted">Time:</span> ${tm(p.time)}</div>
+      <div><span class="text-muted">Location:</span> ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} <a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank" rel="noopener">map</a></div>
+      ${p.photo ? `<a href="${esc(p.photo)}" target="_blank" rel="noopener"><img src="${esc(p.photo)}" alt="${title} selfie" style="width:120px;height:120px;object-fit:cover;border-radius:8px;margin-top:6px"></a>` : ''}`;
+    [['start', d.checkIn, 'IN', 'Check-in', '#198754'], ['end', d.checkOut, 'OUT', 'Check-out', '#212529']].forEach(([key, p, tag, title, color]) => {
+      if (!p) return;
+      markerByVisit[key] = L.marker([p.lat, p.lng], { zIndexOffset: 500, title,
+        icon: L.divIcon({ className: '', iconSize: [38, 24], iconAnchor: [19, 12], popupAnchor: [0, -12],
+          html: `<div class="vmark endmark" style="background:${color}">${tag}</div>` }) }).addTo(layer).bindPopup(endPopup(p, title), { maxWidth: 240 });
+    });
+
     // Ordered list with the road distance to the next located visit
     const list = $('visitList');
     list.innerHTML = '';
     if (!d.visits.length) list.innerHTML = '<div class="list-group-item text-muted small">No visits recorded on this date.</div>';
+    const legRow = (from) => {
+      const leg = d.legs.find(l => l.from === from);
+      if (!leg) return;
+      const row = document.createElement('div');
+      row.className = 'leg-row';
+      row.innerHTML = leg.ok
+        ? (leg.same ? `<i class="bi bi-arrow-down"></i> same place as ${stopName(leg.to)}` : `<i class="bi bi-arrow-down"></i> ${km(leg.km)} by road to ${stopName(leg.to)}`)
+        : `<i class="bi bi-exclamation-triangle text-warning"></i> road route to ${stopName(leg.to)} unavailable`;
+      list.appendChild(row);
+    };
+    const endItem = (key, p, tag, title, color, att) => {
+      const el = document.createElement('div');
+      el.className = 'list-group-item vlist-item d-flex gap-2 align-items-center';
+      const t = key === 'start' ? att?.checkIn : att?.checkOut;
+      const note = p ? '' : t ? ' · no GPS, not on map' : ' · not recorded';
+      el.innerHTML = `<span class="seq" style="background:${p ? color : '#adb5bd'};font-size:9px">${tag}</span>
+        <div class="flex-grow-1 small"><span class="fw-semibold">${title}</span><span class="text-muted">${note}</span></div>
+        <span class="small text-muted text-nowrap">${tm(t)}</span>`;
+      if (p) el.addEventListener('click', () => { map.setView([p.lat, p.lng], Math.max(map.getZoom(), 15)); markerByVisit[key].openPopup(); });
+      list.appendChild(el);
+    };
+    endItem('start', d.checkIn, 'IN', 'Check-in', '#198754', d.attendance);
+    legRow('start');
     d.visits.forEach(v => {
       const el = document.createElement('div');
       el.className = 'list-group-item vlist-item d-flex gap-2 align-items-start';
@@ -243,23 +281,17 @@
         </div>`;
       if (v.lat != null) el.addEventListener('click', () => { map.setView([v.lat, v.lng], Math.max(map.getZoom(), 15)); markerByVisit[v.seq].openPopup(); });
       list.appendChild(el);
-      const leg = d.legs.find(l => l.from === v.seq);
-      if (leg) {
-        const row = document.createElement('div');
-        row.className = 'leg-row';
-        row.innerHTML = leg.ok
-          ? (leg.same ? `<i class="bi bi-arrow-down"></i> same place as #${leg.to}` : `<i class="bi bi-arrow-down"></i> ${km(leg.km)} by road to #${leg.to}`)
-          : `<i class="bi bi-exclamation-triangle text-warning"></i> road route to #${leg.to} unavailable`;
-        list.appendChild(row);
-      }
+      legRow(v.seq);
     });
+    endItem('end', d.checkOut, 'OUT', 'Check-out', '#212529', d.attendance);
 
     // Fit the map to what we have
-    if (located.length > 1) map.fitBounds(L.featureGroup(layer.getLayers().filter(x => x.getLatLng || x.getBounds)).getBounds(), { padding: [30, 30] });
-    else if (located.length === 1) map.setView([located[0].lat, located[0].lng], 15);
+    const pins = layer.getLayers().filter(x => x.getLatLng || x.getBounds);
+    if (s.stops > 1) map.fitBounds(L.featureGroup(pins).getBounds(), { padding: [30, 30] });
+    else if (pins.length) map.setView(pins[0].getLatLng ? pins[0].getLatLng() : pins[0].getBounds().getCenter(), 15);
 
-    if (!d.visits.length) state('<div><i class="bi bi-calendar-x fs-2 d-block mb-2 text-muted"></i>No visits recorded for this DSE on this date.</div>');
-    else if (!located.length) state('<div><i class="bi bi-geo-alt fs-2 d-block mb-2 text-warning"></i>None of this day\'s visits have GPS coordinates, so nothing can be shown on the map.<br><span class="small text-muted">The visits are listed alongside.</span></div>');
+    if (!d.visits.length && !d.checkIn && !d.checkOut) state('<div><i class="bi bi-calendar-x fs-2 d-block mb-2 text-muted"></i>No check-in or visits recorded for this DSE on this date.</div>');
+    else if (!s.stops) state('<div><i class="bi bi-geo-alt fs-2 d-block mb-2 text-warning"></i>None of this day\'s visits have GPS coordinates, so nothing can be shown on the map.<br><span class="small text-muted">The visits are listed alongside.</span></div>');
     else state('');
   }
 

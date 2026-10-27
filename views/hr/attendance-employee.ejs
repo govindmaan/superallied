@@ -1,0 +1,44 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'hr', user }) %>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-danger"></i>Employee Attendance</h4>
+    <a href="/hr/attendance" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-week me-1"></i>Daily report</a>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+      <form method="GET" class="d-flex flex-wrap gap-2 align-items-end">
+        <div>
+          <label class="form-label small mb-1" for="user">Employee</label>
+          <select name="user" id="user" class="form-select" style="min-width:240px" onchange="this.form.submit()">
+            <option value="">— Choose an employee —</option>
+            <% employees.forEach(e => { %><option value="<%= e.id %>" <%= emp && emp.id === e.id ? 'selected' : '' %>><%= e.full_name || e.username %><%= e.employee_code ? ' · ' + e.employee_code : '' %></option><% }) %>
+          </select>
+        </div>
+        <% if (emp) { %>
+        <div>
+          <label class="form-label small mb-1" for="m">Month</label>
+          <input type="month" name="m" id="m" class="form-control" value="<%= cal.month %>" max="<%= todayStr.slice(0, 7) %>" onchange="this.form.submit()">
+        </div>
+        <% } %>
+      </form>
+    </div>
+  </div>
+
+  <% if (emp) { %>
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <div class="fw-semibold"><%= emp.full_name || emp.username %></div>
+    <% if (emp.employee_code) { %><span class="badge bg-light text-dark border font-monospace"><%= emp.employee_code %></span><% } %>
+    <% if (emp.designation) { %><span class="small text-muted"><%= emp.designation %></span><% } %>
+    <% if (user.role === 'admin') { %><a href="/route-map?user=<%= emp.id %>" class="btn btn-sm btn-outline-danger ms-auto"><i class="bi bi-map me-1"></i>Route map</a><% } %>
+  </div>
+  <%- include('../partials/attendance-calendar', { cal, todayStr, monthUrl: `/hr/attendance/employee?user=${emp.id}&m=`, dayUrl: `/hr/attendance/employee/${emp.id}/day/` }) %>
+  <% } else { %>
+  <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">
+    <i class="bi bi-person-badge fs-1 d-block mb-2"></i>Choose an employee to see their month: present and absent days, and each day's check-in and check-out photos and location.
+  </div></div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

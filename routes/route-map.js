@@ -19,9 +19,9 @@ const FAIL_RETRY_H = 6;           // a failed leg is retried after this many hou
 const SAME_SPOT_M  = 20;          // consecutive visits closer than this are "same place" (0 km, no request)
 const MAX_RANGE_DAYS = 31;
 
-const VIEW_ALL_ROLES = ['admin', 'manager'];
-const canViewAll = (res) => VIEW_ALL_ROLES.includes(res.locals.user?.role);
-const canUse = (res) => canViewAll(res) || res.locals.hasPerm('route_map') || res.locals.hasPerm('field_visit');
+// Each person sees the route of the visits they recorded; only admin can look at anyone's
+const canViewAll = (res) => res.locals.user?.role === 'admin';
+const canUse = (res) => canViewAll(res) || ['route_map', 'field_visit', 'enquiries'].some(p => res.locals.hasPerm(p));
 const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '') && !isNaN(new Date(d + 'T00:00:00Z'));
 const todayIST = () => new Date().toLocaleDateString('en-CA');
 const validCoords = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
@@ -63,6 +63,22 @@ function visitsBetween(userId, from, to) {
   return db.prepare(VISITS_SQL).all(userId, from, to, userId, from, to);
 }
 const visitsForDay = (userId, date) => visitsBetween(userId, date, date);
+
+// Check-in / check-out of that day (attendance), used as the route's start and end
+function dayEnds(userId, date) {
+  const a = db.prepare(`SELECT check_in_time, check_in_lat, check_in_lng, check_in_photo,
+      check_out_time, check_out_lat, check_out_lng, check_out_photo FROM attendance WHERE user_id=? AND date=?`).get(userId, date);
+  const pt = (lat, lng, time, photo) => {
+    const la = lat == null ? NaN : Number(lat), lo = lng == null ? NaN : Number(lng);
+    return validCoords(la, lo) ? { lat: la, lng: lo, time: isoTime(time), photo: photo || '' } : null;
+  };
+  return {
+    start: a?.check_in_time ? pt(a.check_in_lat, a.check_in_lng, a.check_in_time, a.check_in_photo) : null,
+    end:   a?.check_out_time ? pt(a.check_out_lat, a.check_out_lng, a.check_out_time, a.check_out_photo) : null,
+    att:   a ? { checkIn: isoTime(a.check_in_time), checkOut: isoTime(a.check_out_time),
+                 checkInGps: !!(a.check_in_time && a.check_in_lat != null), checkOutGps: !!(a.check_out_time && a.check_out_lat != null) } : null,
+  };
+}
 
 // ── Road routing with cache ───────────────────────────────────────────────────
 const keyPart = (p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
@@ -203,17 +219,24 @@ router.get('/api/day', async (req, res) => {
     };
   });
 
-  // Only visits with valid coordinates join the route; order stays chronological
+  // The day's route: check-in location → visits (chronological, valid GPS only) → check-out location
+  const ends = dayEnds(who.user.id, req.query.date);
   const located = visits.filter(v => v.lat != null);
+  const stops = [
+    ...(ends.start ? [{ key: 'start', lat: ends.start.lat, lng: ends.start.lng }] : []),
+    ...located.map(v => ({ key: v.seq, lat: v.lat, lng: v.lng })),
+    ...(ends.end ? [{ key: 'end', lat: ends.end.lat, lng: ends.end.lng }] : []),
+  ];
   let legs = [];
   try {
-    legs = await routeLegs(located);
+    legs = await routeLegs(stops);
   } catch (e) {
     console.error('Route map routing error:', e);
-    legs = located.slice(1).map(() => ({ ok: false, error: 'routing error' }));
+    legs = stops.slice(1).map(() => ({ ok: false, error: 'routing error' }));
   }
   const legOut = legs.map((l, i) => ({
-    from: located[i].seq, to: located[i + 1].seq,
+    from: stops[i].key, to: stops[i + 1].key,
+    a: [stops[i].lat, stops[i].lng], b: [stops[i + 1].lat, stops[i + 1].lng],
     ok: !!l?.ok, same: !!l?.same,
     km: l?.ok ? Math.round(l.distance_m / 10) / 100 : null,
     minutes: l?.ok ? Math.round(l.duration_s / 60) : null,
@@ -224,9 +247,9 @@ router.get('/api/day', async (req, res) => {
   res.json({
     user: { id: who.user.id, name: who.user.full_name || who.user.username },
     date: req.query.date,
-    visits, legs: legOut,
+    visits, legs: legOut, checkIn: ends.start, checkOut: ends.end, attendance: ends.att,
     summary: {
-      total: visits.length, located: located.length, missing: visits.length - located.length,
+      total: visits.length, located: located.length, missing: visits.length - located.length, stops: stops.length,
       routeKm: Math.round(okLegs.reduce((t, l) => t + l.km, 0) * 100) / 100,
       legsOk: okLegs.length, legsFailed: legOut.length - okLegs.length,
       first: visits[0]?.time || null, last: visits[visits.length - 1]?.time || null,
@@ -255,7 +278,9 @@ router.get('/api/range', async (req, res) => {
   const days = [];
   for (const [day, list] of byDay) {
     const located = list.map(v => ({ lat: Number(v.lat), lng: Number(v.lng) })).filter(p => validCoords(p.lat, p.lng));
-    const legs = await routeLegs(located, { cacheOnly: true });
+    const e = dayEnds(who.user.id, day);
+    const stops = [...(e.start ? [e.start] : []), ...located, ...(e.end ? [e.end] : [])];
+    const legs = await routeLegs(stops, { cacheOnly: true });
     const known = legs.every(l => l && l.ok);
     days.push({
       date: day, visits: list.length, located: located.length, enquiry: list.filter(v => v.kind === 'enquiry').length,

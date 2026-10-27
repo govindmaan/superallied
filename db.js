@@ -1437,4 +1437,26 @@ try { db.exec("ALTER TABLE spare_quotations ADD COLUMN share_token TEXT"); } cat
 try { db.exec("ALTER TABLE spare_quotations ADD COLUMN share_token_at DATETIME"); } catch(e) {}
 db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_sq_share_token ON spare_quotations(share_token)");
 
-module.exports = { db, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };
+// ── Employee IDs: 10001, 10002, … ───────────────────────────────────────────
+// Every user gets the next number when created. One-time: renumber everyone in
+// joining order (date of joining, then account creation); old codes are kept.
+try { db.exec("ALTER TABLE users ADD COLUMN old_employee_code TEXT DEFAULT ''"); } catch(e) {}
+const EMP_CODE_START = 10001;
+function nextEmployeeCode() {
+  const r = db.prepare("SELECT MAX(CAST(employee_code AS INTEGER)) AS m FROM users WHERE employee_code GLOB '[0-9]*'").get();
+  return String(Math.max(EMP_CODE_START, (r?.m || 0) + 1));
+}
+if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_empcode_v1'").get()) {
+  try {
+    db.exec('BEGIN');
+    const users = db.prepare(`SELECT id, employee_code FROM users
+      ORDER BY (date_of_joining IS NULL OR date_of_joining = ''), date_of_joining, created_at, id`).all();
+    const upd = db.prepare("UPDATE users SET old_employee_code = ?, employee_code = ? WHERE id = ?");
+    users.forEach((u, i) => upd.run(u.employee_code || '', String(EMP_CODE_START + i), u.id));
+    db.prepare("INSERT INTO settings (key, value) VALUES ('migr_empcode_v1', ?)").run(`${users.length} users renumbered`);
+    db.exec('COMMIT');
+    if (users.length) console.log(`Employee IDs renumbered from ${EMP_CODE_START} for ${users.length} users.`);
+  } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Employee ID renumbering failed:', e.message); }
+}
+
+module.exports = { db, nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };

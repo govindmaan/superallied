@@ -4,6 +4,20 @@
 
 module.exports = [
   {
+    date: '2026-10-27',
+    items: [
+      { commit: '', type: 'improved', title: 'Sidebar reorganised',
+        details: ['Accounts is shown only to the accountant and accounts manager (and admin).',
+                  'New Admin section: Users, Settings, Backup & Restore.',
+                  'Route Map moved to Human Resources: everyone sees their own route; admin sees everyone\'s.'] },
+      { commit: '', type: 'new', title: 'Employee Attendance for admin',
+        details: ['HR Admin → Employee Attendance: pick an employee to see the month calendar and each day\'s check-in/check-out photos, times and location.'] },
+      { commit: '', type: 'improved', title: 'Route map starts at check-in and ends at check-out', details: [] },
+      { commit: '', type: 'improved', title: 'Employee IDs from 10001',
+        details: ['Every employee has been given an ID starting at 10001, in joining order; new employees get the next ID automatically.'] },
+    ],
+  },
+  {
     date: '2026-10-25',
     items: [
       { commit: '', type: 'fixed', title: 'Quotation PDFs aligned with the letterhead',

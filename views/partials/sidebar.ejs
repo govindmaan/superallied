@@ -3,6 +3,10 @@
   const isMgr   = user && (user.role === 'admin' || user.role === 'manager');
   const can     = (p) => isAdmin || hasPerm(p);
   const accAll  = can('accounts') || can('accounts_approve') || can('accounts_reports');
+  // Accounts is for the accountant and accounts manager profiles (and admin) only
+  const accRole = isAdmin || ['accountant', 'accounts_manager'].includes(user?.role);
+  // Route map: everyone who records visits sees their own; admin sees everyone's
+  const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
 
   // Menu = sections → groups → links. `show` decides visibility for the logged-in
   // user; a group or section with nothing visible is not rendered at all.
@@ -22,7 +26,7 @@
         { href: '/calculator',                   icon: 'bi-calculator-fill',   label: 'Profit Calculator', show: isAdmin, keys: ['calculator'] },
       ]},
     ]},
-    { id: 'accounts', label: 'Accounts', icon: 'bi-journal-bookmark-fill', groups: [
+    { id: 'accounts', label: 'Accounts', icon: 'bi-journal-bookmark-fill', groups: !accRole ? [] : [
       { items: [
         { href: '/accounts',                icon: 'bi-speedometer',          label: 'Accountant Dashboard', show: accAll },
         { href: '/accounts/invoices/upload', icon: 'bi-cloud-arrow-up-fill', label: 'Upload Tally Invoice', show: can('accounts') },
@@ -52,11 +56,6 @@
         { href: '/machines',              icon: 'bi-sliders2',         label: 'Machine Master', show: isMgr, keys: ['machines'] },
         { href: '/machines/price-update', icon: 'bi-currency-rupee',   label: 'Update Prices',  show: isMgr },
       ]},
-      { label: 'System', items: [
-        { href: '/users',    icon: 'bi-person-gear', label: 'Users',    show: isAdmin, keys: ['users'] },
-        { href: '/settings', icon: 'bi-sliders',     label: 'Settings', show: isAdmin, keys: ['settings'] },
-        { href: '/backup',   icon: 'bi-shield-lock', label: 'Backup & Restore', show: isAdmin, keys: ['backup'] },
-      ]},
     ]},
     { id: 'spares', label: 'Spares', icon: 'bi-box-seam-fill', groups: [
       { items: [
@@ -71,13 +70,13 @@
       { items: [
         { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: 'Sold Machines', show: can('sold_machines'), keys: ['sold-machines'] },
         { href: '/visits',        icon: 'bi-geo-alt-fill',  label: 'Site Visits',   show: can('field_visit'),   keys: ['visits'] },
-        { href: '/route-map',     icon: 'bi-map-fill',      label: isMgr ? 'DSE Route Map' : 'My Route', show: isMgr || can('route_map') || can('field_visit'), keys: ['route'] },
       ]},
     ]},
     { id: 'hr', label: 'Human Resources', icon: 'bi-people-fill', groups: [
       { items: [
         { href: '/notifications', icon: 'bi-bell-fill',            label: 'Notifications', show: true, keys: ['notifications'], badge: unreadCount },
         { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: 'Attendance',    show: hasPerm('attendance'), keys: ['attendance'] },
+        { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
         { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: 'My Leaves',     show: true, keys: ['leaves'] },
         { href: '/salary',        icon: 'bi-cash-coin',            label: 'My Salary',     show: true, keys: ['salary'] },
         { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: 'ID Card',   show: true, keys: ['id-card'] },
@@ -94,8 +93,16 @@
         { href: '/hr/dashboard',  icon: 'bi-grid-fill',            label: 'HR Dashboard',      show: can('hr_admin'), keys: ['hr'] },
         { href: '/hr/employees',  icon: 'bi-person-lines-fill',    label: 'Employees',         show: can('hr_admin') },
         { href: '/hr/attendance', icon: 'bi-calendar-week-fill',   label: 'Attendance Report', show: can('hr_admin') },
+        { href: '/hr/attendance/employee', icon: 'bi-person-badge',  label: 'Employee Attendance', show: isMgr },
         { href: '/hr/leaves',     icon: 'bi-check2-square',        label: 'Leave Approvals',   show: can('hr_admin') && can('leave_approval') },
         { href: '/hr/salary',     icon: 'bi-wallet2',              label: 'Salary Manager',    show: can('hr_admin') && can('salary_admin') },
+      ]},
+    ]},
+    { id: 'admin', label: 'Admin', icon: 'bi-shield-lock-fill', groups: [
+      { items: [
+        { href: '/users',    icon: 'bi-person-gear', label: 'Users',            show: isAdmin, keys: ['users'] },
+        { href: '/settings', icon: 'bi-sliders',     label: 'Settings',         show: isAdmin, keys: ['settings'] },
+        { href: '/backup',   icon: 'bi-database-down', label: 'Backup & Restore', show: isAdmin, keys: ['backup'] },
       ]},
     ]},
   ];

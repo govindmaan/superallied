@@ -42,8 +42,8 @@
                 <input type="text" name="full_name" class="form-control" required value="<%= emp?.full_name || '' %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Employee Code</label>
-                <input type="text" name="employee_code" class="form-control" value="<%= emp?.employee_code || '' %>" placeholder="EMP001">
+                <label class="form-label fw-semibold">Employee ID</label>
+                <input type="text" class="form-control bg-light font-monospace" value="<%= emp?.employee_code || 'Assigned automatically' %>" readonly tabindex="-1">
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold">Mobile</label>
