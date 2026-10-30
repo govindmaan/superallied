@@ -746,7 +746,7 @@ app.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, r
     req.session.flash = { error: 'This quotation is cancelled. Restore it before editing.' };
     return res.redirect(`/quotations/${quotation.id}`);
   }
-  const machines  = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
+  const machines  = db.prepare('SELECT * FROM machines WHERE active = 1 OR id = ? ORDER BY model_series, display_name').all(quotation.machine_id);
   const customers = isAdmin
     ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL OR id=? ORDER BY name').all(quotation.customer_id)
     : db.prepare('SELECT * FROM customers WHERE (deleted_at IS NULL OR id=?) AND created_by=? ORDER BY name').all(quotation.customer_id, req.session.userId);
@@ -856,24 +856,6 @@ app.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (r
     req.session.flash = { error: 'PDF generation failed. Is Puppeteer installed?' };
     res.redirect(`/quotations/${req.params.id}`);
   }
-});
-
-// ── Machines ──────────────────────────────────────────────────────────────────
-app.get('/machines', requireLogin, (req, res) => {
-  const machines = db.prepare('SELECT * FROM machines ORDER BY model_series, display_name').all();
-  res.render('machines', { title: 'Machine Catalog', machines, formatINR });
-});
-
-app.post('/machines/:id', requireLogin, requireAdmin, (req, res) => {
-  const { basic_price, display_name, engine, transmission, front_tyre, rear_tyre,
-          battery, weight, bucket, warranty, active } = req.body;
-  db.prepare(`UPDATE machines SET basic_price=?,display_name=?,engine=?,transmission=?,
-              front_tyre=?,rear_tyre=?,battery=?,weight=?,bucket=?,warranty=?,active=? WHERE id=?`)
-    .run(+basic_price, display_name, engine||'', transmission||'', front_tyre||'',
-         rear_tyre||'', battery||'', weight||'', bucket||'', warranty||'',
-         active === 'on' ? 1 : 0, req.params.id);
-  req.session.flash = { success: 'Machine updated.' };
-  res.redirect('/machines');
 });
 
 // ── Calculator (admin only) ───────────────────────────────────────────────────

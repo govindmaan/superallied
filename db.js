@@ -166,6 +166,7 @@ try { db.exec("ALTER TABLE quotations ADD COLUMN tyre_option TEXT DEFAULT 'IT'")
 
 // Machine columns
 try { db.exec("ALTER TABLE machines ADD COLUMN purchase_price INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE machines ADD COLUMN gst_rate REAL DEFAULT 18"); } catch(e) {}
 
 // Spare quotation columns
 try { db.exec("ALTER TABLE spare_quotations ADD COLUMN show_discount INTEGER DEFAULT 0"); } catch(e) {}

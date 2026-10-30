@@ -1,0 +1,60 @@
+<%
+  // Machine Master form fields, shared by Add and Edit. Pass m (machine or null) and categories.
+  const v = (k, dflt = '') => (m && m[k] != null ? m[k] : dflt);
+  const listId = m ? 'catListEdit' : 'catListAdd';
+%>
+<div class="row g-3">
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+    <input type="text" name="display_name" class="form-control" required maxlength="120" value="<%= v('display_name') %>" placeholder="e.g. Bull Super Smart SD76 BHL 2WD">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Category</label>
+    <input type="text" name="model_series" class="form-control" list="<%= listId %>" maxlength="60" value="<%= v('model_series') %>" placeholder="Choose or type a new one">
+    <datalist id="<%= listId %>"><% (categories || []).forEach(c => { %><option value="<%= c %>"></option><% }) %></datalist>
+  </div>
+  <div class="col-6 col-md-4">
+    <label class="form-label fw-semibold">Basic Price (₹) <span class="text-danger">*</span></label>
+    <input type="number" name="basic_price" class="form-control" required min="1" step="1" value="<%= v('basic_price') %>">
+  </div>
+  <div class="col-6 col-md-4">
+    <label class="form-label fw-semibold">GST %</label>
+    <input type="number" name="gst_rate" class="form-control" min="0.01" max="100" step="0.01" value="<%= v('gst_rate', 18) %>">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label fw-semibold">HSN Code</label>
+    <input type="text" name="hsn_code" class="form-control" inputmode="numeric" maxlength="8" pattern="[0-9]{4,8}" value="<%= v('hsn_code', '84295900') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Engine</label>
+    <input type="text" name="engine" class="form-control" value="<%= v('engine') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Transmission</label>
+    <input type="text" name="transmission" class="form-control" value="<%= v('transmission') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Front Tyre</label>
+    <input type="text" name="front_tyre" class="form-control" value="<%= v('front_tyre') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Rear Tyre</label>
+    <input type="text" name="rear_tyre" class="form-control" value="<%= v('rear_tyre') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Battery</label>
+    <input type="text" name="battery" class="form-control" value="<%= v('battery') %>">
+  </div>
+  <div class="col-md-6">
+    <label class="form-label fw-semibold">Weight</label>
+    <input type="text" name="weight" class="form-control" value="<%= v('weight') %>">
+  </div>
+  <div class="col-12">
+    <label class="form-label fw-semibold">Bucket</label>
+    <input type="text" name="bucket" class="form-control" value="<%= v('bucket') %>">
+  </div>
+  <div class="col-12">
+    <label class="form-label fw-semibold">Warranty</label>
+    <input type="text" name="warranty" class="form-control" value="<%= v('warranty', '1 Year or 2000 Hours Warranty as per company policy') %>">
+  </div>
+</div>

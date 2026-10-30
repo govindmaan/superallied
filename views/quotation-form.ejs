@@ -452,7 +452,13 @@ function loadMachine(id){
       document.getElementById('basic_price').value = price;
       const disp = document.getElementById('basic_price_display');
       if(disp) disp.textContent = '₹' + price.toLocaleString('en-IN');
-
+      // Tax rates follow the machine's GST % from Machine Master
+      const gst = parseFloat(m.gst_rate);
+      if (!isNaN(gst)) {
+        document.getElementById('cgst_rate').value = gst / 2;
+        document.getElementById('sgst_rate').value = gst / 2;
+        document.getElementById('igst_rate').value = gst;
+      }
       calcTotals();
     });
 }

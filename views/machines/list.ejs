@@ -2,7 +2,7 @@
 <%- include('../partials/sidebar', { active: 'machines', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i>Machine Management</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i>Machine Master</h4>
     <div class="d-flex gap-2">
       <a href="/machines/price-update" class="btn btn-outline-primary"><i class="bi bi-tag me-1"></i>Update Prices</a>
       <button class="btn btn-danger" onclick="openAddMachine()"><i class="bi bi-plus-lg me-1"></i>Add Machine</button>
@@ -14,34 +14,36 @@
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
-            <th>Model Name</th>
-            <th>Model Code</th>
-            <th>Basic Price</th>
-            <th>Specs</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th class="text-end">Basic Price</th>
+            <th class="text-end">GST %</th>
+            <th>HSN Code</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           <% machines.forEach(m => { %>
-          <tr>
+          <tr class="<%= m.active ? '' : 'text-muted' %>">
             <td class="fw-semibold"><%= m.display_name %></td>
-            <td><small class="text-muted font-monospace"><%= m.model_code %></small></td>
-            <td>₹<%= m.basic_price.toLocaleString('en-IN') %></td>
-            <td><span class="badge bg-secondary"><%= m.spec_count %> specs</span></td>
+            <td class="small"><%= m.model_series || '—' %></td>
+            <td class="text-end">₹<%= m.basic_price.toLocaleString('en-IN') %></td>
+            <td class="text-end"><%= m.gst_rate ?? 18 %>%</td>
+            <td class="small font-monospace"><%= m.hsn_code || '—' %></td>
             <td><span class="badge <%= m.active ? 'bg-success' : 'bg-secondary' %>"><%= m.active ? 'Active' : 'Inactive' %></span></td>
-            <td>
-              <a href="/machines/<%= m.id %>" class="btn btn-sm btn-outline-primary" title="View & Manage Specs">
-                <i class="bi bi-pencil"></i>
-              </a>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteMachine(<%= m.id %>, '<%= m.display_name.replace(/'/g, "\\'") %>')" title="Delete Machine">
-                <i class="bi bi-trash"></i>
-              </button>
+            <td class="text-end text-nowrap">
+              <a href="/machines/<%= m.id %>" class="btn btn-sm btn-outline-primary" title="View / Edit"><i class="bi bi-pencil"></i></a>
+              <% if (m.active) { %>
+              <button class="btn btn-sm btn-outline-danger" data-remove="<%= m.id %>" data-name="<%= m.display_name %>" title="Remove"><i class="bi bi-trash"></i></button>
+              <% } else { %>
+              <button class="btn btn-sm btn-outline-success" data-activate="<%= m.id %>" title="Reactivate"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <% } %>
             </td>
           </tr>
           <% }) %>
           <% if (!machines.length) { %>
-          <tr><td colspan="6" class="text-center text-muted py-4">No machines found. <a href="javascript:openAddMachine()" class="text-danger">Add one</a></td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4">No machines found. <a href="javascript:openAddMachine()" class="text-danger">Add one</a></td></tr>
           <% } %>
         </tbody>
       </table>
@@ -56,64 +58,7 @@
       <div class="modal-header"><h5 class="modal-title fw-bold">Add New Machine</h5></div>
       <div class="modal-body">
         <form id="addMachineForm">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Model Code <span class="text-danger">*</span></label>
-              <input type="text" name="model_code" class="form-control" required placeholder="e.g. BULL-SS-SD76-2WD">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Display Name <span class="text-danger">*</span></label>
-              <input type="text" name="display_name" class="form-control" required placeholder="e.g. BULL SUPERSMART 2WD">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Model Series</label>
-              <input type="text" name="model_series" class="form-control" placeholder="e.g. SuperSmart">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Basic Price <span class="text-danger">*</span></label>
-              <input type="number" name="basic_price" class="form-control" required placeholder="0">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Engine</label>
-              <input type="text" name="engine" class="form-control" placeholder="e.g. KOEL">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Transmission</label>
-              <input type="text" name="transmission" class="form-control" placeholder="e.g. 2WD, 4WD">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Rear Axle</label>
-              <input type="text" name="rear_axle" class="form-control" placeholder="">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Pump</label>
-              <input type="text" name="pump" class="form-control" placeholder="">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Front Tyre</label>
-              <input type="text" name="front_tyre" class="form-control" placeholder="">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Rear Tyre</label>
-              <input type="text" name="rear_tyre" class="form-control" placeholder="">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Battery</label>
-              <input type="text" name="battery" class="form-control" placeholder="">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Weight</label>
-              <input type="text" name="weight" class="form-control" placeholder="">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Bucket</label>
-              <input type="text" name="bucket" class="form-control" placeholder="">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Warranty</label>
-              <input type="text" name="warranty" class="form-control" value="1 Year or 2000 Hours Warranty as per company policy">
-            </div>
-          </div>
+          <%- include('_fields', { m: null, categories }) %>
         </form>
       </div>
       <div class="modal-footer">
@@ -137,6 +82,7 @@ function closeAddMachine() {
 
 async function saveMachine() {
   const form = document.getElementById('addMachineForm');
+  if (!form.reportValidity()) return;
   const data = new FormData(form);
   const obj = Object.fromEntries(data);
 
@@ -154,15 +100,18 @@ async function saveMachine() {
   }
 }
 
-async function deleteMachine(id, name) {
-  if (!confirm(`Delete machine "${name}" and all its specs?`)) return;
-
-  const resp = await fetch(`/machines/${id}`, { method: 'DELETE' }).then(r => r.json());
-  if (resp.ok) {
-    location.reload();
-  } else {
-    alert('Error: ' + resp.error);
-  }
-}
+document.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
+  if (!confirm(`Remove machine "${b.dataset.name}"?\n\nIf it has been used on quotations it will be deactivated instead, and those quotations stay as they are.`)) return;
+  const resp = await fetch(`/machines/${b.dataset.remove}`, { method: 'DELETE' }).then(r => r.json());
+  if (!resp.ok) return alert('Error: ' + resp.error);
+  if (resp.deactivated) alert(`Used on ${resp.used} quotation(s), so it was deactivated. It no longer appears on new quotations.`);
+  location.reload();
+}));
+document.querySelectorAll('[data-activate]').forEach(b => b.addEventListener('click', async () => {
+  const resp = await fetch(`/machines/${b.dataset.activate}/active`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: true })
+  }).then(r => r.json());
+  resp.ok ? location.reload() : alert('Error: ' + resp.error);
+}));
 </script>
 </body></html>

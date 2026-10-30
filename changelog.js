@@ -4,6 +4,15 @@
 
 module.exports = [
   {
+    date: '2026-10-30',
+    items: [
+      { commit: '', type: 'improved', title: 'Machine Master: add and remove machines',
+        details: ['Form fields: Name, Category, Basic Price, GST %, HSN Code, Engine, Transmission, Front Tyre, Rear Tyre, Battery, Weight, Bucket, Warranty.',
+                  'A machine used on quotations is deactivated instead of deleted, and can be reactivated.',
+                  'The machine\'s GST % fills in the tax rates on a new quotation.'] },
+    ],
+  },
+  {
     date: '2026-10-27',
     items: [
       { commit: '', type: 'improved', title: 'Sidebar reorganised',
