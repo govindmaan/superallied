@@ -1,0 +1,145 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'myleads', user }) %>
+<%
+  const digits = (lead.phone || '').replace(/\D/g,'').slice(-10);
+  const waHref = digits.length === 10 ? ('https://wa.me/91' + digits) : '';
+  const fmt = (d) => d ? new Date((d.length>10?d.replace(' ','T'):d+'T00:00:00')+'Z').toLocaleString('en-IN',{day:'numeric',month:'short',hour: d.length>10?'numeric':undefined,minute:d.length>10?'2-digit':undefined,timeZone:'Asia/Kolkata'}) : '';
+%>
+<div class="main-content" style="max-width:620px">
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <a href="/my-leads" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>My Leads</a>
+
+  <!-- Lead card -->
+  <div class="card border-0 shadow-sm mt-2 mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h4 class="fw-bold mb-1"><%= lead.customer_name %></h4>
+          <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i><%= [lead.village_city, lead.district, lead.state].filter(Boolean).join(', ') || '—' %></div>
+        </div>
+        <% if (lead.interest_class) { %><span class="badge bg-<%= lead.interest_class==='HOT'?'danger':lead.interest_class==='WARM'?'warning text-dark':'secondary' %>"><%= lead.interest_class %></span><% } %>
+      </div>
+      <div class="row g-2 small mt-1">
+        <div class="col-6"><span class="text-muted">Enquiry No</span><br><span class="fw-semibold"><%= lead.enquiry_number %></span></div>
+        <div class="col-6"><span class="text-muted">Machine</span><br><%= lead.machine_interested || '—' %></div>
+        <div class="col-6"><span class="text-muted">Timeline</span><br><%= lead.purchase_timeline || '—' %></div>
+        <div class="col-6"><span class="text-muted">Finance</span><br><%= lead.finance_mode || '—' %></div>
+        <div class="col-6"><span class="text-muted">From telecaller</span><br><%= lead.telecaller_name || '—' %></div>
+        <div class="col-6"><span class="text-muted">Status</span><br><span class="badge bg-light text-dark border"><%= lead.status %></span> · <%= lead.current_stage %></div>
+      </div>
+    </div>
+    <div class="card-body border-top pt-3">
+      <div class="row g-2">
+        <div class="col-6"><a href="tel:+91<%= digits %>" class="btn btn-success btn-lg w-100 py-2"><i class="bi bi-telephone-fill me-1"></i>Call</a></div>
+        <div class="col-6"><% if (waHref) { %><a href="<%= waHref %>" target="_blank" rel="noopener" class="btn btn-outline-success btn-lg w-100 py-2"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a><% } else { %><button class="btn btn-outline-secondary btn-lg w-100 py-2" disabled>No mobile</button><% } %></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <form method="post" action="/my-leads/<%= lead.id %>/contacted" class="flex-fill"><button class="btn btn-outline-primary w-100 btn-sm"><i class="bi bi-check2-circle me-1"></i>Mark Contacted</button></form>
+        <button class="btn btn-outline-info btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#meetingModal"><i class="bi bi-calendar-plus me-1"></i>Meeting / Demo</button>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <button class="btn btn-outline-secondary btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#remarkModal"><i class="bi bi-chat-left-text me-1"></i>Add Remark</button>
+        <button class="btn btn-outline-dark btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#statusModal"><i class="bi bi-flag me-1"></i>Change Status</button>
+        <button class="btn btn-outline-warning btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#reassignModal"><i class="bi bi-arrow-left-right me-1"></i>Request Reassign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telecaller qualification (read-only; salesperson cannot erase it) -->
+  <% if (followups.length) { %>
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-headset me-1"></i>Telecaller Notes</div>
+    <ul class="list-group list-group-flush">
+      <% followups.slice(0,5).forEach(f => { %>
+      <li class="list-group-item py-2 small"><span class="badge bg-info text-dark"><%= f.call_status %></span> <%= f.notes || '' %>
+        <% if (f.next_followup_date) { %><span class="text-muted">· next <%= f.next_followup_date %></span><% } %></li>
+      <% }) %>
+    </ul>
+  </div>
+  <% } %>
+
+  <!-- Activity history -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">Activity History</div>
+    <% if (!activity.length) { %><div class="card-body text-muted small">No activity yet.</div><% } %>
+    <ul class="list-group list-group-flush">
+      <% activity.forEach(a => { %>
+      <li class="list-group-item py-2 small">
+        <span class="badge bg-light text-dark border"><%= a.activity_type %></span>
+        <% if (a.prev_status && a.new_status && a.prev_status!==a.new_status) { %><span class="text-muted"><%= a.prev_status %>→<%= a.new_status %></span> <% } %>
+        <%= a.remarks || '' %>
+        <div class="text-muted" style="font-size:11px"><%= a.full_name || 'User' %> · <%= fmt(a.created_at) %></div>
+      </li>
+      <% }) %>
+    </ul>
+  </div>
+
+  <% if (visits.length) { %>
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">Meetings / Demos</div>
+    <ul class="list-group list-group-flush">
+      <% visits.forEach(v => { %>
+      <li class="list-group-item py-2 small"><% if (v.demo_given) { %><span class="badge bg-primary">DEMO</span><% } else { %><span class="badge bg-info text-dark">MEETING</span><% } %>
+        <%= v.visit_date || '' %> <%= v.visit_location || '' %> — <%= v.outcome || '' %></li>
+      <% }) %>
+    </ul>
+  </div>
+  <% } %>
+</div>
+
+<!-- Meeting / Demo modal -->
+<div class="modal fade" id="meetingModal" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
+  <form method="post" action="/my-leads/<%= lead.id %>/meeting">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Meeting / Demo</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="row g-2">
+        <div class="col-6"><label class="form-label small fw-semibold">Date</label><input type="date" name="visit_date" class="form-control form-control-sm"></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Location</label><input name="visit_location" class="form-control form-control-sm"></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Purpose</label>
+          <select name="purpose" class="form-select form-select-sm"><option>Meeting</option><option>Site visit</option><option>Showroom visit</option><option>Machine demonstration</option></select></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="demo_given" value="1" id="demoChk"><label class="form-check-label small" for="demoChk">Machine demonstration given</label></div></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Finance</label>
+          <select name="finance_mode" class="form-select form-select-sm"><option value="">—</option><option>Cash purchase</option><option>Finance required</option><option>Not decided</option></select></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Expected purchase</label><input type="date" name="expected_purchase_date" class="form-control form-control-sm"></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Next follow-up</label><input type="date" name="next_followup_date" class="form-control form-control-sm"></div>
+        <div class="col-12"><label class="form-label small fw-semibold">Outcome</label><textarea name="outcome" class="form-control form-control-sm" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary">Save</button></div>
+  </form>
+</div></div></div>
+
+<!-- Remark modal -->
+<div class="modal fade" id="remarkModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <form method="post" action="/my-leads/<%= lead.id %>/remark">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Add Remark</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><textarea name="body" class="form-control" rows="3" required></textarea></div>
+    <div class="modal-footer"><button class="btn btn-primary">Save</button></div>
+  </form>
+</div></div></div>
+
+<!-- Status modal -->
+<div class="modal fade" id="statusModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <form method="post" action="/my-leads/<%= lead.id %>/status">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Change Status</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <select name="status" class="form-select mb-2"><option value="active">Active</option><option value="won">Won (booked)</option><option value="lost">Lost</option></select>
+      <textarea name="notes" class="form-control" rows="2" placeholder="Note (optional)"></textarea>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary">Update</button></div>
+  </form>
+</div></div></div>
+
+<!-- Reassign request modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <form method="post" action="/my-leads/<%= lead.id %>/reassign-request">
+    <div class="modal-header"><h6 class="modal-title fw-bold">Request Reassignment</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><p class="small text-muted">This notifies an admin; it does not change the owner.</p><textarea name="reason" class="form-control" rows="2" placeholder="Why should this be reassigned?" required></textarea></div>
+    <div class="modal-footer"><button class="btn btn-warning">Send request</button></div>
+  </form>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

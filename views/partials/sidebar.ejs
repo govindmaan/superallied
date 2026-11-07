@@ -14,6 +14,7 @@
   const menu = [
     { id: 'sales', label: 'Sales', icon: 'bi-graph-up-arrow', groups: [
       { items: [
+        { href: '/my-leads',            icon: 'bi-person-badge-fill',      label: 'My Leads',           show: can('enquiries'), keys: ['myleads'] },
         { href: '/enquiries',           icon: 'bi-funnel-fill',            label: 'Enquiries',          show: isMgr || can('enquiries'), keys: ['enquiries'] },
         { href: '/enquiries/pipeline',  icon: 'bi-kanban',                 label: 'Enquiry Pipeline',   show: isMgr || can('enquiries') },
         { href: '/enquiries/dashboard', icon: 'bi-bar-chart-fill',         label: 'Enquiry Dashboard',  show: isMgr || can('enquiries') },
@@ -164,7 +165,7 @@
   ] : fieldUser ? [
     { href: '/', icon: 'bi-house-door-fill', label: 'Home', on: p === '/' },
     can('enquiries')
-      ? { href: '/enquiries', icon: 'bi-funnel-fill', label: 'Enquiries', on: p.startsWith('/enquiries') }
+      ? { href: '/my-leads', icon: 'bi-person-badge-fill', label: 'My Leads', on: p.startsWith('/my-leads') }
       : { href: '/customers', icon: 'bi-people-fill', label: 'Customers', on: p.startsWith('/customers') },
     { href: '/?visit=1', icon: 'bi-geo-alt-fill', label: 'Visit', center: true },
     hasPerm('attendance')

@@ -38,6 +38,7 @@ const routeMapRoutes        = require('./routes/route-map');
 const backupRoutes          = require('./routes/backup');
 const databankRoutes        = require('./routes/databank');
 const telecallerRoutes      = require('./routes/telecaller');
+const myleadsRoutes         = require('./routes/myleads');
 const accountsRoutes        = require('./routes/accounts');
 
 // Pre-encode images once at startup
@@ -1271,6 +1272,7 @@ app.use('/route-map',         requireLogin,                                   ro
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
 app.use('/telecaller',        requireLogin, requirePerm('telecaller'),        telecallerRoutes);
+app.use('/my-leads',          requireLogin, requirePerm('enquiries'),         myleadsRoutes);
 // Accounts: accountant and accounts manager profiles (and admin) only; the module also checks its own permissions
 function requireAccountsRole(req, res, next) {
   if (['admin', 'accountant', 'accounts_manager'].includes(res.locals.user?.role)) return next();

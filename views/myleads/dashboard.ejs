@@ -1,0 +1,67 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'myleads', user }) %>
+<div class="main-content" style="max-width:720px">
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <h4 class="fw-bold mb-1"><i class="bi bi-person-badge-fill text-primary me-2"></i>My Leads</h4>
+  <div class="text-muted small mb-3"><%= user.full_name || user.username %><% if (canSeeAll) { %> · <span class="badge bg-dark">all salespeople</span><% } %></div>
+
+  <% const cardDefs = [
+      ['New', cards.newLeads, 'bi-stars', 'primary', 'new'],
+      ['Hot', cards.hotLeads, 'bi-fire', 'danger', 'hot'],
+      ['Calls Pending', cards.callsPending, 'bi-telephone', 'warning', 'new'],
+      ['Meetings', cards.meetings, 'bi-calendar-check', 'info', 'meeting'],
+      ['Follow-ups Due', cards.followupsDue, 'bi-alarm', 'secondary', 'followup_due'],
+      ['Converted', cards.converted, 'bi-trophy', 'success', 'closed'],
+    ]; %>
+  <div class="row g-2 mb-3">
+    <% cardDefs.forEach(([label, val, icon, color, link]) => { %>
+    <div class="col-4">
+      <a href="/my-leads?f=<%= link %>" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 text-center">
+          <div class="card-body p-2">
+            <i class="bi <%= icon %> text-<%= color %> fs-5"></i>
+            <div class="fw-bold fs-4 lh-1"><%= val %></div>
+            <div class="text-muted" style="font-size:11px"><%= label %></div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <% }) %>
+  </div>
+
+  <% const tabs = [['new','New'],['today','Today'],['hot','Hot'],['warm','Warm'],['followup_due','Follow-up Due'],['meeting','Meeting'],['closed','Closed']]; %>
+  <div class="d-flex gap-1 overflow-auto pb-2 mb-2">
+    <% tabs.forEach(([k,lbl]) => { %>
+    <a href="/my-leads?f=<%= k %>" class="btn btn-sm <%= f===k ? 'btn-primary' : 'btn-outline-secondary' %> text-nowrap"><%= lbl %></a>
+    <% }) %>
+  </div>
+
+  <% if (!leads.length) { %><div class="text-muted text-center py-4">No leads in this view.</div><% } %>
+  <div class="d-flex flex-column gap-2">
+    <% leads.forEach(e => { %>
+    <a href="/my-leads/<%= e.id %>" class="text-decoration-none text-dark">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-bold"><%= e.customer_name %></div>
+              <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i><%= [e.village_city, e.district].filter(Boolean).join(', ') || '—' %></div>
+            </div>
+            <% if (e.interest_class) { %><span class="badge bg-<%= e.interest_class==='HOT'?'danger':e.interest_class==='WARM'?'warning text-dark':'secondary' %>"><%= e.interest_class %></span><% } %>
+          </div>
+          <div class="small mt-1"><i class="bi bi-truck me-1 text-muted"></i><%= e.machine_interested || '—' %><% if (e.status!=='active') { %> · <span class="badge bg-light text-dark border"><%= e.status %></span><% } %></div>
+          <% if (e.last_note) { %><div class="small text-muted text-truncate"><i class="bi bi-chat-left-text me-1"></i><%= e.last_note %></div><% } %>
+          <div class="small text-muted d-flex gap-3 mt-1">
+            <% if (e.next_followup) { %><span><i class="bi bi-alarm me-1"></i><%= e.next_followup %></span><% } %>
+            <% if (e.telecaller_name) { %><span><i class="bi bi-headset me-1"></i><%= e.telecaller_name %></span><% } %>
+          </div>
+        </div>
+      </div>
+    </a>
+    <% }) %>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
