@@ -1,0 +1,53 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'telecaller', user }) %>
+<div class="main-content" style="max-width:720px">
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="bi bi-telephone-inbound-fill text-primary me-2"></i>Telecaller</h4>
+      <div class="text-muted small"><%= user.full_name || user.username %> · <%= new Date(Date.now()+330*60000).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}) %></div>
+    </div>
+    <a href="/telecaller/new" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Enquiry</a>
+  </div>
+
+  <% const cards = [
+      ['Entered Today', stats.enteredToday, 'bi-pencil-square', 'primary'],
+      ['Pending Calls', stats.pendingCalls, 'bi-telephone-outbound', 'warning'],
+      ['Contacted Today', stats.contactedToday, 'bi-telephone-inbound', 'info'],
+      ['Hot Leads', stats.hotLeads, 'bi-fire', 'danger'],
+      ['Follow-ups Due', stats.followupsDue, 'bi-calendar-event', 'secondary'],
+      ['Forwarded to Sales', stats.forwardedToday, 'bi-send-check', 'success'],
+    ]; %>
+  <div class="row g-2 mb-4">
+    <% cards.forEach(([label, val, icon, color]) => { %>
+    <div class="col-4 col-md-4">
+      <div class="card border-0 shadow-sm h-100 text-center">
+        <div class="card-body p-2">
+          <i class="bi <%= icon %> text-<%= color %> fs-4"></i>
+          <div class="fw-bold fs-4 lh-1 mt-1"><%= val %></div>
+          <div class="text-muted" style="font-size:11px"><%= label %></div>
+        </div>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+
+  <a href="/telecaller/queue" class="btn btn-primary btn-lg w-100 py-3 shadow-sm mb-3">
+    <i class="bi bi-telephone-outbound-fill me-2"></i>START CALLING
+  </a>
+
+  <div class="d-flex gap-2">
+    <a href="/telecaller/new" class="btn btn-outline-secondary flex-fill"><i class="bi bi-plus-circle me-1"></i>New Enquiry</a>
+    <a href="/telecaller/history" class="btn btn-outline-secondary flex-fill"><i class="bi bi-clock-history me-1"></i>My History</a>
+  </div>
+  <% if (isAdminMgr) { %>
+  <div class="d-flex gap-2 mt-2">
+    <a href="/telecaller/territories" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-geo-alt me-1"></i>Territories</a>
+    <a href="/telecaller/config" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-sliders me-1"></i>Scripts & Pitches</a>
+  </div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

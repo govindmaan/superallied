@@ -50,6 +50,16 @@
         { href: '/databank/access', icon: 'bi-shield-lock', label: 'Databank Access',  show: isAdmin,         keys: ['databank-access'] },
       ]},
     ]},
+    { id: 'telecaller', label: 'Telecaller', icon: 'bi-telephone-inbound-fill', groups: [
+      { items: [
+        { href: '/telecaller',             icon: 'bi-grid-1x2-fill',      label: 'Telecaller Home',  show: can('telecaller'),       keys: ['telecaller'] },
+        { href: '/telecaller/new',         icon: 'bi-plus-circle-fill',   label: 'New Enquiry',      show: can('telecaller') },
+        { href: '/telecaller/queue',       icon: 'bi-telephone-outbound', label: 'Call Queue',       show: can('telecaller') },
+        { href: '/telecaller/history',     icon: 'bi-clock-history',      label: 'My Call History',  show: can('telecaller') },
+        { href: '/telecaller/territories', icon: 'bi-geo-alt-fill',       label: 'Territories',      show: can('telecaller_admin'), keys: ['telecaller-territories'] },
+        { href: '/telecaller/config',      icon: 'bi-sliders',            label: 'Scripts & Pitches',show: can('telecaller_admin'), keys: ['telecaller-config'] },
+      ]},
+    ]},
     { id: 'operations', label: 'Operations', icon: 'bi-gear-wide-connected', groups: [
       { items: [
         { href: '/form-22',               icon: 'bi-patch-check-fill', label: 'Form 22',        show: can('quotations'), keys: ['form22'] },
@@ -146,7 +156,12 @@
   // Bottom bar on phones for field staff (sales, service, office…); admin/manager/HR use the sidebar
   const fieldUser = user && !['admin','manager','hr','accountant','accounts_manager'].includes(user.role);
   const p = (typeof currentPath !== 'undefined' && currentPath) || '';
-  const bottomNav = fieldUser ? [
+  const bottomNav = (user && user.role === 'telecaller') ? [
+    { href: '/telecaller',         icon: 'bi-house-door-fill',     label: 'Home',       on: p === '/telecaller' },
+    { href: '/telecaller/queue',   icon: 'bi-telephone-outbound',  label: 'Call Queue', on: p.startsWith('/telecaller/call') },
+    { href: '/telecaller/new',     icon: 'bi-plus-circle-fill',    label: 'New',        center: true },
+    { href: '/telecaller/history', icon: 'bi-clock-history',       label: 'History',    on: p.startsWith('/telecaller/history') },
+  ] : fieldUser ? [
     { href: '/', icon: 'bi-house-door-fill', label: 'Home', on: p === '/' },
     can('enquiries')
       ? { href: '/enquiries', icon: 'bi-funnel-fill', label: 'Enquiries', on: p.startsWith('/enquiries') }

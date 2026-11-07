@@ -1,0 +1,68 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'telecaller', user }) %>
+<div class="main-content" style="max-width:560px">
+  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Telecaller Home</a>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible mt-2"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-plus-circle-fill text-primary me-2"></i>New Enquiry</h4>
+
+  <form method="post" action="/telecaller/new" class="card border-0 shadow-sm">
+    <div class="card-body">
+      <label class="form-label small fw-semibold">Customer Name *</label>
+      <input name="customer_name" class="form-control form-control-lg mb-2" required autofocus>
+
+      <label class="form-label small fw-semibold">Mobile Number *</label>
+      <input name="phone" type="tel" inputmode="numeric" class="form-control form-control-lg mb-1" maxlength="15" required
+             placeholder="10-digit mobile">
+      <div id="dupWarn" class="small text-danger mb-2" style="display:none"></div>
+
+      <label class="form-label small fw-semibold">Alternate Mobile</label>
+      <input name="alt_phone" type="tel" inputmode="numeric" class="form-control mb-2" maxlength="15">
+
+      <label class="form-label small fw-semibold">Machine Interested</label>
+      <input name="machine_interested" class="form-control mb-2" list="machines" placeholder="e.g. SD76 AC Cabin">
+      <datalist id="machines">
+        <option>SD76 AC Cabin</option><option>SD76 Supersmart</option><option>Challenger 55</option><option>Challenger Turbo</option>
+      </datalist>
+
+      <div class="row g-2">
+        <div class="col-6"><label class="form-label small fw-semibold">Village / Town</label><input name="village_city" class="form-control"></div>
+        <div class="col-6"><label class="form-label small fw-semibold">District</label><input name="district" class="form-control" list="districts"></div>
+      </div>
+      <datalist id="districts">
+        <option>Meerut</option><option>Baghpat</option><option>Muzaffarnagar</option><option>Shamli</option>
+        <option>Saharanpur</option><option>Hapur</option><option>Bijnor</option><option>Bulandshahar</option>
+      </datalist>
+      <div class="row g-2 mt-0">
+        <div class="col-6"><label class="form-label small fw-semibold">State</label><input name="state" class="form-control" value="Uttar Pradesh"></div>
+        <div class="col-6"><label class="form-label small fw-semibold">Lead Source</label>
+          <select name="lead_source" class="form-select">
+            <option>Telecaller</option><option>Bull CRM</option><option>Call</option><option>Reference</option>
+            <option>Advertisement</option><option>Exhibition</option><option>Walk-in</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-lg w-100 mt-3"><i class="bi bi-check-lg me-1"></i>Save & Call</button>
+    </div>
+  </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Live duplicate check against the existing enquiries endpoint
+  const phone = document.querySelector('[name=phone]'), warn = document.getElementById('dupWarn');
+  let t; phone.addEventListener('input', () => {
+    clearTimeout(t); const d = phone.value.replace(/\D/g,'').slice(-10);
+    if (d.length !== 10) { warn.style.display='none'; return; }
+    t = setTimeout(async () => {
+      try {
+        const r = await fetch('/enquiries/api/check-duplicate?phone=' + d).then(x => x.json());
+        if (Array.isArray(r) && r.length) {
+          warn.textContent = '⚠ ' + r.length + ' existing enquiry(s) for this number: ' + r.map(e => e.enquiry_number).join(', ');
+          warn.style.display = 'block';
+        } else { warn.style.display='none'; }
+      } catch(e) { warn.style.display='none'; }
+    }, 400);
+  });
+</script>
+</body></html>

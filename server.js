@@ -37,6 +37,7 @@ const partOrdersRoutes      = require('./routes/part-orders');
 const routeMapRoutes        = require('./routes/route-map');
 const backupRoutes          = require('./routes/backup');
 const databankRoutes        = require('./routes/databank');
+const telecallerRoutes      = require('./routes/telecaller');
 const accountsRoutes        = require('./routes/accounts');
 
 // Pre-encode images once at startup
@@ -362,6 +363,7 @@ app.get('/', requireLogin, (req, res) => {
   const role    = res.locals.user?.role;
   const isAdminLike = ['admin','manager','hr'].includes(role);
   if (['accountant', 'accounts_manager'].includes(role)) return res.redirect('/accounts');
+  if (role === 'telecaller') return res.redirect('/telecaller');
   const uid     = req.session.userId;
   const today   = new Date().toLocaleDateString('en-CA');
 
@@ -950,7 +952,7 @@ app.post('/users', requireLogin, requireAdmin, (req, res) => {
     return res.redirect('/users/new');
   }
   const hash = bcrypt.hashSync(password, 10);
-  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager'];
+  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller'];
   const safeRole = allowedRoles.includes(role) ? role : 'sales';
   db.prepare('INSERT INTO users (username, password_hash, full_name, role, employee_code) VALUES (?,?,?,?,?)')
     .run(username.trim(), hash, full_name?.trim() || '', safeRole, nextEmployeeCode());
@@ -1268,6 +1270,7 @@ app.use('/part-orders',       requireLogin, requirePerm('spare_parts'),       pa
 app.use('/route-map',         requireLogin,                                   routeMapRoutes);
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
+app.use('/telecaller',        requireLogin, requirePerm('telecaller'),        telecallerRoutes);
 // Accounts: accountant and accounts manager profiles (and admin) only; the module also checks its own permissions
 function requireAccountsRole(req, res, next) {
   if (['admin', 'accountant', 'accounts_manager'].includes(res.locals.user?.role)) return next();

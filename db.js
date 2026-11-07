@@ -1433,6 +1433,114 @@ try { db.exec("ALTER TABLE databank ADD COLUMN first_seen DATE"); } catch(e) {}
 try { db.exec("ALTER TABLE databank_remarks ADD COLUMN source TEXT DEFAULT ''"); } catch(e) {}
 try { db.exec("ALTER TABLE databank_remarks ADD COLUMN activity_date DATE"); } catch(e) {}
 
+// ── Telecaller module ────────────────────────────────────────────────────────
+// The telecaller enters each fresh enquiry, calls the customer, qualifies the
+// lead and routes it to the area salesperson. Leads live in the existing
+// `enquiries` table; these columns carry the qualification captured on the call.
+try { db.exec("ALTER TABLE enquiries ADD COLUMN alt_phone TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN state TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN interest_class TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN purchase_timeline TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN finance_mode TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN existing_machine TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN meeting_requirement TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN preferred_contact_time TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN telecaller_id INTEGER REFERENCES users(id)"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN first_call_at DATETIME"); } catch(e) {}
+try { db.exec("ALTER TABLE enquiries ADD COLUMN qualified_at DATETIME"); } catch(e) {}
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS call_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enquiry_id INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
+    user_id    INTEGER REFERENCES users(id),
+    call_role  TEXT DEFAULT 'telecaller',
+    outcome    TEXT DEFAULT '',
+    interest_class TEXT DEFAULT '',
+    notes      TEXT DEFAULT '',
+    called_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_call_logs_enquiry ON call_logs(enquiry_id);
+  CREATE INDEX IF NOT EXISTS idx_call_logs_user    ON call_logs(user_id, called_at);
+
+  CREATE TABLE IF NOT EXISTS territories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    primary_user_id INTEGER REFERENCES users(id),
+    whatsapp_group_link TEXT DEFAULT '',
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS territory_districts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    territory_id INTEGER NOT NULL REFERENCES territories(id) ON DELETE CASCADE,
+    district TEXT NOT NULL UNIQUE COLLATE NOCASE
+  );
+  CREATE INDEX IF NOT EXISTS idx_territory_districts ON territory_districts(territory_id);
+
+  CREATE TABLE IF NOT EXISTS lead_shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enquiry_id INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
+    user_id    INTEGER REFERENCES users(id),
+    channel    TEXT DEFAULT 'group',
+    destination TEXT DEFAULT '',
+    message    TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_lead_shares_enquiry ON lead_shares(enquiry_id);
+
+  CREATE TABLE IF NOT EXISTS lead_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enquiry_id INTEGER NOT NULL REFERENCES enquiries(id) ON DELETE CASCADE,
+    user_id    INTEGER REFERENCES users(id),
+    activity_type TEXT NOT NULL,
+    prev_status   TEXT DEFAULT '',
+    new_status    TEXT DEFAULT '',
+    remarks       TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_lead_activity_enquiry ON lead_activity(enquiry_id);
+`);
+
+// Telecaller role: module access ('telecaller') for the telecaller; admin/manager
+// also manage scripts, pitches and territories ('telecaller_admin').
+insertPerm.run('telecaller', 'telecaller');
+insertPerm.run('manager', 'telecaller');
+insertPerm.run('manager', 'telecaller_admin');
+
+// Telecaller settings (admin-editable). The 3 pitch texts are pasted later, so
+// they seed empty; the calling script and WhatsApp templates seed with defaults.
+const tcDefaults = [
+  ['tc_script', JSON.stringify([
+    { q: 'Purchase requirement', opts: ['Planning to purchase', 'Already purchased', 'Just collecting information'] },
+    { q: 'Machine model', opts: ['SD76 AC Cabin', 'SD76 Supersmart', 'Challenger 55', 'Challenger Turbo', 'Other / Not decided'] },
+    { q: 'Purchase timeline', opts: ['Immediately', 'Within 7 days', 'Within 15 days', 'Within 30 days', 'Within 3 months', 'Later / Not decided'] },
+    { q: 'Location', opts: ['Village', 'Town', 'District', 'State'] },
+    { q: 'Existing machine', opts: ['First machine', 'Replacement', 'Additional machine', 'Already owns another brand'] },
+    { q: 'Finance requirement', opts: ['Cash purchase', 'Finance required', 'Not decided'] },
+    { q: 'Customer meeting', opts: ['Showroom visit', 'Site visit', 'Machine demonstration', 'Salesperson to call', 'Not required currently'] },
+  ])],
+  ['tc_pitch_filtering', ''],
+  ['tc_pitch_closing', ''],
+  ['tc_pitch_bull_promise', ''],
+  ['tc_wa_customer_template', 'Namaste ji,\n\nThank you for your enquiry regarding Bull Machines.\n\nWe are from Super Allied, authorised Bull Machines dealership, Meerut.\n\nOur sales team will contact you shortly to assist with your requirement.\n\nRegards,\nSuper Allied\nSales: 9917444488'],
+  ['tc_wa_group_default', ''],
+  ['tc_sales_phone', '9917444488'],
+];
+const tcInsertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+tcDefaults.forEach(([k, v]) => tcInsertSetting.run(k, v));
+
+// Route a lead to the salesperson who owns its district (district-level routing).
+// Returns a user id, or null when the district is unmapped (→ UNASSIGNED queue).
+function routeLeadByDistrict(district) {
+  if (!district || !String(district).trim()) return null;
+  const row = db.prepare(`SELECT t.primary_user_id AS uid
+    FROM territory_districts td JOIN territories t ON t.id = td.territory_id
+    WHERE td.district = ? COLLATE NOCASE AND t.active = 1`).get(String(district).trim());
+  return row && row.uid ? row.uid : null;
+}
+
 // Route map: GPS accuracy (m) for enquiry visits
 try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catch(e) {}
 
@@ -1474,4 +1582,4 @@ if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_empcode_v1'").get()) {
   } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Employee ID renumbering failed:', e.message); }
 }
 
-module.exports = { db, nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber };
+module.exports = { db, nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, routeLeadByDistrict };
