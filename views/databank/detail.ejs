@@ -13,7 +13,13 @@
           <h4 class="fw-bold mb-1"><%= r.name || 'Unknown name' %></h4>
           <div class="text-muted"><i class="bi bi-geo-alt me-1"></i><%= r.location || '—' %><% if (r.district) { %> · <%= r.district %><% } %></div>
         </div>
-        <a href="tel:+91<%= r.phone %>" class="btn btn-success"><i class="bi bi-telephone-fill me-1"></i><%= r.phone %></a>
+        <% const waDigits = (r.phone || '').replace(/\D/g,'').slice(-10); %>
+        <div class="d-flex flex-column gap-1">
+          <a href="tel:+91<%= r.phone %>" class="btn btn-success"><i class="bi bi-telephone-fill me-1"></i><%= r.phone %></a>
+          <% if (waDigits.length === 10) { %>
+          <a href="https://wa.me/91<%= waDigits %>" target="_blank" rel="noopener" class="btn btn-outline-success btn-sm"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
+          <% } %>
+        </div>
       </div>
       <hr>
       <div class="row g-3 small">
