@@ -186,6 +186,15 @@ function createQueries(acc) {
   // to each other, so they never change the balance.
   function ledger(customerId, { from, to } = {}) {
     const rows = [];
+    // Normalise a UTC DATETIME to its IST calendar date, so an event timestamped
+    // moments after a same-day dated row (e.g. a cancellation after its receipt)
+    // sorts on the same date and the seq tiebreak decides the order — not a
+    // UTC/IST day boundary. A plain YYYY-MM-DD is returned unchanged.
+    const istDate = (s) => {
+      if (!s) return '';
+      const d = new Date(String(s).replace(' ', 'T') + 'Z');
+      return isNaN(d) ? String(s).slice(0, 10) : new Date(d.getTime() + 330 * 60000).toISOString().slice(0, 10);
+    };
     const push = (date, doc, description, debit, credit, link, seq) => rows.push({ date, doc, description, debit, credit, link, seq });
     db.prepare(`SELECT * FROM acc_invoices WHERE customer_id=? AND status IN ('uploaded','verified','cancelled') AND uploaded_at IS NOT NULL`).all(customerId).forEach(i => {
       const label = { tax_invoice: 'Tally tax invoice', debit_note: 'Debit note', other: 'Tally document', credit_note: 'Credit note' }[i.doc_type];
@@ -193,7 +202,7 @@ function createQueries(acc) {
       if (i.doc_type === 'credit_note') push(i.invoice_date, i.invoice_number, label, 0, i.total_amount, link, 2);
       else push(i.invoice_date, i.invoice_number, label + (i.machine_details ? ' — ' + i.machine_details.slice(0, 60) : ''), i.total_amount, 0, link, 1);
       if (i.status === 'cancelled') {
-        const d = String(i.cancelled_at).slice(0, 10);
+        const d = istDate(i.cancelled_at);
         if (i.doc_type === 'credit_note') push(d, i.invoice_number, 'Credit note cancelled', i.total_amount, 0, link, 3);
         else push(d, i.invoice_number, 'Invoice cancelled', 0, i.total_amount, link, 3);
       }
@@ -204,13 +213,13 @@ function createQueries(acc) {
       const link = `/accounts/receipts/${p.receipt_id}`;
       const ref = p.reference ? ` (${p.reference})` : '';
       push(p.payment_date, p.receipt_number, `Receipt — ${p.mode.toUpperCase()}${ref}${p.mode === 'cheque' && p.clearance_status !== 'cleared' ? ' · cheque ' + p.clearance_status : ''}`, 0, p.amount, link, 2);
-      if (p.status === 'cancelled') push(String(p.decided_at || '').slice(0, 10) || p.payment_date, p.cancellation_number || p.receipt_number,
+      if (p.status === 'cancelled') push(istDate(p.decided_at) || p.payment_date, p.cancellation_number || p.receipt_number,
         p.clearance_status === 'bounced' ? 'Cheque bounced — receipt cancelled' : 'Receipt cancelled', p.amount, 0, link, 3);
       else if (p.clearance_status === 'bounced') push(p.clearance_date || p.payment_date, p.receipt_number, 'Cheque bounced', p.amount, 0, link, 3);
     });
     db.prepare(`SELECT a.*, i.invoice_number FROM acc_adjustments a JOIN acc_invoices i ON i.id=a.invoice_id
       WHERE i.customer_id=? AND a.status='approved'`).all(customerId).forEach(a => {
-      push(String(a.decided_at).slice(0, 10), a.invoice_number, `Approved ${a.adjustment_type.replace('_', '-')} — ${a.reason.slice(0, 60)}`, 0, a.amount, `/accounts/invoices/${a.invoice_id}`, 4);
+      push(istDate(a.decided_at), a.invoice_number, `Approved ${a.adjustment_type.replace('_', '-')} — ${a.reason.slice(0, 60)}`, 0, a.amount, `/accounts/invoices/${a.invoice_id}`, 4);
     });
     rows.sort((a, b) => a.date.localeCompare(b.date) || a.seq - b.seq);
     let bal = 0, opening = 0;
