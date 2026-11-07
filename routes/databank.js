@@ -41,12 +41,16 @@ function filters(qs) {
   if (qs.remark === 'none')    where.push("(last_remark = '' OR last_remark LIKE 'Machine:%')");
   if (qs.remark === 'machine') where.push("last_remark LIKE '%Machine:%'");
   if (qs.remark === 'mine')    where.push('remark_at IS NOT NULL');
+  // Bull CRM enquiry stage: "any" = has enquired at all; else an exact stage
+  if (qs.stage === 'any')      where.push("IFNULL(bull_stage,'') <> ''");
+  else if (qs.stage === 'none') where.push("IFNULL(bull_stage,'') = ''");
+  else if (qs.stage)           { where.push('bull_stage = ?'); params.push(qs.stage); }
   return { sql: where.join(' AND '), params };
 }
 
 // ── Area overview + search ────────────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const qs   = { q: (req.query.q || '').trim(), district: req.query.district || '', village: req.query.village || '', remark: req.query.remark || '' };
+  const qs   = { q: (req.query.q || '').trim(), district: req.query.district || '', village: req.query.village || '', remark: req.query.remark || '', stage: req.query.stage || '' };
   const sort = { name: 'name COLLATE NOCASE', recent: 'COALESCE(remark_at, last_activity) DESC, name COLLATE NOCASE' }[req.query.sort]
     || 'village COLLATE NOCASE, name COLLATE NOCASE';
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -57,7 +61,7 @@ router.get('/', (req, res) => {
     FROM databank WHERE ${f.sql} ORDER BY ${sort} LIMIT ? OFFSET ?`).all(...f.params, PAGE_SIZE, (page - 1) * PAGE_SIZE);
 
   // District cards: counts follow the search text / remark filter, not the chosen area
-  const fa = filters({ q: qs.q, remark: qs.remark });
+  const fa = filters({ q: qs.q, remark: qs.remark, stage: qs.stage });
   const districts = db.prepare(`SELECT COALESCE(NULLIF(district,''),'Unmapped') AS district, COUNT(*) AS c
     FROM databank WHERE ${fa.sql} GROUP BY 1 ORDER BY (district='' OR district='Unmapped'), c DESC`).all(...fa.params);
   const villages = qs.district
@@ -114,11 +118,15 @@ router.post('/import', adminOnly, (req, res) => {
       return key ? String(row[key]).trim() : '';
     };
 
+    const toISO = (v) => (String(v ?? '').match(/\d{4}-\d{2}-\d{2}/) || [null])[0];
     const get = db.prepare('SELECT * FROM databank WHERE phone=?');
-    const ins = db.prepare(`INSERT INTO databank (phone,name,location,village,district,last_remark,data_source,last_activity,search_text)
-      VALUES (?,?,?,?,?,?,?,?,?)`);
+    const ins = db.prepare(`INSERT INTO databank
+      (phone,name,location,village,district,last_remark,data_source,last_activity,
+       machine_interested,bull_stage,bull_status,lead_source,enquiry_count,first_seen,search_text)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const upd = db.prepare(`UPDATE databank SET name=?, location=?, village=?, district=?, last_remark=?, data_source=?,
-      last_activity=?, search_text=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`);
+      last_activity=?, machine_interested=?, bull_stage=?, bull_status=?, lead_source=?, enquiry_count=?, first_seen=?,
+      search_text=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`);
     let inserted = 0, updated = 0, skipped = 0;
 
     db.exec('BEGIN');
@@ -133,13 +141,19 @@ router.post('/import', adminOnly, (req, res) => {
           district:      pick(row, 'area (district)', 'district', 'area'),
           last_remark:   pick(row, 'last remark', 'remark', 'remarks'),
           data_source:   pick(row, 'data source', 'source') || `Import ${todayIST()}`,
-          last_activity: (pick(row, 'last activity', 'date').match(/^\d{4}-\d{2}-\d{2}/) || [null])[0],
+          last_activity: toISO(pick(row, 'last activity', 'date')),
+          machine:       pick(row, 'machine interested', 'machine', 'machine model', 'product', 'productgroup'),
+          stage:         pick(row, 'bull stage', 'stage', 'enquiry stage'),
+          status:        pick(row, 'bull status', 'status', 'enquiry status'),
+          source_name:   pick(row, 'lead source', 'leadsource'),
+          enq_count:     parseInt(pick(row, 'enquiry count', 'leads', 'enquiries')) || 0,
+          first_seen:    toISO(pick(row, 'first seen', 'first contact', 'first enquiry date')),
         };
         if (n.district === 'Unmapped') n.district = '';
         const e = get.get(phone);
         if (!e) {
           ins.run(n.phone, n.name, n.location, villageOf(n.location), n.district, n.last_remark, n.data_source,
-                  n.last_activity, searchText(n));
+                  n.last_activity, n.machine, n.stage, n.status, n.source_name, n.enq_count, n.first_seen, searchText(n));
           inserted++; continue;
         }
         // Existing record: fill gaps, merge sources; a remark added in the app is never overwritten
@@ -151,16 +165,53 @@ router.post('/import', adminOnly, (req, res) => {
           last_remark: e.remark_at ? e.last_remark : (n.last_remark || e.last_remark),
           data_source: [...new Set([...e.data_source.split('; '), ...n.data_source.split('; ')].filter(Boolean))].join('; '),
           last_activity: [e.last_activity, n.last_activity].filter(Boolean).sort().pop() || null,
+          machine_interested: n.machine || e.machine_interested || '',
+          bull_stage:  n.stage  || e.bull_stage  || '',
+          bull_status: n.status || e.bull_status || '',
+          lead_source: n.source_name || e.lead_source || '',
+          enquiry_count: Math.max(n.enq_count, e.enquiry_count || 0),
+          first_seen:  [e.first_seen, n.first_seen].filter(Boolean).sort()[0] || null,
         };
         upd.run(m.name, m.location, villageOf(m.location), m.district, m.last_remark, m.data_source,
-                m.last_activity, searchText(m), e.id);
+                m.last_activity, m.machine_interested, m.bull_stage, m.bull_status, m.lead_source,
+                m.enquiry_count, m.first_seen, searchText(m), e.id);
         updated++;
       }
-      db.exec('COMMIT');
-    } catch (e) { db.exec('ROLLBACK'); throw e; }
 
-    auditLog(req.session.userId, 'DATABANK_IMPORT', 'databank', '', `inserted=${inserted} updated=${updated} skipped=${skipped}`);
-    res.json({ ok: true, inserted, updated, skipped });
+      // ── Follow-up history sheet → databank_remarks (dated, source-tagged) ──────
+      // Optional second sheet; each row is one call/visit for a phone. Re-import
+      // safe: a phone + date + remark already present is skipped, not duplicated.
+      let remarksAdded = 0, remarksSkipped = 0;
+      const fuName = wb.SheetNames.find(n => /follow|history|timeline|remark/i.test(n));
+      if (fuName && fuName !== sheet) {
+        const fuRows = XLSX.utils.sheet_to_json(wb.Sheets[fuName], { defval: '', raw: false });
+        const idOf  = db.prepare('SELECT id FROM databank WHERE phone=?');
+        const exists = db.prepare('SELECT 1 FROM databank_remarks WHERE databank_id=? AND IFNULL(activity_date,\'\')=? AND remark=?');
+        const insR  = db.prepare(`INSERT INTO databank_remarks (databank_id, remark, created_by, created_at, source, activity_date)
+          VALUES (?,?,?,?,?,?)`);
+        for (const row of fuRows) {
+          const phone = cleanPhone(pick(row, 'phone', 'mobile', 'mobile no', 'contact no'));
+          if (!phone) { remarksSkipped++; continue; }
+          const rec = idOf.get(phone);
+          if (!rec) { remarksSkipped++; continue; }
+          const date = toISO(pick(row, 'activity date', 'date', 'followup date', 'salescall date', 'enquiry date'));
+          const type = pick(row, 'type');
+          const body = pick(row, 'remark', 'remarks', 'notes');
+          const stage = pick(row, 'stage / outcome', 'stage', 'outcome');
+          const remark = [type && `[${type}]`, stage && stage !== type && `(${stage})`, body].filter(Boolean).join(' ').trim();
+          if (!remark) { remarksSkipped++; continue; }
+          const src = pick(row, 'source') || 'Bull CRM Enquiry';
+          if (exists.get(rec.id, date || '', remark)) { remarksSkipped++; continue; }
+          insR.run(rec.id, remark, req.session.userId, (date ? date + ' 00:00:00' : todayIST()), src, date);
+          remarksAdded++;
+        }
+      }
+      db.exec('COMMIT');
+
+      auditLog(req.session.userId, 'DATABANK_IMPORT', 'databank', '',
+        `inserted=${inserted} updated=${updated} skipped=${skipped} remarks=${remarksAdded}/${remarksSkipped}`);
+      return res.json({ ok: true, inserted, updated, skipped, remarksAdded, remarksSkipped });
+    } catch (e) { db.exec('ROLLBACK'); throw e; }
   } catch (e) {
     res.json({ ok: false, error: e.message });
   }
@@ -185,7 +236,8 @@ router.get('/:id', (req, res) => {
   const r = db.prepare('SELECT * FROM databank WHERE id=?').get(req.params.id);
   if (!r) return res.redirect('/databank');
   const history = db.prepare(`SELECT dr.*, u.full_name, u.username FROM databank_remarks dr
-    LEFT JOIN users u ON u.id = dr.created_by WHERE dr.databank_id=? ORDER BY dr.created_at DESC`).all(r.id);
+    LEFT JOIN users u ON u.id = dr.created_by WHERE dr.databank_id=?
+    ORDER BY COALESCE(dr.activity_date, dr.created_at) DESC, dr.id DESC`).all(r.id);
   const enquiries = db.prepare('SELECT id, enquiry_number, current_stage, status FROM enquiries WHERE phone=? ORDER BY created_at DESC LIMIT 5').all(r.phone);
   res.render('databank/detail', { title: r.name || r.phone, r, history, enquiries, back: req.query.back || '/databank' });
 });

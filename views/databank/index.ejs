@@ -7,7 +7,7 @@
     return '/databank' + (s ? '?' + s : '');
   };
   const here = link({ page: page > 1 ? page : '' });
-  const filtered = qs.q || qs.district || qs.village || qs.remark;
+  const filtered = qs.q || qs.district || qs.village || qs.remark || qs.stage;
 %>
 <style>
   .db-chips { display:flex; flex-wrap:wrap; gap:6px; }
@@ -70,6 +70,17 @@
             <option value="none" <%= qs.remark==='none'?'selected':'' %>>Never called</option>
             <option value="machine" <%= qs.remark==='machine'?'selected':'' %>>Machine owners</option>
             <option value="mine" <%= qs.remark==='mine'?'selected':'' %>>Updated in app</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="stage" class="form-select" onchange="this.form.submit()" title="Bull CRM enquiry stage">
+            <option value="">Any enquiry stage</option>
+            <option value="any"  <%= qs.stage==='any' ?'selected':'' %>>Enquired (any stage)</option>
+            <option value="Open" <%= qs.stage==='Open'?'selected':'' %>>Open</option>
+            <option value="Won"  <%= qs.stage==='Won' ?'selected':'' %>>Won</option>
+            <option value="Lost" <%= qs.stage==='Lost'?'selected':'' %>>Lost</option>
+            <option value="Customer Not Interested" <%= qs.stage==='Customer Not Interested'?'selected':'' %>>Not interested</option>
+            <option value="none" <%= qs.stage==='none'?'selected':'' %>>Never enquired</option>
           </select>
         </div>
         <div class="col-6 col-md-auto">

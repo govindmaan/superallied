@@ -1419,6 +1419,20 @@ db.exec(`
 // Databank is granted per user by the admin (Databank → Access), not by role
 try { db.exec("ALTER TABLE users ADD COLUMN databank_access INTEGER DEFAULT 0"); } catch(e) {}
 
+// Databank: CRM enquiry fields carried in from an external CRM (e.g. Bull CRM).
+// These sit alongside the plain contact so the area view can show who has
+// actually enquired, on what machine, and how far they got.
+try { db.exec("ALTER TABLE databank ADD COLUMN machine_interested TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE databank ADD COLUMN bull_stage TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE databank ADD COLUMN bull_status TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE databank ADD COLUMN lead_source TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE databank ADD COLUMN enquiry_count INTEGER DEFAULT 0"); } catch(e) {}
+try { db.exec("ALTER TABLE databank ADD COLUMN first_seen DATE"); } catch(e) {}
+// Databank remarks: a source tag (which CRM / channel) and the real date the
+// activity happened, kept apart from created_at (when it was imported).
+try { db.exec("ALTER TABLE databank_remarks ADD COLUMN source TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE databank_remarks ADD COLUMN activity_date DATE"); } catch(e) {}
+
 // Route map: GPS accuracy (m) for enquiry visits
 try { db.exec("ALTER TABLE enquiry_visits ADD COLUMN gps_accuracy REAL"); } catch(e) {}
 

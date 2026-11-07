@@ -30,6 +30,33 @@
           <div class="text-muted"><%= r.data_source || '—' %></div>
         </div>
       </div>
+      <% const hasCrm = r.machine_interested || r.bull_stage || r.bull_status || r.lead_source || r.enquiry_count; %>
+      <% if (hasCrm) {
+           const stageColor = { 'Won':'success', 'Lost':'secondary', 'Customer Not Interested':'secondary', 'Open':'warning' }[r.bull_stage] || 'info'; %>
+      <hr>
+      <div class="row g-3 small">
+        <% if (r.bull_stage) { %>
+        <div class="col-auto">
+          <div class="text-muted fw-semibold">ENQUIRY STAGE</div>
+          <span class="badge bg-<%= stageColor %>"><%= r.bull_stage %></span>
+          <% if (r.bull_status) { %><span class="badge bg-light text-dark border"><%= r.bull_status %></span><% } %>
+        </div>
+        <% } %>
+        <% if (r.machine_interested) { %>
+        <div class="col-auto"><div class="text-muted fw-semibold">MACHINE</div><div><%= r.machine_interested %></div></div>
+        <% } %>
+        <% if (r.enquiry_count) { %>
+        <div class="col-auto"><div class="text-muted fw-semibold">ENQUIRIES</div><div><%= r.enquiry_count %></div></div>
+        <% } %>
+        <% if (r.lead_source) { %>
+        <div class="col-auto"><div class="text-muted fw-semibold">LEAD SOURCE</div><div><%= r.lead_source %></div></div>
+        <% } %>
+        <% if (r.first_seen) { %>
+        <div class="col-auto"><div class="text-muted fw-semibold">FIRST SEEN</div>
+          <div><%= new Date(r.first_seen + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) %></div></div>
+        <% } %>
+      </div>
+      <% } %>
       <% if (enquiries.length) { %>
       <div class="alert alert-info small mt-3 mb-0"><i class="bi bi-funnel me-1"></i>Already an enquiry:
         <% enquiries.forEach((e, i) => { %><%= i ? ', ' : '' %><a href="/enquiries/<%= e.id %>"><%= e.enquiry_number %></a> (<%= e.status %>)<% }) %>
@@ -53,10 +80,18 @@
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white fw-semibold">Remark history</div>
     <ul class="list-group list-group-flush">
-      <% history.forEach(h => { const t = dbTime(h.created_at); %>
+      <% history.forEach(h => {
+           const t = dbTime(h.created_at);
+           const when = h.activity_date
+             ? new Date(h.activity_date + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+             : t.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+           const who = h.source ? '' : (h.full_name || h.username || 'Unknown'); %>
       <li class="list-group-item">
         <div><%= h.remark %></div>
-        <div class="text-muted small"><%= h.full_name || h.username || 'Unknown' %> · <%= t.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></div>
+        <div class="text-muted small">
+          <% if (h.source) { %><span class="badge bg-light text-dark border me-1"><%= h.source %></span><% } %>
+          <%= who %><%= who ? ' · ' : '' %><%= when %>
+        </div>
       </li>
       <% }) %>
     </ul>
