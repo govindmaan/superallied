@@ -270,6 +270,73 @@ router.get('/history', (req, res) => {
   res.render('telecaller/history', { title: 'My Call History', rows });
 });
 
+// ── Management reporting: funnel + telecaller & salesperson performance ───────
+router.get('/reports', adminOnly, (req, res) => {
+  const t = todayIST();
+  const d30 = new Date(Date.now() + 330 * 60000 - 29 * 86400000).toISOString().slice(0, 10);
+  const from = (req.query.from || '').match(/^\d{4}-\d{2}-\d{2}$/) ? req.query.from : d30;
+  const to   = (req.query.to || '').match(/^\d{4}-\d{2}-\d{2}$/) ? req.query.to : t;
+  // Lead cohort = enquiries created in the window (so the funnel is coherent)
+  const cohort = `date(e.created_at,'+330 minutes') BETWEEN '${from}' AND '${to}'`;
+  const distinct = (extra) => db.prepare(`SELECT COUNT(DISTINCT e.id) c FROM enquiries e WHERE ${cohort} ${extra}`).get().c;
+
+  // Funnel (each step counts unique leads, except "calls attempted" = raw attempts)
+  const callsAttempted = db.prepare(`SELECT COUNT(*) c FROM call_logs cl JOIN enquiries e ON e.id=cl.enquiry_id WHERE ${cohort}`).get().c;
+  const funnel = [
+    ['CRM Enquiries',       distinct('')],
+    ['Calls Attempted',     callsAttempted],
+    ['Connected',           distinct(`AND EXISTS (SELECT 1 FROM call_logs cl WHERE cl.enquiry_id=e.id AND cl.outcome='Connected')`)],
+    ['Qualified',           distinct(`AND IFNULL(e.interest_class,'') <> ''`)],
+    ['Assigned',            distinct('AND e.assigned_to IS NOT NULL')],
+    ['Salesperson Contacted', distinct(`AND EXISTS (SELECT 1 FROM call_logs cl WHERE cl.enquiry_id=e.id AND cl.call_role='salesperson')`)],
+    ['Meeting',             distinct(`AND EXISTS (SELECT 1 FROM enquiry_visits v WHERE v.enquiry_id=e.id)`)],
+    ['Demo',                distinct(`AND EXISTS (SELECT 1 FROM enquiry_visits v WHERE v.enquiry_id=e.id AND v.demo_given=1)`)],
+    ['Quotation',           distinct(`AND (e.quotation_sent=1 OR EXISTS (SELECT 1 FROM enquiry_quotations q WHERE q.enquiry_id=e.id))`)],
+    ['Booking',             distinct(`AND (e.status='won' OR EXISTS (SELECT 1 FROM enquiry_sales s WHERE s.enquiry_id=e.id))`)],
+  ];
+
+  // Telecaller performance (over leads each telecaller entered in the window)
+  const tc = db.prepare(`SELECT u.id, u.full_name,
+      COUNT(*) entered,
+      SUM(CASE WHEN e.interest_class='HOT'  THEN 1 ELSE 0 END) hot,
+      SUM(CASE WHEN e.interest_class='WARM' THEN 1 ELSE 0 END) warm,
+      SUM(CASE WHEN e.first_call_at IS NULL AND e.status='active' THEN 1 ELSE 0 END) pending,
+      SUM(CASE WHEN e.first_call_at IS NULL AND e.status='active'
+            AND julianday('now') - julianday(e.created_at) > 1 THEN 1 ELSE 0 END) sla_breach,
+      AVG(CASE WHEN e.first_call_at IS NOT NULL THEN (julianday(e.first_call_at)-julianday(e.created_at))*24 END) avg_hrs
+    FROM enquiries e JOIN users u ON u.id=e.telecaller_id
+    WHERE e.telecaller_id IS NOT NULL AND ${cohort}
+    GROUP BY u.id ORDER BY entered DESC`).all();
+  const tcCalls = db.prepare(`SELECT cl.user_id uid, COUNT(*) attempts,
+      SUM(CASE WHEN cl.outcome='Connected' THEN 1 ELSE 0 END) connected,
+      COUNT(DISTINCT CASE WHEN cl.outcome='Connected' THEN cl.enquiry_id END) uniq_connected
+    FROM call_logs cl WHERE cl.call_role='telecaller' AND date(cl.called_at,'+330 minutes') BETWEEN '${from}' AND '${to}'
+    GROUP BY cl.user_id`).all();
+  const tcMap = Object.fromEntries(tcCalls.map(r => [r.uid, r]));
+  tc.forEach(r => { const c = tcMap[r.id] || {}; r.attempts = c.attempts || 0; r.connected = c.connected || 0; r.uniq_connected = c.uniq_connected || 0;
+    r.avg_hrs = r.avg_hrs == null ? null : Math.round(r.avg_hrs * 10) / 10; });
+
+  // Salesperson performance (over leads assigned to them in the window)
+  const sp = db.prepare(`SELECT u.id, u.full_name,
+      COUNT(*) received,
+      SUM(CASE WHEN e.status='won' THEN 1 ELSE 0 END) converted,
+      SUM(CASE WHEN e.status='active' THEN 1 ELSE 0 END) pending,
+      SUM(CASE WHEN EXISTS (SELECT 1 FROM call_logs cl WHERE cl.enquiry_id=e.id AND cl.call_role='salesperson') THEN 1 ELSE 0 END) contacted,
+      SUM(CASE WHEN EXISTS (SELECT 1 FROM enquiry_visits v WHERE v.enquiry_id=e.id) THEN 1 ELSE 0 END) meetings,
+      SUM(CASE WHEN EXISTS (SELECT 1 FROM enquiry_visits v WHERE v.enquiry_id=e.id AND v.demo_given=1) THEN 1 ELSE 0 END) demos,
+      SUM(CASE WHEN e.status='active'
+            AND NOT EXISTS (SELECT 1 FROM call_logs cl WHERE cl.enquiry_id=e.id AND cl.call_role='salesperson')
+            AND NOT EXISTS (SELECT 1 FROM enquiry_visits v WHERE v.enquiry_id=e.id) THEN 1 ELSE 0 END) not_followed
+    FROM enquiries e JOIN users u ON u.id=e.assigned_to
+    WHERE e.assigned_to IS NOT NULL AND date(COALESCE(e.qualified_at,e.created_at),'+330 minutes') BETWEEN '${from}' AND '${to}'
+    GROUP BY u.id ORDER BY received DESC`).all();
+
+  const unassigned = db.prepare(`SELECT COUNT(*) c FROM enquiries e WHERE ${cohort}
+    AND e.assigned_to IS NULL AND IFNULL(e.interest_class,'') IN ('HOT','WARM')`).get().c;
+
+  res.render('telecaller/reports', { title: 'Lead Reports', from, to, funnel, tc, sp, unassigned });
+});
+
 // ── Admin: script, pitches, WhatsApp templates ───────────────────────────────
 router.get('/config', adminOnly, (req, res) => {
   const s = getSettings();
