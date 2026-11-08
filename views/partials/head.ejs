@@ -11,5 +11,10 @@
   <link href="/style.css" rel="stylesheet">
   <script src="/i18n/<%= locals.lang || 'en' %>.js?v=<%= locals.i18nVersion || '' %>"></script>
   <script src="/lang.js?v=<%= locals.i18nVersion || '' %>" defer></script>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1d2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <% if (locals.user) { %><script src="/push.js?v=4" defer></script><% } %>
 </head>
 <body>

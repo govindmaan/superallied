@@ -6,6 +6,12 @@ module.exports = [
   {
     date: '2026-11-08',
     items: [
+      { commit: '', type: 'new', title: 'Push notifications on your phone',
+        details: ['Turn them on once per phone or computer: tap "Turn on" in the bar at the top, or go to My Profile → Notifications on this device.',
+                  '9:00 AM reminder to check in (if you have not yet) and 7:00 PM reminder to check out (if you checked in and have not checked out). Not on Sundays or on approved leave.',
+                  'Every app notification also arrives on your phone: expense paid, salary credited, spare quotation approved or rejected, leave decisions, leads and enquiries assigned, and more. Tap one to open the page.',
+                  'Fixed: spare quotation approval notifications were never delivered; they now arrive.',
+                  'iPhone: first add the app to the Home Screen (Share → Add to Home Screen) and open it from there.'] },
       { commit: '', type: 'new', title: 'Site visit heatmap (admin)',
         details: ['Human Resources → Visit Heatmap shows where site visits happen, for a day, week (Sunday–Saturday), month or year.',
                   'Use the arrows to move to the previous or next period, and pick one employee or all.',

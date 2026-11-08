@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog } = require('../db');
+const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog, createNotification } = require('../db');
 const { generatePDFWithLetterhead } = require('../pdf');
 const path = require('path');
 const fs   = require('fs');
@@ -263,15 +263,9 @@ router.post('/:id/submit-approval', (req, res) => {
   if (!q) return res.redirect('/spare-quotations');
   db.prepare("UPDATE spare_quotations SET approval_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
   const admins = db.prepare("SELECT id FROM users WHERE role='admin'").all();
-  admins.forEach(a => {
-    try {
-      db.prepare('INSERT INTO notifications (user_id,type,message,link) VALUES (?,?,?,?)').run(
-        a.id, 'approval_request',
-        `Quotation ${q.quotation_no} submitted for approval by ${res.locals.user?.full_name||'salesperson'}`,
-        `/spare-quotations/${q.id}`
-      );
-    } catch(e) {}
-  });
+  admins.forEach(a => createNotification(a.id, 'Spare quotation to approve',
+    `${q.quotation_no} submitted for approval by ${res.locals.user?.full_name || 'salesperson'}.`,
+    'approval_request', `/spare-quotations/${q.id}`));
   req.session.flash = { success: 'Submitted for approval. Admin has been notified.' };
   res.redirect(`/spare-quotations/${req.params.id}`);
 });
@@ -285,15 +279,10 @@ router.post('/:id/approve', (req, res) => {
   const newApproval = action === 'approve' ? 'approved' : 'rejected';
   db.prepare('UPDATE spare_quotations SET approval_status=?,approval_notes=?,approved_by=?,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?')
     .run(newApproval, notes||'', req.session.userId, req.params.id);
-  if (q.created_by) {
-    try {
-      db.prepare('INSERT INTO notifications (user_id,type,message,link) VALUES (?,?,?,?)').run(
-        q.created_by, newApproval,
-        `Your quotation ${q.quotation_no} has been ${newApproval}${notes ? ': ' + notes : ''}`,
-        `/spare-quotations/${q.id}`
-      );
-    } catch(e) {}
-  }
+  if (q.created_by) createNotification(q.created_by,
+    newApproval === 'approved' ? 'Quotation approved' : 'Quotation rejected',
+    `${q.quotation_no}${notes ? ' — ' + notes : ''}`, newApproval === 'approved' ? 'success' : 'warning',
+    `/spare-quotations/${q.id}`);
   req.session.flash = { success: `Quotation ${newApproval}.` };
   res.redirect(`/spare-quotations/${req.params.id}`);
 });

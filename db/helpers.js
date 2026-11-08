@@ -92,11 +92,13 @@ function getUserPermissions(role) {
   return db.prepare('SELECT permission FROM role_permissions WHERE role=?').all(role).map(r => r.permission);
 }
 
+// In-app notification, also pushed to the user's phones/browsers that have notifications on
 function createNotification(userId, title, body = '', type = 'info', link = '') {
   try {
     db.prepare('INSERT INTO notifications (user_id,title,body,type,link) VALUES (?,?,?,?,?)')
       .run(userId, title, body, type, link);
-  } catch(e) { /* non-critical */ }
+  } catch(e) { return; /* non-critical */ }
+  require('../lib/push').notifyUser(userId, { title, body, url: link || '/notifications', tag: type });
 }
 
 function nextEnquiryNumber() {

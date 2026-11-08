@@ -647,6 +647,25 @@ function createTables() {
       remarks       TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Web push: one row per browser/phone a user turned notifications on in
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh   TEXT NOT NULL,
+      auth     TEXT NOT NULL,
+      user_agent TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_sent_at DATETIME
+    );
+
+    -- Web push server keys and which daily reminders have gone out (kept apart
+    -- from settings, which every page reads)
+    CREATE TABLE IF NOT EXISTS push_state (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
   `);
 }
 

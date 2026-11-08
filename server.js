@@ -40,6 +40,7 @@ const databankRoutes        = require('./routes/databank');
 const telecallerRoutes      = require('./routes/telecaller');
 const myleadsRoutes         = require('./routes/myleads');
 const accountsRoutes        = require('./routes/accounts');
+const pushRoutes            = require('./routes/push');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -158,6 +159,7 @@ app.use('/attendance',    requireLogin, attendanceRoutes);
 app.use('/leaves',        requireLogin, leavesRoutes);
 app.use('/salary',        requireLogin, salaryRoutes);
 app.use('/notifications', requireLogin, notifyRoutes);
+app.use('/push',          requireLogin, pushRoutes);
 app.use('/hr',            requireLogin, requireManagerOrAdmin, hrRoutes);
 app.use('/visits',        requireLogin, visitsRoutes);
 app.use('/expenses',      requireLogin, requirePerm('expense_claim'), expensesRoutes);
@@ -195,6 +197,9 @@ app.get('/hr', requireLogin, (req, res) => {
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────────
+// 9:00 check-in and 19:00 check-out push reminders (lib/reminders.js)
+require('./lib/reminders').start();
+
 app.listen(PORT, () => {
   console.log('\n╔══════════════════════════════════════════════════╗');
   console.log('║   SUPER ALLIED — Quotation & CRM App             ║');

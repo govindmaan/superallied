@@ -349,7 +349,9 @@ router.post('/salary', (req, res) => {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(+user_id, month, b, h, a, gross, p, es, t, od, net, paid_on||null, remarks||'', req.session.userId);
 
-  createNotification(+user_id, `Salary Slip Ready — ${month}`,
+  if (paid_on) createNotification(+user_id, `Salary credited — ${month}`,
+    `₹${net.toLocaleString('en-IN')} credited on ${paid_on}. Your salary slip is ready.`, 'salary', '/salary');
+  else createNotification(+user_id, `Salary Slip Ready — ${month}`,
     `Your salary slip for ${month} is now available.`, 'salary', '/salary');
 
   req.session.flash = { success: `Salary saved for ${month}.` };
