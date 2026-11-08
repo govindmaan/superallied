@@ -117,6 +117,22 @@ module.exports = {
   'Partially paid': 'आंशिक भुगतान',
   'Paid': 'भुगतान हुआ',
 
+  // Site visit heatmap (admin)
+  'Visit Heatmap': 'विज़िट हीटमैप',
+  'Day': 'दिन',
+  'Year': 'वर्ष',
+  'Period': 'अवधि',
+  'All employees': 'सभी कर्मचारी',
+  'Previous': 'पिछला',
+  'Visits on map': 'मैप पर विज़िट',
+  'Without GPS (not shown)': 'बिना GPS (नहीं दिखाई गईं)',
+  'Site visits with GPS': 'GPS वाली साइट विज़िट',
+  'Show each visit': 'हर विज़िट दिखाएं',
+  'No site visits with GPS in this period.': 'इस अवधि में GPS वाली कोई साइट विज़िट नहीं।',
+  'Visits by employee': 'कर्मचारी अनुसार विज़िट',
+  'On map': 'मैप पर',
+  'Without GPS': 'बिना GPS',
+
   // Labels found missing in the page sweep
   'Login Credentials': 'लॉगिन विवरण',
   'HRA': 'HRA',

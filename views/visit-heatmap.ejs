@@ -1,0 +1,124 @@
+<%- include('partials/head', { title }) %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<%- include('partials/sidebar', { active: 'route', user }) %>
+<%
+  const periodLabel = { day: t('Day'), week: t('Week'), month: t('Month'), year: t('Year') };
+  const D = (s, opts) => new Date(s + 'T00:00:00Z').toLocaleDateString(locale, { timeZone: 'UTC', ...opts });
+  const heading = period === 'day'   ? D(range.from, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                : period === 'week'  ? D(range.from, { day: 'numeric', month: 'short' }) + ' – ' + D(range.to, { day: 'numeric', month: 'short', year: 'numeric' })
+                : period === 'month' ? D(range.from, { month: 'long', year: 'numeric' })
+                : range.from.slice(0, 4);
+  const q = (o) => '?' + new URLSearchParams({ period, date: anchor, ...(selUser ? { user: selUser } : {}), ...o });
+  const missing = total - points.length;
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-fire me-2 text-danger"></i><%= t("Visit Heatmap") %></h4>
+    <a href="/route-map" class="btn btn-sm btn-outline-secondary"><i class="bi bi-map me-1"></i><%= t("Route Maps") %></a>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-2">
+      <form method="get" class="row g-2 align-items-end">
+        <input type="hidden" name="period" value="<%= period %>">
+        <div class="col-12 col-md-auto">
+          <div class="btn-group btn-group-sm w-100" role="group" aria-label="<%= t("Period") %>">
+            <% periods.forEach(p => { %>
+            <a href="<%= q({ period: p }) %>" class="btn <%= p === period ? 'btn-danger' : 'btn-outline-secondary' %>" aria-pressed="<%= p === period %>"><%= periodLabel[p] %></a>
+            <% }) %>
+          </div>
+        </div>
+        <div class="col-6 col-md-auto">
+          <label class="form-label small text-muted mb-0" for="hmDate"><%= t("Date") %></label>
+          <input type="date" id="hmDate" name="date" class="form-control form-control-sm" value="<%= anchor %>" max="<%= today %>" onchange="this.form.submit()">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small text-muted mb-0" for="hmUser"><%= t("DSE / Employee") %></label>
+          <select id="hmUser" name="user" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value=""><%= t("All employees") %></option>
+            <% employees.forEach(e => { %><option value="<%= e.id %>" <%= selUser === e.id ? 'selected' : '' %>><%= e.full_name || e.username %></option><% }) %>
+          </select>
+        </div>
+        <div class="col-12 col-md-auto ms-md-auto d-flex flex-row align-items-center justify-content-between justify-content-md-end gap-2">
+          <a class="btn btn-sm btn-outline-secondary" href="<%= q({ date: range.prev }) %>" aria-label="<%= t("Previous") %>"><i class="bi bi-chevron-left"></i></a>
+          <span class="fw-semibold small text-nowrap"><%= heading %></span>
+          <% if (range.next <= today) { %>
+          <a class="btn btn-sm btn-outline-secondary" href="<%= q({ date: range.next }) %>" aria-label="<%= t("Next") %>"><i class="bi bi-chevron-right"></i></a>
+          <% } else { %><span class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-right"></i></span><% } %>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-4"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2">
+      <div class="small text-muted"><%= t("Visits on map") %></div><div class="fs-5 fw-bold"><%= points.length %></div></div></div></div>
+    <div class="col-4"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2">
+      <div class="small text-muted"><%= t("Without GPS (not shown)") %></div><div class="fs-5 fw-bold <%= missing ? 'text-warning' : '' %>"><%= missing %></div></div></div></div>
+    <div class="col-4"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2">
+      <div class="small text-muted"><%= t("Employees") %></div><div class="fs-5 fw-bold"><%= dses.length %></div></div></div></div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white d-flex align-items-center gap-3 py-2">
+      <span class="fw-semibold small"><%= t("Site visits with GPS") %></span>
+      <div class="form-check form-switch ms-auto mb-0">
+        <input class="form-check-input" type="checkbox" id="hmPoints">
+        <label class="form-check-label small" for="hmPoints"><%= t("Show each visit") %></label>
+      </div>
+    </div>
+    <div class="position-relative">
+      <div id="heatmap" style="height: 60vh; min-height: 360px;"></div>
+      <% if (!points.length) { %>
+      <div class="position-absolute top-50 start-50 translate-middle bg-white rounded shadow-sm px-3 py-2 small text-muted text-center" style="z-index: 500">
+        <%= t("No site visits with GPS in this period.") %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (dses.length) { %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-semibold small"><%= t("Visits by employee") %></div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 small align-middle">
+        <thead class="table-light"><tr><th><%= t("Employee") %></th><th class="text-end"><%= t("On map") %></th><th class="text-end"><%= t("Without GPS") %></th><th class="text-end"><%= t("Total") %></th></tr></thead>
+        <tbody>
+          <% dses.forEach(d => { %>
+          <tr><td><%= d.name %></td><td class="text-end num"><%= d.gps %></td><td class="text-end num <%= d.total - d.gps ? 'text-warning' : 'text-muted' %>"><%= d.total - d.gps %></td><td class="text-end num"><%= d.total %></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+(function () {
+  const points = <%- JSON.stringify(points).replace(/</g, '\\u003c') %>;
+  // Western UP (Meerut) when there is nothing to show
+  const map = L.map('heatmap').setView([29.0, 77.7], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+  if (!points.length) return;
+
+  // A single day has few points: make each one count for more so it still shows
+  const intensity = points.length < 20 ? 1 : 0.6;
+  L.heatLayer(points.map(p => [p.lat, p.lng, intensity]), {
+    radius: 22, blur: 18, maxZoom: 13, minOpacity: 0.35,
+    gradient: { 0.2: '#2c7bb6', 0.45: '#abd9e9', 0.65: '#fdae61', 0.85: '#f46d43', 1: '#d7191c' },
+  }).addTo(map);
+  map.fitBounds(L.latLngBounds(points.map(p => [p.lat, p.lng])), { padding: [30, 30], maxZoom: 14 });
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const when = s => new Date(s).toLocaleString((window.LOCALE || 'en-IN'), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+  const dots = L.layerGroup(points.map(p => L.circleMarker([p.lat, p.lng], { radius: 5, color: '#cc0000', weight: 1, fillOpacity: 0.8 })
+    .bindPopup(`<b>${esc(p.customer)}</b><br>${esc(p.dse)}<br><span class="text-muted">${esc(p.visitNo)} · ${when(p.time)}</span>`)));
+  document.getElementById('hmPoints').addEventListener('change', e => e.target.checked ? dots.addTo(map) : dots.remove());
+})();
+</script>
+</body></html>

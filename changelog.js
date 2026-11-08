@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-11-08',
     items: [
+      { commit: '', type: 'new', title: 'Site visit heatmap (admin)',
+        details: ['Human Resources → Visit Heatmap shows where site visits happen, for a day, week (Sunday–Saturday), month or year.',
+                  'Use the arrows to move to the previous or next period, and pick one employee or all.',
+                  'Only visits with GPS coordinates are plotted; the page shows how many had no GPS. Switch on "Show each visit" to see each point with customer, employee and time.'] },
       { commit: '', type: 'new', title: 'Hindi language option',
         details: ['Choose English or हिंदी from the language switch in the menu (or the button in the phone top bar, or on the login screen).',
                   'Menus, headings, buttons, forms, messages and help switch at once; anything you were typing is kept.',

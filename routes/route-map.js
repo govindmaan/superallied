@@ -291,4 +291,58 @@ router.get('/api/range', async (req, res) => {
   res.json({ user: { id: who.user.id, name: who.user.full_name || who.user.username }, from, to, days });
 });
 
+// ── Site visit heatmap (admin) ────────────────────────────────────────────────
+// Where site punch-ins happen over a day, week (Sunday–Saturday, as TA bills),
+// month or calendar year. Only visits with usable GPS coordinates are plotted;
+// the page says how many in the period had none.
+const PERIODS = ['day', 'week', 'month', 'year'];
+const ymd = (d) => d.toISOString().slice(0, 10);
+function periodRange(period, anchor) {
+  const d = new Date(anchor + 'T00:00:00Z');
+  let from, to;
+  if (period === 'day') from = to = new Date(d);
+  else if (period === 'week') { from = new Date(d); from.setUTCDate(d.getUTCDate() - d.getUTCDay()); to = new Date(from); to.setUTCDate(from.getUTCDate() + 6); }
+  else if (period === 'month') { from = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)); to = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)); }
+  else { from = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); to = new Date(Date.UTC(d.getUTCFullYear(), 11, 31)); }
+  // Anchors for the previous / next period
+  const prev = new Date(from), next = new Date(to);
+  prev.setUTCDate(prev.getUTCDate() - 1); next.setUTCDate(next.getUTCDate() + 1);
+  return { from: ymd(from), to: ymd(to), prev: ymd(prev), next: ymd(next) };
+}
+
+router.get('/heatmap', (req, res) => {
+  if (!canViewAll(res)) {
+    req.session.flash = { error: 'Only the admin can do this.' };
+    return res.redirect('/route-map');
+  }
+  const period = PERIODS.includes(req.query.period) ? req.query.period : 'month';
+  const anchor = isDate(req.query.date) ? req.query.date : todayIST();
+  const userId = parseInt(req.query.user, 10) || null;
+  const r = periodRange(period, anchor);
+
+  const rows = db.prepare(`SELECT v.id, v.user_id, v.customer_name, v.visit_time, v.lat, v.lng, u.full_name, u.username
+    FROM field_visits v JOIN users u ON u.id = v.user_id
+    WHERE date(v.visit_time, '+330 minutes') BETWEEN ? AND ? ${userId ? 'AND v.user_id = ?' : ''}
+    ORDER BY v.visit_time`).all(...[r.from, r.to, ...(userId ? [userId] : [])]);
+
+  const points = [], byUser = new Map();
+  for (const v of rows) {
+    const lat = v.lat == null ? NaN : Number(v.lat), lng = v.lng == null ? NaN : Number(v.lng);
+    const ok = validCoords(lat, lng);
+    const u = byUser.get(v.user_id) || { name: v.full_name || v.username, total: 0, gps: 0 };
+    u.total++; if (ok) u.gps++;
+    byUser.set(v.user_id, u);
+    if (ok) points.push({ lat, lng, customer: v.customer_name, dse: v.full_name || v.username, time: isoTime(v.visit_time),
+                          visitNo: `VIS-${String(v.id).padStart(5, '0')}` });
+  }
+  const employees = db.prepare(`SELECT u.id, u.full_name, u.username FROM users u
+    WHERE u.is_hr_active = 1 AND EXISTS (SELECT 1 FROM field_visits v WHERE v.user_id = u.id) ORDER BY u.full_name`).all();
+
+  res.render('visit-heatmap', {
+    title: 'Visit Heatmap', period, periods: PERIODS, anchor, range: r, today: todayIST(),
+    selUser: userId, employees, points, total: rows.length,
+    dses: [...byUser.values()].sort((a, b) => b.gps - a.gps || b.total - a.total),
+  });
+});
+
 module.exports = router;

@@ -89,6 +89,7 @@
         { href: '/notifications', icon: 'bi-bell-fill',            label: t('Notifications'), show: true, keys: ['notifications'], badge: unreadCount },
         { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: t('Attendance'),    show: hasPerm('attendance'), keys: ['attendance'] },
         { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
+        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin },
         { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: t('My Leaves'),     show: true, keys: ['leaves'] },
         { href: '/salary',        icon: 'bi-cash-coin',            label: t('My Salary'),     show: true, keys: ['salary'] },
         { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: t('ID Card'),   show: true, keys: ['id-card'] },
