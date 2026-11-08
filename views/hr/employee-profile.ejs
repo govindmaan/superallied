@@ -4,21 +4,21 @@
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
       <%= emp.full_name %>
-      <% if (emp.is_hr_active === 0) { %><span class="badge bg-secondary">Inactive</span><% } else { %><span class="badge bg-success">Active</span><% } %>
+      <% if (emp.is_hr_active === 0) { %><span class="badge bg-secondary"><%= t("Inactive") %></span><% } else { %><span class="badge bg-success"><%= t("Active") %></span><% } %>
     </h4>
     <div class="d-flex gap-2">
-      <a href="/hr/employees/<%= emp.id %>/id-card" class="btn btn-outline-danger"><i class="bi bi-credit-card-2-front me-1"></i>ID Card</a>
-      <a href="/hr/employees/<%= emp.id %>/edit" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Edit</a>
+      <a href="/hr/employees/<%= emp.id %>/id-card" class="btn btn-outline-danger"><i class="bi bi-credit-card-2-front me-1"></i><%= t("ID Card") %></a>
+      <a href="/hr/employees/<%= emp.id %>/edit" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i><%= t("Edit") %></a>
       <% if (emp.is_hr_active === 0) { %>
       <form method="POST" action="/hr/employees/<%= emp.id %>/activate" class="d-inline">
-        <button class="btn btn-outline-success" onclick="return confirm('Activate <%= emp.full_name %>? They will be able to log in again.')"><i class="bi bi-check-circle me-1"></i>Activate</button>
+        <button class="btn btn-outline-success" onclick="return confirm('Activate <%= emp.full_name %>? They will be able to log in again.')"><i class="bi bi-check-circle me-1"></i><%= t("Activate") %></button>
       </form>
       <% } else { %>
       <form method="POST" action="/hr/employees/<%= emp.id %>/deactivate" class="d-inline">
-        <button class="btn btn-outline-warning" onclick="return confirm('Deactivate <%= emp.full_name %>? They will no longer be able to log in. Their records are preserved.')"><i class="bi bi-slash-circle me-1"></i>Deactivate</button>
+        <button class="btn btn-outline-warning" onclick="return confirm('Deactivate <%= emp.full_name %>? They will no longer be able to log in. Their records are preserved.')"><i class="bi bi-slash-circle me-1"></i><%= t("Deactivate") %></button>
       </form>
       <% } %>
-      <a href="/hr/employees" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+      <a href="/hr/employees" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
     </div>
   </div>
 
@@ -41,11 +41,11 @@
 
       <!-- Quick stats -->
       <div class="card border-0 shadow-sm mt-3">
-        <div class="card-header bg-white fw-semibold small">This Month</div>
+        <div class="card-header bg-white fw-semibold small"><%= t("This Month") %></div>
         <div class="card-body">
-          <div class="d-flex justify-content-between"><span class="text-muted small">Attendance</span><strong><%= attStats?.present || 0 %> days</strong></div>
-          <div class="d-flex justify-content-between mt-1"><span class="text-muted small">Pending Leaves</span><strong><%= pendingLeaves %></strong></div>
-          <div class="d-flex justify-content-between mt-1"><span class="text-muted small">Last Net Salary</span><strong><%= lastSalary ? '₹'+formatINR(lastSalary.net_salary) : '—' %></strong></div>
+          <div class="d-flex justify-content-between"><span class="text-muted small"><%= t("Attendance") %></span><strong><%= attStats?.present || 0 %> <%= t("days") %></strong></div>
+          <div class="d-flex justify-content-between mt-1"><span class="text-muted small"><%= t("Pending Leaves") %></span><strong><%= pendingLeaves %></strong></div>
+          <div class="d-flex justify-content-between mt-1"><span class="text-muted small"><%= t("Last Net Salary") %></span><strong><%= lastSalary ? '₹'+formatINR(lastSalary.net_salary) : '—' %></strong></div>
         </div>
       </div>
     </div>
@@ -53,29 +53,29 @@
     <!-- Details -->
     <div class="col-md-8">
       <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white fw-semibold">Employee Details</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Employee Details") %></div>
         <div class="card-body">
           <dl class="row mb-0">
-            <dt class="col-5 text-muted small">Employee Code</dt><dd class="col-7 font-monospace"><%= emp.employee_code || '—' %></dd>
-            <dt class="col-5 text-muted small">Mobile</dt><dd class="col-7"><%= emp.mobile || '—' %></dd>
-            <dt class="col-5 text-muted small">Emergency Contact</dt><dd class="col-7 small"><%= emp.emergency_contact || '—' %></dd>
-            <dt class="col-5 text-muted small">Date of Joining</dt><dd class="col-7"><%= emp.date_of_joining || '—' %></dd>
-            <dt class="col-5 text-muted small">Reports To</dt><dd class="col-7"><%= manager?.full_name || '—' %></dd>
-            <dt class="col-5 text-muted small">Username</dt><dd class="col-7 font-monospace small"><%= emp.username %></dd>
-            <dt class="col-5 text-muted small">Status</dt>
-            <dd class="col-7"><span class="badge <%= emp.is_hr_active!==0?'bg-success':'bg-secondary' %>"><%= emp.is_hr_active!==0?'Active':'Inactive' %></span></dd>
+            <dt class="col-5 text-muted small"><%= t("Employee Code") %></dt><dd class="col-7 font-monospace"><%= emp.employee_code || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Mobile") %></dt><dd class="col-7"><%= emp.mobile || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Emergency Contact") %></dt><dd class="col-7 small"><%= emp.emergency_contact || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Date of Joining") %></dt><dd class="col-7"><%= emp.date_of_joining || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Reports To") %></dt><dd class="col-7"><%= manager?.full_name || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Username") %></dt><dd class="col-7 font-monospace small"><%= emp.username %></dd>
+            <dt class="col-5 text-muted small"><%= t("Status") %></dt>
+            <dd class="col-7"><span class="badge <%= emp.is_hr_active!==0?'bg-success':'bg-secondary' %>"><%= emp.is_hr_active!==0?t('Active'):t('Inactive') %></span></dd>
           </dl>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">Quick Actions</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Quick Actions") %></div>
         <div class="card-body d-flex flex-wrap gap-2">
-          <a href="/hr/attendance?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-check me-1"></i>Attendance</a>
-          <a href="/hr/leaves?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-x me-1"></i>Leaves</a>
-          <a href="/hr/salary?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-cash-coin me-1"></i>Salary</a>
-          <a href="/hr/employees/<%= emp.id %>/id-card/pdf" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf me-1"></i>ID Card PDF</a>
+          <a href="/hr/attendance?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-check me-1"></i><%= t("Attendance") %></a>
+          <a href="/hr/leaves?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-x me-1"></i><%= t("Leaves") %></a>
+          <a href="/hr/salary?emp=<%= emp.id %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-cash-coin me-1"></i><%= t("Salary") %></a>
+          <a href="/hr/employees/<%= emp.id %>/id-card/pdf" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-pdf me-1"></i><%= t("ID Card PDF") %></a>
         </div>
       </div>
     </div>

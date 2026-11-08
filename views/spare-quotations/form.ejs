@@ -2,9 +2,9 @@
 <%- include('../partials/sidebar', { active: 'spare-quotations', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-success"></i><%= quotation ? quotation.quotation_no : 'New Spare Part Quotation' %></h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-success"></i><%= quotation ? quotation.quotation_no : t('New Spare Part Quotation') %></h4>
     <a href="<%= quotation ? '/spare-quotations/' + quotation.id : '/spare-quotations' %>" class="btn btn-outline-secondary btn-sm">
-      <i class="bi bi-arrow-left me-1"></i>Back
+      <i class="bi bi-arrow-left me-1"></i><%= t("Back") %>
     </a>
   </div>
 
@@ -19,16 +19,16 @@
         <div class="card border-0 shadow-sm">
           <div class="card-header bg-primary text-white d-flex align-items-center gap-2">
             <span class="badge bg-white text-primary fw-bold">1</span>
-            <span class="fw-semibold">Machine Lookup</span>
+            <span class="fw-semibold"><%= t("Machine Lookup") %></span>
           </div>
           <div class="card-body">
             <div class="row g-2 align-items-end">
               <div class="col-md-3">
-                <label class="form-label small fw-semibold">Machine No</label>
+                <label class="form-label small fw-semibold"><%= t("Machine No") %></label>
                 <div class="input-group input-group-sm">
                   <input type="text" id="machineNoInput" name="machine_no" class="form-control"
                     value="<%= quotation?.machine_no || machine?.machine_no || '' %>"
-                    placeholder="e.g. BHL2025001">
+                    placeholder="<%= t("e.g. BHL2025001") %>">
                   <button type="button" class="btn btn-primary" onclick="lookupMachine()">
                     <i class="bi bi-search"></i>
                   </button>
@@ -36,45 +36,45 @@
                 <div id="machineMsg" class="small mt-1"></div>
               </div>
               <div class="col-md-3">
-                <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
+                <label class="form-label small fw-semibold"><%= t("Customer Name") %> <span class="text-danger">*</span></label>
                 <input name="customer_name" id="customerName" class="form-control form-control-sm" required
                   value="<%= quotation?.customer_name || machine?.customer_name || '' %>">
               </div>
               <div class="col-md-3">
-                <label class="form-label small fw-semibold">Contact / Mobile</label>
+                <label class="form-label small fw-semibold"><%= t("Contact / Mobile") %></label>
                 <input name="mobile" id="mobile" class="form-control form-control-sm"
                   value="<%= quotation?.mobile || machine?.mobile_1 || '' %>">
               </div>
               <div class="col-md-3">
-                <label class="form-label small fw-semibold">GST Number</label>
+                <label class="form-label small fw-semibold"><%= t("GST Number") %></label>
                 <input name="customer_gstin" id="customerGstin" class="form-control form-control-sm text-uppercase"
                   value="<%= quotation?.customer_gstin || machine?.gst_number || '' %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-semibold">Customer Address</label>
+                <label class="form-label small fw-semibold"><%= t("Customer Address") %></label>
                 <textarea name="customer_address" id="customerAddress" class="form-control form-control-sm" rows="2"><%= quotation?.customer_address || machine?.customer_address || '' %></textarea>
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Place of Supply</label>
+                <label class="form-label small fw-semibold"><%= t("Place of Supply") %></label>
                 <input name="place_of_supply" id="placeOfSupply" class="form-control form-control-sm"
                   value="<%= quotation?.place_of_supply || machine?.place_of_supply || '' %>">
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Tax Mode</label>
+                <label class="form-label small fw-semibold"><%= t("Tax Mode") %></label>
                 <select name="tax_mode" id="taxMode" class="form-select form-select-sm" onchange="recalcAll()">
-                  <option value="CGST_SGST" <%= (quotation?.tax_mode||'CGST_SGST')==='CGST_SGST'?'selected':'' %>>CGST + SGST</option>
-                  <option value="IGST" <%= quotation?.tax_mode==='IGST'?'selected':'' %>>IGST</option>
+                  <option value="CGST_SGST" <%= (quotation?.tax_mode||'CGST_SGST')==='CGST_SGST'?'selected':'' %>><%= t("CGST + SGST") %></option>
+                  <option value="IGST" <%= quotation?.tax_mode==='IGST'?'selected':'' %>><%= t("IGST") %></option>
                 </select>
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Contact Person</label>
+                <label class="form-label small fw-semibold"><%= t("Contact Person") %></label>
                 <input name="contact_person" id="contactPerson" class="form-control form-control-sm"
                   value="<%= quotation?.contact_person || machine?.contact_person || '' %>">
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Salesperson</label>
+                <label class="form-label small fw-semibold"><%= t("Salesperson") %></label>
                 <select name="salesperson_id" class="form-select form-select-sm">
-                  <option value="">— Select —</option>
+                  <option value=""><%= t("— Select —") %></option>
                   <% (salespersons||[]).forEach(sp => { %>
                   <option value="<%= sp.id %>"
                     <%= (quotation?.salesperson_id === sp.id || String(quotation?.salesperson_id)===String(sp.id)) ? 'selected' : '' %>>
@@ -84,7 +84,7 @@
                 </select>
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Quotation Date</label>
+                <label class="form-label small fw-semibold"><%= t("Quotation Date") %></label>
                 <input type="date" name="quotation_date" class="form-control form-control-sm"
                   value="<%= quotation?.quotation_date || new Date().toISOString().slice(0,10) %>">
               </div>
@@ -93,7 +93,7 @@
                   <input class="form-check-input" type="checkbox" name="show_discount" id="showDiscountToggle" role="switch"
                     <%= (quotation?.show_discount === 1) ? 'checked' : '' %>>
                   <label class="form-check-label small" for="showDiscountToggle">
-                    Show discount column in PDF
+                    <%= t("Show discount column in PDF") %>
                   </label>
                 </div>
               </div>
@@ -107,44 +107,43 @@
         <div class="card border-0 shadow-sm">
           <div class="card-header bg-warning text-dark d-flex align-items-center gap-2">
             <span class="badge bg-dark text-warning fw-bold">2</span>
-            <span class="fw-semibold">Search & Add Spare Parts</span>
+            <span class="fw-semibold"><%= t("Search & Add Spare Parts") %></span>
           </div>
           <div class="card-body">
             <div class="row g-2 align-items-end">
               <div class="col-md-5">
-                <label class="form-label small fw-semibold">Search Part (SAP No / RND No / Description)</label>
+                <label class="form-label small fw-semibold"><%= t("Search Part (SAP No / RND No / Description)") %></label>
                 <div class="position-relative">
-                  <input type="text" id="partSearch" class="form-control form-control-sm" placeholder="Start typing part number or description…" autocomplete="off" oninput="searchParts(this.value)">
+                  <input type="text" id="partSearch" class="form-control form-control-sm" placeholder="<%= t("Start typing part number or description…") %>" autocomplete="off" oninput="searchParts(this.value)">
                   <div id="partSuggestions" class="position-absolute bg-white border rounded shadow-sm w-100" style="z-index:1000;display:none;max-height:300px;overflow-y:auto;top:100%"></div>
                 </div>
               </div>
               <div class="col-md-1">
-                <label class="form-label small fw-semibold">Qty</label>
+                <label class="form-label small fw-semibold"><%= t("Qty") %></label>
                 <input type="number" id="addQty" class="form-control form-control-sm" value="1" min="1" step="1">
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Rate (Basic)</label>
+                <label class="form-label small fw-semibold"><%= t("Rate (Basic)") %></label>
                 <input type="number" id="addRate" class="form-control form-control-sm" value="0" step="0.01" oninput="previewAdd()">
               </div>
               <div class="col-md-2">
-                <label class="form-label small fw-semibold">Discount %</label>
+                <label class="form-label small fw-semibold"><%= t("Discount %") %></label>
                 <input type="number" id="addDiscount" class="form-control form-control-sm" value="0" min="0" max="100" step="0.01" oninput="previewAdd()">
               </div>
               <div class="col-md-2">
                 <button type="button" class="btn btn-warning text-dark w-100" onclick="addSelectedPart()">
-                  <i class="bi bi-plus-lg me-1"></i>Add Part
+                  <i class="bi bi-plus-lg me-1"></i><%= t("Add Part") %>
                 </button>
               </div>
             </div>
             <div id="selectedPartInfo" class="mt-2 p-2 bg-light rounded small d-none">
               <strong id="selPartDesc"></strong>
-              &nbsp;|&nbsp; SAP: <span id="selPartSap"></span>
-              &nbsp;|&nbsp; MRP Basic: ₹<span id="selPartMrp"></span>
+              <%= t(" | SAP:") %> <span id="selPartSap"></span>
+              <%= t(" | MRP Basic: ₹") %><span id="selPartMrp"></span>
               <% if (user && user.role === 'admin') { %>
-              &nbsp;|&nbsp; <span class="text-warning fw-semibold">NDP: ₹<span id="selPartNdp"></span></span>
+              <%= t(" | ") %> <span class="text-warning fw-semibold"><%= t("NDP: ₹") %><span id="selPartNdp"></span></span>
               <% } %>
-              &nbsp;|&nbsp; Tax: <span id="selPartTax"></span>%
-              &nbsp;|&nbsp; Stock: <span id="stockBadge" class="badge bg-secondary">—</span>
+              <%= t(" | Tax:") %> <span id="selPartTax"></span><%= t("% | Stock:") %> <span id="stockBadge" class="badge bg-secondary">—</span>
             </div>
           </div>
         </div>
@@ -156,31 +155,31 @@
           <div class="card-header bg-success text-white d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2">
               <span class="badge bg-white text-success fw-bold">3</span>
-              <span class="fw-semibold">Quotation Items</span>
+              <span class="fw-semibold"><%= t("Quotation Items") %></span>
             </div>
-            <span class="small" id="itemCount">0 parts</span>
+            <span class="small" id="itemCount"><%= t("0 parts") %></span>
           </div>
           <div class="table-responsive">
             <table class="table table-sm table-bordered mb-0" id="itemsTable">
               <thead class="table-light">
                 <tr>
                   <th style="width:30px">#</th>
-                  <th>Part No</th>
-                  <th>Description</th>
-                  <th>HSN</th>
-                  <th style="width:70px">Qty</th>
-                  <th style="width:100px">Basic Rate</th>
-                  <th style="width:80px">Disc %</th>
-                  <th style="width:80px">Disc Amt</th>
-                  <th style="width:60px">Tax %</th>
-                  <th style="width:90px">Tax Amt</th>
-                  <th style="width:90px">Net Rate</th>
-                  <th style="width:100px">Line Total</th>
+                  <th><%= t("Part No") %></th>
+                  <th><%= t("Description") %></th>
+                  <th><%= t("HSN") %></th>
+                  <th style="width:70px"><%= t("Qty") %></th>
+                  <th style="width:100px"><%= t("Basic Rate") %></th>
+                  <th style="width:80px"><%= t("Disc %") %></th>
+                  <th style="width:80px"><%= t("Disc Amt") %></th>
+                  <th style="width:60px"><%= t("Tax %") %></th>
+                  <th style="width:90px"><%= t("Tax Amt") %></th>
+                  <th style="width:90px"><%= t("Net Rate") %></th>
+                  <th style="width:100px"><%= t("Line Total") %></th>
                   <th style="width:30px"></th>
                 </tr>
               </thead>
               <tbody id="itemsTbody">
-                <tr id="emptyRow"><td colspan="13" class="text-center text-muted py-3">No parts added yet. Search and add parts above.</td></tr>
+                <tr id="emptyRow"><td colspan="13" class="text-center text-muted py-3"><%= t("No parts added yet. Search and add parts above.") %></td></tr>
               </tbody>
             </table>
           </div>
@@ -189,12 +188,12 @@
             <div class="row justify-content-end">
               <div class="col-md-4">
                 <table class="table table-sm mb-0">
-                  <tr><td class="text-muted">Total Basic</td><td class="text-end fw-semibold" id="totBasic">₹0.00</td></tr>
-                  <tr id="rowCgst"><td class="text-muted">CGST</td><td class="text-end" id="totCgst">₹0.00</td></tr>
-                  <tr id="rowSgst"><td class="text-muted">SGST</td><td class="text-end" id="totSgst">₹0.00</td></tr>
-                  <tr id="rowIgst" class="d-none"><td class="text-muted">IGST</td><td class="text-end" id="totIgst">₹0.00</td></tr>
-                  <tr class="d-none"><td class="text-muted small">Round Off</td><td class="text-end small" id="totRoundoff">₹0.00</td></tr>
-                  <tr class="table-success fw-bold"><td>Grand Total</td><td class="text-end" id="totGrand">₹0.00</td></tr>
+                  <tr><td class="text-muted"><%= t("Total Basic") %></td><td class="text-end fw-semibold" id="totBasic">₹0.00</td></tr>
+                  <tr id="rowCgst"><td class="text-muted"><%= t("CGST") %></td><td class="text-end" id="totCgst">₹0.00</td></tr>
+                  <tr id="rowSgst"><td class="text-muted"><%= t("SGST") %></td><td class="text-end" id="totSgst">₹0.00</td></tr>
+                  <tr id="rowIgst" class="d-none"><td class="text-muted"><%= t("IGST") %></td><td class="text-end" id="totIgst">₹0.00</td></tr>
+                  <tr class="d-none"><td class="text-muted small"><%= t("Round Off") %></td><td class="text-end small" id="totRoundoff">₹0.00</td></tr>
+                  <tr class="table-success fw-bold"><td><%= t("Grand Total") %></td><td class="text-end" id="totGrand">₹0.00</td></tr>
                 </table>
               </div>
             </div>
@@ -205,15 +204,15 @@
       <!-- Remarks & Terms -->
       <div class="col-md-6">
         <div class="card border-0 shadow-sm">
-          <div class="card-header bg-white fw-semibold small">Remarks & Validity</div>
+          <div class="card-header bg-white fw-semibold small"><%= t("Remarks & Validity") %></div>
           <div class="card-body">
             <div class="mb-2">
-              <label class="form-label small">Validity (days)</label>
+              <label class="form-label small"><%= t("Validity (days)") %></label>
               <input type="number" name="validity_days" class="form-control form-control-sm" style="max-width:100px"
                 value="<%= quotation?.validity_days || 7 %>">
             </div>
             <div>
-              <label class="form-label small">Remarks</label>
+              <label class="form-label small"><%= t("Remarks") %></label>
               <textarea name="remarks" class="form-control form-control-sm" rows="3"><%= quotation?.remarks || '' %></textarea>
             </div>
           </div>
@@ -221,7 +220,7 @@
       </div>
       <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white fw-semibold small">Terms & Conditions</div>
+          <div class="card-header bg-white fw-semibold small"><%= t("Terms & Conditions") %></div>
           <div class="card-body">
             <textarea name="terms" class="form-control form-control-sm" rows="5"
               ><%= quotation?.terms || 'Prices are subject to change without notice.\nGoods once sold will not be taken back.\nAll disputes subject to Meerut jurisdiction.' %></textarea>
@@ -231,9 +230,9 @@
 
       <!-- Submit -->
       <div class="col-12 d-flex gap-2 justify-content-end pb-3">
-        <a href="<%= quotation ? '/spare-quotations/' + quotation.id : '/spare-quotations' %>" class="btn btn-outline-secondary">Cancel</a>
+        <a href="<%= quotation ? '/spare-quotations/' + quotation.id : '/spare-quotations' %>" class="btn btn-outline-secondary"><%= t("Cancel") %></a>
         <button type="submit" class="btn btn-success px-4" onclick="prepareSubmit()">
-          <i class="bi bi-check-lg me-1"></i><%= quotation ? 'Save Changes' : 'Create Quotation' %>
+          <i class="bi bi-check-lg me-1"></i><%= quotation ? t('Save Changes') : t('Create Quotation') %>
         </button>
       </div>
     </div>
@@ -359,7 +358,7 @@ document.addEventListener('click', e => {
 
 // ── Add part to line items ──────────────────────────────────────────────────────
 function addSelectedPart() {
-  if (!selectedPart) { alert('Search and select a part first.'); return; }
+  if (!selectedPart) { alert(T('Search and select a part first.')); return; }
   const qty  = Math.max(1, Math.round(parseFloat(document.getElementById('addQty').value) || 1));
   const rate = parseFloat(document.getElementById('addRate').value) || 0;
   const disc = parseFloat(document.getElementById('addDiscount').value) || 0;

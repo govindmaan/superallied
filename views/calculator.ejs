@@ -2,8 +2,8 @@
 <%- include('partials/sidebar', { active: 'calculator', user }) %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-danger"></i>Profit / Dealer Landing Calculator</h4>
-    <p class="text-muted small mb-0 mt-1">Internal use only — not shown on quotation. Based on dealer purchase price from price list.</p>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-calculator me-2 text-danger"></i><%= t("Profit / Dealer Landing Calculator") %></h4>
+    <p class="text-muted small mb-0 mt-1"><%= t("Internal use only — not shown on quotation. Based on dealer purchase price from price list.") %></p>
   </div>
 
   <div class="row g-4">
@@ -12,11 +12,11 @@
 
       <!-- Machine Selection -->
       <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white fw-semibold">Machine</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Machine") %></div>
         <div class="card-body">
-          <label class="form-label small">Select from catalog (auto-fills purchase price)</label>
+          <label class="form-label small"><%= t("Select from catalog (auto-fills purchase price)") %></label>
           <select id="machineSelect" class="form-select form-select-sm mb-3" onchange="pickMachine(this)">
-            <option value="">— Select Machine —</option>
+            <option value=""><%= t("— Select Machine —") %></option>
             <% const series = [...new Set(machines.map(m=>m.model_series))];
                series.forEach(s => { %>
             <optgroup label="<%= s %>">
@@ -27,22 +27,22 @@
             <% }) %>
           </select>
 
-          <label class="form-label small fw-semibold">Basic Price (Purchase / Dealer Price) ₹</label>
+          <label class="form-label small fw-semibold"><%= t("Basic Price (Purchase / Dealer Price) ₹") %></label>
           <input type="number" id="i_basic" class="form-control" value="0" oninput="calc()">
         </div>
       </div>
 
       <!-- Purchase Cost -->
       <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white fw-semibold">Purchase Cost to Dealer</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Purchase Cost to Dealer") %></div>
         <div class="card-body">
           <div class="row g-2">
             <div class="col-8">
-              <label class="form-label small">Transit Insurance <span class="badge bg-secondary">Fixed</span></label>
+              <label class="form-label small"><%= t("Transit Insurance") %> <span class="badge bg-secondary"><%= t("Fixed") %></span></label>
               <input type="number" id="i_transit" class="form-control form-control-sm" value="2360" oninput="calc()">
             </div>
             <div class="col-4">
-              <label class="form-label small">GST Rate %</label>
+              <label class="form-label small"><%= t("GST Rate %") %></label>
               <input type="number" id="i_gst" class="form-control form-control-sm" value="18" step="0.01" oninput="calc()">
             </div>
           </div>
@@ -51,27 +51,27 @@
 
       <!-- Expenses -->
       <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white fw-semibold">Add: Expenses</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Add: Expenses") %></div>
         <div class="card-body">
           <div class="row g-2">
             <div class="col-6">
-              <label class="form-label small">Transport ₹</label>
+              <label class="form-label small"><%= t("Transport ₹") %></label>
               <input type="number" id="i_transport" class="form-control form-control-sm" value="0" oninput="calc()">
             </div>
             <div class="col-6">
-              <label class="form-label small">Insurance ₹</label>
+              <label class="form-label small"><%= t("Insurance ₹") %></label>
               <input type="number" id="i_insurance" class="form-control form-control-sm" value="0" oninput="calc()">
             </div>
             <div class="col-6">
-              <label class="form-label small">TCS Rate %</label>
+              <label class="form-label small"><%= t("TCS Rate %") %></label>
               <input type="number" id="i_tcs_rate" class="form-control form-control-sm" value="1" step="0.01" oninput="calc()">
             </div>
             <div class="col-6">
-              <label class="form-label small">RTO Charges ₹</label>
+              <label class="form-label small"><%= t("RTO Charges ₹") %></label>
               <input type="number" id="i_rto" class="form-control form-control-sm" value="0" oninput="calc()">
             </div>
             <div class="col-12">
-              <label class="form-label small">Handling Charges ₹</label>
+              <label class="form-label small"><%= t("Handling Charges ₹") %></label>
               <input type="number" id="i_handling" class="form-control form-control-sm" value="0" oninput="calc()">
             </div>
           </div>
@@ -80,11 +80,11 @@
 
       <!-- Selling Price -->
       <div class="card border-danger shadow-sm">
-        <div class="card-header bg-danger text-white fw-semibold">Selling Price (to Customer)</div>
+        <div class="card-header bg-danger text-white fw-semibold"><%= t("Selling Price (to Customer)") %></div>
         <div class="card-body">
           <input type="number" id="i_selling" class="form-control form-control-lg fw-bold"
-                 value="0" oninput="calc()" placeholder="Enter selling price...">
-          <small class="text-muted">Enter the price you'll quote to the customer</small>
+                 value="0" oninput="calc()" placeholder="<%= t("Enter selling price...") %>">
+          <small class="text-muted"><%= t("Enter the price you'll quote to the customer") %></small>
         </div>
       </div>
     </div>
@@ -93,90 +93,90 @@
     <div class="col-lg-7">
       <div class="card border-0 shadow-sm sticky-top" style="top:20px">
         <div class="card-header bg-dark text-white fw-semibold d-flex justify-content-between align-items-center">
-          <span>Live Calculation</span>
-          <button class="btn btn-sm btn-outline-light" onclick="resetAll()">Reset</button>
+          <span><%= t("Live Calculation") %></span>
+          <button class="btn btn-sm btn-outline-light" onclick="resetAll()"><%= t("Reset") %></button>
         </div>
         <div class="card-body p-0">
           <table class="table table-sm mb-0">
             <tbody>
               <!-- Purchase cost section -->
               <tr class="table-light">
-                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2">Purchase Cost (Dealer)</td>
+                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2"><%= t("Purchase Cost (Dealer)") %></td>
               </tr>
               <tr>
-                <td class="px-3">Basic Price</td>
+                <td class="px-3"><%= t("Basic Price") %></td>
                 <td class="text-end px-3 fw-semibold" id="r_basic">₹0</td>
               </tr>
               <tr>
-                <td class="px-3">Transit Insurance</td>
+                <td class="px-3"><%= t("Transit Insurance") %></td>
                 <td class="text-end px-3" id="r_transit">₹0</td>
               </tr>
               <tr class="table-secondary">
-                <td class="px-3 fw-bold">Total Basic (Pre-GST)</td>
+                <td class="px-3 fw-bold"><%= t("Total Basic (Pre-GST)") %></td>
                 <td class="text-end px-3 fw-bold" id="r_total_basic">₹0</td>
               </tr>
               <tr>
-                <td class="px-3" id="r_gst_label">GST @ 18%</td>
+                <td class="px-3" id="r_gst_label"><%= t("GST @ 18%") %></td>
                 <td class="text-end px-3" id="r_gst">₹0</td>
               </tr>
               <tr class="table-warning">
-                <td class="px-3 fw-bold">Price with GST <small class="text-muted">(Purchase Price)</small></td>
+                <td class="px-3 fw-bold"><%= t("Price with GST") %> <small class="text-muted"><%= t("(Purchase Price)") %></small></td>
                 <td class="text-end px-3 fw-bold" id="r_price_gst">₹0</td>
               </tr>
 
               <!-- Expenses section -->
               <tr class="table-light">
-                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2">Expenses</td>
+                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2"><%= t("Expenses") %></td>
               </tr>
               <tr>
-                <td class="px-3">Transport</td>
+                <td class="px-3"><%= t("Transport") %></td>
                 <td class="text-end px-3" id="r_transport">₹0</td>
               </tr>
               <tr>
-                <td class="px-3">Insurance</td>
+                <td class="px-3"><%= t("Insurance") %></td>
                 <td class="text-end px-3" id="r_insurance">₹0</td>
               </tr>
               <tr>
-                <td class="px-3" id="r_tcs_label">TCS @ 1%</td>
+                <td class="px-3" id="r_tcs_label"><%= t("TCS @ 1%") %></td>
                 <td class="text-end px-3" id="r_tcs">₹0</td>
               </tr>
               <tr>
-                <td class="px-3">RTO Charges</td>
+                <td class="px-3"><%= t("RTO Charges") %></td>
                 <td class="text-end px-3" id="r_rto">₹0</td>
               </tr>
               <tr>
-                <td class="px-3">Handling Charges</td>
+                <td class="px-3"><%= t("Handling Charges") %></td>
                 <td class="text-end px-3" id="r_handling">₹0</td>
               </tr>
               <tr class="table-secondary">
-                <td class="px-3 fw-bold">Total Expenses</td>
+                <td class="px-3 fw-bold"><%= t("Total Expenses") %></td>
                 <td class="text-end px-3 fw-bold" id="r_exp_total">₹0</td>
               </tr>
 
               <!-- Dealer Landing -->
               <tr class="table-danger">
-                <td class="px-3 fw-bold fs-6">Dealer Landing Price</td>
+                <td class="px-3 fw-bold fs-6"><%= t("Dealer Landing Price") %></td>
                 <td class="text-end px-3 fw-bold fs-6" id="r_landing">₹0</td>
               </tr>
 
               <!-- Profit section -->
               <tr class="table-light">
-                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2">Profit Analysis</td>
+                <td colspan="2" class="fw-bold text-uppercase small text-muted px-3 py-2"><%= t("Profit Analysis") %></td>
               </tr>
               <tr>
-                <td class="px-3">Selling Price</td>
+                <td class="px-3"><%= t("Selling Price") %></td>
                 <td class="text-end px-3 fw-semibold" id="r_selling">₹0</td>
               </tr>
               <tr>
-                <td class="px-3">Dealer Landing</td>
+                <td class="px-3"><%= t("Dealer Landing") %></td>
                 <td class="text-end px-3" id="r_landing2">₹0</td>
               </tr>
               <tr id="profitRow">
-                <td class="px-3 fw-bold fs-5">Profit</td>
+                <td class="px-3 fw-bold fs-5"><%= t("Profit") %></td>
                 <td class="text-end px-3 fw-bold fs-5" id="r_profit">₹0</td>
               </tr>
               <tr id="profitPctRow">
-                <td class="px-3 fw-semibold">Profit %</td>
+                <td class="px-3 fw-semibold"><%= t("Profit %") %></td>
                 <td class="text-end px-3" id="r_profit_pct">
                   <span class="badge bg-secondary fs-6">0.00%</span>
                 </td>

@@ -2,10 +2,10 @@
 <%- include('../partials/sidebar', { active: 'machines', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i>Machine Master</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i><%= t("Machine Master") %></h4>
     <div class="d-flex gap-2">
-      <a href="/machines/price-update" class="btn btn-outline-primary"><i class="bi bi-tag me-1"></i>Update Prices</a>
-      <button class="btn btn-danger" onclick="openAddMachine()"><i class="bi bi-plus-lg me-1"></i>Add Machine</button>
+      <a href="/machines/price-update" class="btn btn-outline-primary"><i class="bi bi-tag me-1"></i><%= t("Update Prices") %></a>
+      <button class="btn btn-danger" onclick="openAddMachine()"><i class="bi bi-plus-lg me-1"></i><%= t("Add Machine") %></button>
     </div>
   </div>
 
@@ -14,13 +14,13 @@
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th class="text-end">Basic Price</th>
-            <th class="text-end">GST %</th>
-            <th>HSN Code</th>
-            <th>Status</th>
-            <th class="text-end">Actions</th>
+            <th><%= t("Name") %></th>
+            <th><%= t("Category") %></th>
+            <th class="text-end"><%= t("Basic Price") %></th>
+            <th class="text-end"><%= t("GST %") %></th>
+            <th><%= t("HSN Code") %></th>
+            <th><%= t("Status") %></th>
+            <th class="text-end"><%= t("Actions") %></th>
           </tr>
         </thead>
         <tbody>
@@ -31,19 +31,19 @@
             <td class="text-end">₹<%= m.basic_price.toLocaleString('en-IN') %></td>
             <td class="text-end"><%= m.gst_rate ?? 18 %>%</td>
             <td class="small font-monospace"><%= m.hsn_code || '—' %></td>
-            <td><span class="badge <%= m.active ? 'bg-success' : 'bg-secondary' %>"><%= m.active ? 'Active' : 'Inactive' %></span></td>
+            <td><span class="badge <%= m.active ? 'bg-success' : 'bg-secondary' %>"><%= m.active ? t('Active') : t('Inactive') %></span></td>
             <td class="text-end text-nowrap">
-              <a href="/machines/<%= m.id %>" class="btn btn-sm btn-outline-primary" title="View / Edit"><i class="bi bi-pencil"></i></a>
+              <a href="/machines/<%= m.id %>" class="btn btn-sm btn-outline-primary" title="<%= t("View / Edit") %>"><i class="bi bi-pencil"></i></a>
               <% if (m.active) { %>
-              <button class="btn btn-sm btn-outline-danger" data-remove="<%= m.id %>" data-name="<%= m.display_name %>" title="Remove"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-outline-danger" data-remove="<%= m.id %>" data-name="<%= m.display_name %>" title="<%= t("Remove") %>"><i class="bi bi-trash"></i></button>
               <% } else { %>
-              <button class="btn btn-sm btn-outline-success" data-activate="<%= m.id %>" title="Reactivate"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <button class="btn btn-sm btn-outline-success" data-activate="<%= m.id %>" title="<%= t("Reactivate") %>"><i class="bi bi-arrow-counterclockwise"></i></button>
               <% } %>
             </td>
           </tr>
           <% }) %>
           <% if (!machines.length) { %>
-          <tr><td colspan="7" class="text-center text-muted py-4">No machines found. <a href="javascript:openAddMachine()" class="text-danger">Add one</a></td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4"><%= t("No machines found.") %> <a href="javascript:openAddMachine()" class="text-danger"><%= t("Add one") %></a></td></tr>
           <% } %>
         </tbody>
       </table>
@@ -55,15 +55,15 @@
 <div class="modal fade" id="addMachineModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title fw-bold">Add New Machine</h5></div>
+      <div class="modal-header"><h5 class="modal-title fw-bold"><%= t("Add New Machine") %></h5></div>
       <div class="modal-body">
         <form id="addMachineForm">
           <%- include('_fields', { m: null, categories }) %>
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" onclick="closeAddMachine()">Cancel</button>
-        <button type="button" class="btn btn-danger" onclick="saveMachine()"><i class="bi bi-check-lg me-1"></i>Add Machine</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeAddMachine()"><%= t("Cancel") %></button>
+        <button type="button" class="btn btn-danger" onclick="saveMachine()"><i class="bi bi-check-lg me-1"></i><%= t("Add Machine") %></button>
       </div>
     </div>
   </div>

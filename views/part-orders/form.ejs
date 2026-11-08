@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'part-orders', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-plus-fill me-2 text-primary"></i>New Spare Part Order</h4>
-    <a href="/part-orders" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-plus-fill me-2 text-primary"></i><%= t("New Spare Part Order") %></h4>
+    <a href="/part-orders" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash.error) { %>
@@ -15,15 +15,15 @@
     <!-- Step 1: Machine / Customer -->
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-primary text-white py-2 fw-semibold">
-        <i class="bi bi-truck me-2"></i>Step 1 — Machine & Customer
+        <i class="bi bi-truck me-2"></i><%= t("Step 1 — Machine & Customer") %>
       </div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Machine Number</label>
+            <label class="form-label small fw-semibold"><%= t("Machine Number") %></label>
             <div class="input-group">
               <input type="text" id="machineNo" name="machine_no" class="form-control"
-                placeholder="Enter machine no." autocomplete="off"
+                placeholder="<%= t("Enter machine no.") %>" autocomplete="off"
                 oninput="lookupMachine(this.value)">
               <span class="input-group-text bg-white" id="machineSpinner" style="display:none">
                 <span class="spinner-border spinner-border-sm text-secondary"></span>
@@ -32,16 +32,16 @@
             <div id="machineStatus" class="form-text mt-1"></div>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Customer Name</label>
-            <input type="text" id="customerName" name="customer_name" class="form-control" placeholder="Auto-filled or type manually">
+            <label class="form-label small fw-semibold"><%= t("Customer Name") %></label>
+            <input type="text" id="customerName" name="customer_name" class="form-control" placeholder="<%= t("Auto-filled or type manually") %>">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Mobile</label>
-            <input type="text" id="customerMobile" name="mobile" class="form-control" placeholder="Auto-filled or type manually">
+            <label class="form-label small fw-semibold"><%= t("Mobile") %></label>
+            <input type="text" id="customerMobile" name="mobile" class="form-control" placeholder="<%= t("Auto-filled or type manually") %>">
           </div>
           <div class="col-12">
-            <label class="form-label small fw-semibold">Address</label>
-            <input type="text" id="customerAddress" name="customer_address" class="form-control" placeholder="Auto-filled or type manually">
+            <label class="form-label small fw-semibold"><%= t("Address") %></label>
+            <input type="text" id="customerAddress" name="customer_address" class="form-control" placeholder="<%= t("Auto-filled or type manually") %>">
           </div>
         </div>
       </div>
@@ -50,30 +50,30 @@
     <!-- Step 2: Add Parts -->
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-warning text-dark py-2 fw-semibold">
-        <i class="bi bi-search me-2"></i>Step 2 — Search & Add Parts
+        <i class="bi bi-search me-2"></i><%= t("Step 2 — Search & Add Parts") %>
       </div>
       <div class="card-body">
         <div class="row g-2 align-items-end">
           <div class="col-md-6 position-relative">
-            <label class="form-label small fw-semibold">Search Part (SAP No / RND No / Description)</label>
+            <label class="form-label small fw-semibold"><%= t("Search Part (SAP No / RND No / Description)") %></label>
             <input type="text" id="partSearch" class="form-control"
-              placeholder="Start typing…" autocomplete="off"
+              placeholder="<%= t("Start typing…") %>" autocomplete="off"
               oninput="searchParts(this.value)">
             <div id="partSuggestions" class="position-absolute bg-white border rounded shadow-sm w-100"
               style="z-index:1000;display:none;max-height:280px;overflow-y:auto;top:100%"></div>
           </div>
           <div class="col-md-2">
-            <label class="form-label small fw-semibold">Qty</label>
+            <label class="form-label small fw-semibold"><%= t("Qty") %></label>
             <input type="number" id="addQty" class="form-control" value="1" min="1" step="1">
           </div>
           <div class="col-md-4">
             <button type="button" class="btn btn-warning text-dark w-100" onclick="addPart()">
-              <i class="bi bi-plus-lg me-1"></i>Add Part
+              <i class="bi bi-plus-lg me-1"></i><%= t("Add Part") %>
             </button>
           </div>
         </div>
         <div id="selectedPartBanner" class="mt-2 p-2 bg-light rounded small d-none">
-          Selected: <strong id="selPartLabel"></strong>
+          <%= t("Selected:") %> <strong id="selPartLabel"></strong>
           <span id="stockBadgeOrder" class="badge bg-secondary ms-2">—</span>
         </div>
       </div>
@@ -82,23 +82,23 @@
     <!-- Step 3: Order Items -->
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><i class="bi bi-list-check me-2"></i>Step 3 — Order Items</span>
-        <span id="itemCount" class="badge bg-white text-success fw-semibold">0 parts</span>
+        <span class="fw-semibold"><i class="bi bi-list-check me-2"></i><%= t("Step 3 — Order Items") %></span>
+        <span id="itemCount" class="badge bg-white text-success fw-semibold"><%= t("0 parts") %></span>
       </div>
       <div class="table-responsive">
         <table class="table table-sm mb-0 align-middle">
           <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>SAP Part No.</th>
-              <th>RND Part No.</th>
-              <th>Description</th>
-              <th style="width:100px">Qty</th>
+              <th><%= t("SAP Part No.") %></th>
+              <th><%= t("RND Part No.") %></th>
+              <th><%= t("Description") %></th>
+              <th style="width:100px"><%= t("Qty") %></th>
               <th style="width:50px"></th>
             </tr>
           </thead>
           <tbody id="itemsTbody">
-            <tr id="emptyRow"><td colspan="6" class="text-center text-muted py-3">No parts added yet.</td></tr>
+            <tr id="emptyRow"><td colspan="6" class="text-center text-muted py-3"><%= t("No parts added yet.") %></td></tr>
           </tbody>
         </table>
       </div>
@@ -107,19 +107,19 @@
     <!-- Step 4: Confirm -->
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-secondary text-white py-2 fw-semibold">
-        <i class="bi bi-check2-circle me-2"></i>Step 4 — Remarks & Place Order
+        <i class="bi bi-check2-circle me-2"></i><%= t("Step 4 — Remarks & Place Order") %>
       </div>
       <div class="card-body">
         <div class="mb-3">
-          <label class="form-label small fw-semibold">Remarks (optional)</label>
-          <textarea name="remarks" class="form-control" rows="2" placeholder="Any special instructions…"></textarea>
+          <label class="form-label small fw-semibold"><%= t("Remarks (optional)") %></label>
+          <textarea name="remarks" class="form-control" rows="2" placeholder="<%= t("Any special instructions…") %>"></textarea>
         </div>
         <div id="orderSummary" class="alert alert-info d-none mb-3">
           <strong id="summaryText"></strong>
         </div>
         <input type="hidden" name="items" id="itemsJson" value="[]">
         <button type="button" class="btn btn-primary px-4" onclick="submitOrder()">
-          <i class="bi bi-send-fill me-2"></i>Place Order
+          <i class="bi bi-send-fill me-2"></i><%= t("Place Order") %>
         </button>
       </div>
     </div>
@@ -219,7 +219,7 @@ async function selectPart(p) {
 
 // ── Add part to order ─────────────────────────────────────────────────────────
 function addPart() {
-  if (!selectedPart) { alert('Search and select a part first.'); return; }
+  if (!selectedPart) { alert(T('Search and select a part first.')); return; }
   const qty = Math.max(1, Math.round(parseFloat(document.getElementById('addQty').value) || 1));
 
   // If same part already in list, increase qty
@@ -282,9 +282,9 @@ function removeItem(i) {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 function submitOrder() {
-  if (!items.length) { alert('Add at least one part before placing the order.'); return; }
+  if (!items.length) { alert(T('Add at least one part before placing the order.')); return; }
   const cust = document.getElementById('customerName').value.trim();
-  if (!cust) { alert('Please enter a customer name.'); return; }
+  if (!cust) { alert(T('Please enter a customer name.')); return; }
   document.getElementById('itemsJson').value = JSON.stringify(items);
   document.getElementById('orderForm').submit();
 }

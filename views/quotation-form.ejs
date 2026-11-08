@@ -4,8 +4,8 @@
 <% const rtoRate = parseFloat(settings.rto_default_rate) || 6; %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><%= quotation ? 'Edit Quotation '+quotation.quotation_number : 'New Quotation' %></h4>
-    <a href="/quotations" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><%= quotation ? t('Edit Quotation ')+quotation.quotation_number : t('New Quotation') %></h4>
+    <a href="/quotations" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
   <% if (flash.error) { %><div class="alert alert-danger"><%= flash.error %></div><% } %>
 
@@ -14,27 +14,27 @@
       <!-- Left Column -->
       <div class="col-lg-7">
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Quotation Date & Salesperson</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Quotation Date & Salesperson") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-5">
-                <label class="form-label fw-semibold" for="quotation_date">Quotation Date <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold" for="quotation_date"><%= t("Quotation Date") %> <span class="text-danger">*</span></label>
                 <input type="date" name="quotation_date" id="quotation_date" class="form-control" required
                        value="<%= quotationDate %>" onchange="showValidity()">
                 <small class="text-muted" id="validity_hint"></small>
               </div>
               <div class="col-md-7">
-                <label class="form-label fw-semibold" for="salesperson_id">Salesperson <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold" for="salesperson_id"><%= t("Salesperson") %> <span class="text-danger">*</span></label>
                 <select name="salesperson_id" id="salesperson_id" class="form-select" required>
-                  <option value="">— Choose salesperson —</option>
+                  <option value=""><%= t("— Choose salesperson —") %></option>
                   <% (salespersons||[]).forEach(sp => { %>
                   <option value="<%= sp.id %>" <%= String(quotation?.salesperson_id)===String(sp.id)?'selected':'' %>><%= sp.name %></option>
                   <% }) %>
                 </select>
                 <% if (!(salespersons||[]).length) { %>
-                <small class="text-danger">No salespersons yet. <a href="/salespersons/new" target="_blank">Add a salesperson</a> first.</small>
+                <small class="text-danger"><%= t("No salespersons yet.") %> <a href="/salespersons/new" target="_blank"><%= t("Add a salesperson") %></a> <%= t("first.") %></small>
                 <% } else { %>
-                <small class="text-muted">Name and phone are printed on the quotation.</small>
+                <small class="text-muted"><%= t("Name and phone are printed on the quotation.") %></small>
                 <% } %>
               </div>
             </div>
@@ -42,11 +42,11 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Customer</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Customer") %></div>
           <div class="card-body">
-            <label class="form-label fw-semibold">Select Customer <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold"><%= t("Select Customer") %> <span class="text-danger">*</span></label>
             <select name="customer_id" id="customer_id" class="form-select" required>
-              <option value="">— Select Customer —</option>
+              <option value=""><%= t("— Select Customer —") %></option>
               <% customers.forEach(c => { %>
               <option value="<%= c.id %>"
                 <%= (quotation?.customer_id==c.id || prefill==c.id) ? 'selected' : '' %>>
@@ -55,22 +55,22 @@
               <% }) %>
             </select>
             <div class="mt-2">
-              <small class="text-muted">Customer not in list? <a href="/customers/new" target="_blank">Add new customer</a></small>
+              <small class="text-muted"><%= t("Customer not in list?") %> <a href="/customers/new" target="_blank"><%= t("Add new customer") %></a></small>
             </div>
             <div class="mt-2">
-              <label class="form-label fw-semibold mb-1">HP With (Hire Purchase)</label>
-              <input type="text" name="hp_with" class="form-control" placeholder="e.g. HDFC Bank, SBI, —"
+              <label class="form-label fw-semibold mb-1"><%= t("HP With (Hire Purchase)") %></label>
+              <input type="text" name="hp_with" class="form-control" placeholder="<%= t("e.g. HDFC Bank, SBI, —") %>"
                      value="<%= quotation?.hp_with || '' %>">
             </div>
           </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Machine</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Machine") %></div>
           <div class="card-body">
-            <label class="form-label fw-semibold">Select Machine <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold"><%= t("Select Machine") %> <span class="text-danger">*</span></label>
             <select name="machine_id" id="machine_id" class="form-select" required onchange="loadMachine(this.value)">
-              <option value="">— Select Machine —</option>
+              <option value=""><%= t("— Select Machine —") %></option>
               <% const series = [...new Set(machines.map(m=>m.model_series))];
                  series.forEach(s => { %>
               <optgroup label="<%= s %>">
@@ -86,72 +86,72 @@
             <div class="row mt-3 g-2">
               <% if (isAdmin) { %>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Basic Price (₹) <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold"><%= t("Basic Price (₹)") %> <span class="text-danger">*</span></label>
                 <input type="number" name="basic_price" id="basic_price" class="form-control"
                        value="<%= quotation?.basic_price || '' %>" required oninput="calcTotals()">
-                <small class="text-muted">Auto-filled from MRP, can override</small>
+                <small class="text-muted"><%= t("Auto-filled from MRP, can override") %></small>
               </div>
               <% } else { %>
               <div class="col-md-6">
                 <input type="hidden" name="basic_price" id="basic_price" value="<%= quotation?.basic_price || '' %>">
-                <label class="form-label fw-semibold">MRP (Manufacturer's Price)</label>
+                <label class="form-label fw-semibold"><%= t("MRP (Manufacturer's Price)") %></label>
                 <div class="form-control bg-light text-success fw-semibold" id="basic_price_display">
-                  <%= quotation?.basic_price ? '₹' + formatINR(quotation.basic_price) : 'Select a machine ↑' %>
+                  <%= quotation?.basic_price ? '₹' + formatINR(quotation.basic_price) : t('Select a machine ↑') %>
                 </div>
-                <small class="text-success"><i class="bi bi-lock-fill me-1"></i>Quotations locked to MRP</small>
+                <small class="text-success"><i class="bi bi-lock-fill me-1"></i><%= t("Quotations locked to MRP") %></small>
               </div>
               <% } %>
               <div class="col-md-3">
-                <label class="form-label fw-semibold">Quantity</label>
+                <label class="form-label fw-semibold"><%= t("Quantity") %></label>
                 <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="<%= quotation?.quantity || 1 %>" oninput="calcTotals()">
               </div>
             </div>
             <div class="row mt-3 g-2">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Tyre Option</label>
+                <label class="form-label fw-semibold"><%= t("Tyre Option") %></label>
                 <select name="tyre_option" id="tyre_option" class="form-select form-select-sm">
-                  <option value="IT" <%= quotation?.tyre_option==='IT' || !quotation ? 'selected' : '' %>>IT Tyre - 16.09x28</option>
-                  <option value="HD" <%= quotation?.tyre_option==='HD' ? 'selected' : '' %>>HD Tyre - 14.00x25</option>
+                  <option value="IT" <%= quotation?.tyre_option==='IT' || !quotation ? 'selected' : '' %>><%= t("IT Tyre - 16.09x28") %></option>
+                  <option value="HD" <%= quotation?.tyre_option==='HD' ? 'selected' : '' %>><%= t("HD Tyre - 14.00x25") %></option>
                 </select>
-                <small class="text-muted">Select rear tyre type</small>
+                <small class="text-muted"><%= t("Select rear tyre type") %></small>
               </div>
             </div>
           </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Tax & Charges</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Tax & Charges") %></div>
           <div class="card-body">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Tax Mode</label>
+              <label class="form-label fw-semibold"><%= t("Tax Mode") %></label>
               <div class="d-flex gap-3">
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="tax_mode" id="tm_cgst" value="CGST_SGST"
                     <%= (!quotation || quotation.tax_mode==='CGST_SGST') ? 'checked' : '' %> onchange="switchTaxMode()">
-                  <label class="form-check-label" for="tm_cgst">CGST + SGST (Intra-state)</label>
+                  <label class="form-check-label" for="tm_cgst"><%= t("CGST + SGST (Intra-state)") %></label>
                 </div>
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="tax_mode" id="tm_igst" value="IGST"
                     <%= quotation?.tax_mode==='IGST' ? 'checked' : '' %> onchange="switchTaxMode()">
-                  <label class="form-check-label" for="tm_igst">IGST (Inter-state)</label>
+                  <label class="form-check-label" for="tm_igst"><%= t("IGST (Inter-state)") %></label>
                 </div>
               </div>
             </div>
             <div class="row g-2" id="cgstFields">
               <div class="col-md-4">
-                <label class="form-label small">CGST %</label>
+                <label class="form-label small"><%= t("CGST %") %></label>
                 <input type="number" name="cgst_rate" id="cgst_rate" class="form-control form-control-sm"
                        value="<%= quotation?.cgst_rate || 9 %>" step="0.01" oninput="calcTotals()">
               </div>
               <div class="col-md-4">
-                <label class="form-label small">SGST %</label>
+                <label class="form-label small"><%= t("SGST %") %></label>
                 <input type="number" name="sgst_rate" id="sgst_rate" class="form-control form-control-sm"
                        value="<%= quotation?.sgst_rate || 9 %>" step="0.01" oninput="calcTotals()">
               </div>
             </div>
             <div class="row g-2 d-none" id="igstFields">
               <div class="col-md-4">
-                <label class="form-label small">IGST %</label>
+                <label class="form-label small"><%= t("IGST %") %></label>
                 <input type="number" name="igst_rate" id="igst_rate" class="form-control form-control-sm"
                        value="<%= quotation?.igst_rate || 18 %>" step="0.01" oninput="calcTotals()">
               </div>
@@ -161,7 +161,7 @@
                 <div class="form-check form-switch mb-0">
                   <input class="form-check-input" type="checkbox" name="has_tcs" id="has_tcs"
                     <%= (!quotation || quotation.has_tcs) ? 'checked' : '' %> onchange="calcTotals()">
-                  <label class="form-check-label" for="has_tcs">TCS</label>
+                  <label class="form-check-label" for="has_tcs"><%= t("TCS") %></label>
                 </div>
                 <input type="number" name="tcs_rate" id="tcs_rate" class="form-control form-control-sm" style="width:80px"
                        value="<%= quotation?.tcs_rate || 1 %>" step="0.01" oninput="calcTotals()">
@@ -174,48 +174,48 @@
         <% let extraItems = []; try { extraItems = JSON.parse(quotation?.extra_items || '[]'); } catch (e) {} %>
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
-            <span>Additional Items <small class="text-muted fw-normal">— printed below Ex-Showroom Price</small></span>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="addExtraRow()"><i class="bi bi-plus-lg me-1"></i>Add Item</button>
+            <span><%= t("Additional Items") %> <small class="text-muted fw-normal"><%= t("— printed below Ex-Showroom Price") %></small></span>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="addExtraRow()"><i class="bi bi-plus-lg me-1"></i><%= t("Add Item") %></button>
           </div>
           <div class="card-body">
             <div id="extraRows"></div>
-            <small class="text-muted" id="extraEmpty">e.g. Extra Bucket, Trench Bucket, Extended Warranty. Enter the final amount (incl. GST).</small>
+            <small class="text-muted" id="extraEmpty"><%= t("e.g. Extra Bucket, Trench Bucket, Extended Warranty. Enter the final amount (incl. GST).") %></small>
           </div>
         </div>
         <template id="extraRowTpl">
           <div class="row g-2 mb-2 extra-row">
-            <div class="col-7"><input type="text" name="extra_desc" class="form-control form-control-sm" placeholder="Description, e.g. Trench Bucket" maxlength="120"></div>
-            <div class="col-4"><input type="number" name="extra_amount" class="form-control form-control-sm" placeholder="Amount ₹" min="0" step="1" oninput="calcTotals()"></div>
-            <div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary w-100" title="Remove" onclick="this.closest('.extra-row').remove(); calcTotals()"><i class="bi bi-x-lg"></i></button></div>
+            <div class="col-7"><input type="text" name="extra_desc" class="form-control form-control-sm" placeholder="<%= t("Description, e.g. Trench Bucket") %>" maxlength="120"></div>
+            <div class="col-4"><input type="number" name="extra_amount" class="form-control form-control-sm" placeholder="<%= t("Amount ₹") %>" min="0" step="1" oninput="calcTotals()"></div>
+            <div class="col-1"><button type="button" class="btn btn-sm btn-outline-secondary w-100" title="<%= t("Remove") %>" onclick="this.closest('.extra-row').remove(); calcTotals()"><i class="bi bi-x-lg"></i></button></div>
           </div>
         </template>
 
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Charges after Ex-Showroom</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Charges after Ex-Showroom") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6">
-                <label class="form-label small">Insurance with IMT-23 (₹)</label>
+                <label class="form-label small"><%= t("Insurance with IMT-23 (₹)") %></label>
                 <input type="number" name="insurance_amount" id="insurance_amount" class="form-control form-control-sm"
                        value="<%= quotation ? (quotation.insurance_amount || 0) : 0 %>" min="0" oninput="calcTotals()">
               </div>
               <div class="col-md-6">
                 <label class="form-label small d-flex justify-content-between">
-                  <span>TRC / LTT (₹) <span class="text-muted">— <%= rtoRate %>% of Ex-Showroom</span></span>
-                  <a href="#" id="trc_reset" class="small d-none" onclick="resetTrc(); return false;">Reset to <%= rtoRate %>%</a>
+                  <span><%= t("TRC / LTT (₹)") %> <span class="text-muted">— <%= rtoRate %><%= t("% of Ex-Showroom") %></span></span>
+                  <a href="#" id="trc_reset" class="small d-none" onclick="resetTrc(); return false;"><%= t("Reset to") %> <%= rtoRate %>%</a>
                 </label>
                 <input type="number" name="trc" id="trc" class="form-control form-control-sm"
                        value="<%= quotation ? (parseFloat(quotation.trc) || 0) : '' %>" min="0" oninput="trcAuto = false; calcTotals()">
               </div>
               <div class="col-md-6">
-                <label class="form-label small">Handling Charges (₹)</label>
+                <label class="form-label small"><%= t("Handling Charges (₹)") %></label>
                 <input type="number" name="handling_charges" id="handling_charges" class="form-control form-control-sm"
                        value="<%= quotation ? (quotation.handling_charges || 0) : 20000 %>" min="0" oninput="calcTotals()">
               </div>
               <div class="col-md-6">
-                <label class="form-label small">Transport (₹)</label>
+                <label class="form-label small"><%= t("Transport (₹)") %></label>
                 <input type="number" name="transport_charges" id="transport_charges" class="form-control form-control-sm"
-                       value="<%= quotation ? (quotation.transport_charges || 0) : '' %>" min="0" placeholder="0 = Extra as Actual" oninput="calcTotals()">
+                       value="<%= quotation ? (quotation.transport_charges || 0) : '' %>" min="0" placeholder="<%= t("0 = Extra as Actual") %>" oninput="calcTotals()">
               </div>
             </div>
           </div>
@@ -224,12 +224,12 @@
         <% if (quotation) { %>
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-body">
-            <label class="form-label fw-semibold">Status</label>
+            <label class="form-label fw-semibold"><%= t("Status") %></label>
             <select name="status" class="form-select form-select-sm" style="max-width:180px">
-              <option value="draft"    <%=quotation.status==='draft'?'selected':''%>>Draft</option>
-              <option value="sent"     <%=quotation.status==='sent'?'selected':''%>>Sent</option>
-              <option value="accepted" <%=quotation.status==='accepted'?'selected':''%>>Accepted</option>
-              <option value="rejected" <%=quotation.status==='rejected'?'selected':''%>>Rejected</option>
+              <option value="draft"    <%=quotation.status==='draft'?'selected':''%>><%= t("Draft") %></option>
+              <option value="sent"     <%=quotation.status==='sent'?'selected':''%>><%= t("Sent") %></option>
+              <option value="accepted" <%=quotation.status==='accepted'?'selected':''%>><%= t("Accepted") %></option>
+              <option value="rejected" <%=quotation.status==='rejected'?'selected':''%>><%= t("Rejected") %></option>
             </select>
           </div>
         </div>
@@ -237,7 +237,7 @@
 
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-body">
-            <label class="form-label fw-semibold">Notes / Remarks</label>
+            <label class="form-label fw-semibold"><%= t("Notes / Remarks") %></label>
             <textarea name="notes" class="form-control" rows="2"><%= quotation?.notes || '' %></textarea>
           </div>
         </div>
@@ -253,60 +253,60 @@
             <div class="d-flex">
               <button type="button" id="btn_forward" onclick="setMode('forward')"
                 class="btn flex-1 fw-semibold text-white border-0 rounded-0 rounded-top-start active-mode py-2">
-                &#8595; Forward Calc
+                <%= t("↓ Forward Calc") %>
               </button>
               <button type="button" id="btn_reverse" onclick="setMode('reverse')"
                 class="btn flex-1 fw-semibold text-white border-0 rounded-0 rounded-top-end py-2" style="opacity:.65">
-                &#8593; Reverse Calc
+                <%= t("↑ Reverse Calc") %>
               </button>
             </div>
           </div>
 
           <!-- Reverse Calc input (hidden by default) -->
           <div id="reverse_panel" class="d-none bg-warning-subtle border-bottom border-warning px-3 py-2">
-            <label class="form-label fw-bold small mb-1">Target Ex-Showroom Price ₹</label>
+            <label class="form-label fw-bold small mb-1"><%= t("Target Ex-Showroom Price ₹") %></label>
             <input type="number" id="target_total" class="form-control fw-bold"
                    placeholder="e.g. 3550000" oninput="reverseCalc()">
             <div class="mt-2 d-flex align-items-center gap-2">
-              <small class="text-muted">→ Basic Price will be:</small>
+              <small class="text-muted"><%= t("→ Basic Price will be:") %></small>
               <span id="r_basic_price" class="fw-bold text-success fs-6">—</span>
             </div>
             <button type="button" class="btn btn-warning btn-sm mt-2 w-100 fw-bold" onclick="applyReverse()">
-              Apply this Basic Price ↓
+              <%= t("Apply this Basic Price ↓") %>
             </button>
           </div>
           <% } else { %>
           <div class="card-header bg-danger text-white fw-semibold py-2">
-            <i class="bi bi-calculator me-1"></i>Live Calculation
+            <i class="bi bi-calculator me-1"></i><%= t("Live Calculation") %>
           </div>
           <% } %>
 
           <!-- Live Calculation Table -->
           <div class="card-body p-3">
             <table class="table table-sm mb-0">
-              <tr><td class="text-muted">Basic Price</td><td class="text-end fw-semibold" id="c_basic">—</td></tr>
-              <tr id="row_cgst"><td class="text-muted" id="lbl_cgst">CGST @ 9%</td><td class="text-end" id="c_cgst">—</td></tr>
-              <tr id="row_sgst"><td class="text-muted" id="lbl_sgst">SGST @ 9%</td><td class="text-end" id="c_sgst">—</td></tr>
-              <tr id="row_igst" class="d-none"><td class="text-muted" id="lbl_igst">IGST @ 18%</td><td class="text-end" id="c_igst">—</td></tr>
-              <tr class="table-warning fw-bold"><td>Total (pre-TCS)</td><td class="text-end" id="c_pretcs">—</td></tr>
-              <tr id="row_tcs"><td class="text-muted" id="lbl_tcs">TCS @ 1%</td><td class="text-end" id="c_tcs">—</td></tr>
-              <tr id="row_round"><td class="text-muted">Roundoff (Up)</td><td class="text-end" id="c_round">—</td></tr>
-              <tr class="table-secondary fw-semibold"><td>Ex-Showroom Price</td><td class="text-end" id="c_exshow">—</td></tr>
+              <tr><td class="text-muted"><%= t("Basic Price") %></td><td class="text-end fw-semibold" id="c_basic">—</td></tr>
+              <tr id="row_cgst"><td class="text-muted" id="lbl_cgst"><%= t("CGST @ 9%") %></td><td class="text-end" id="c_cgst">—</td></tr>
+              <tr id="row_sgst"><td class="text-muted" id="lbl_sgst"><%= t("SGST @ 9%") %></td><td class="text-end" id="c_sgst">—</td></tr>
+              <tr id="row_igst" class="d-none"><td class="text-muted" id="lbl_igst"><%= t("IGST @ 18%") %></td><td class="text-end" id="c_igst">—</td></tr>
+              <tr class="table-warning fw-bold"><td><%= t("Total (pre-TCS)") %></td><td class="text-end" id="c_pretcs">—</td></tr>
+              <tr id="row_tcs"><td class="text-muted" id="lbl_tcs"><%= t("TCS @ 1%") %></td><td class="text-end" id="c_tcs">—</td></tr>
+              <tr id="row_round"><td class="text-muted"><%= t("Roundoff (Up)") %></td><td class="text-end" id="c_round">—</td></tr>
+              <tr class="table-secondary fw-semibold"><td><%= t("Ex-Showroom Price") %></td><td class="text-end" id="c_exshow">—</td></tr>
               <tbody id="c_extras"></tbody>
-              <tr><td class="text-muted">Insurance (IMT-23)</td><td class="text-end" id="c_insamt">—</td></tr>
-              <tr><td class="text-muted">TRC / LTT</td><td class="text-end" id="c_trc">—</td></tr>
-              <tr><td class="text-muted">Handling Charges</td><td class="text-end" id="c_handling">—</td></tr>
-              <tr><td class="text-muted">Transport</td><td class="text-end" id="c_transport">—</td></tr>
-              <tr class="table-danger fw-bold"><td>Grand Total</td><td class="text-end fs-6" id="c_total">—</td></tr>
+              <tr><td class="text-muted"><%= t("Insurance (IMT-23)") %></td><td class="text-end" id="c_insamt">—</td></tr>
+              <tr><td class="text-muted"><%= t("TRC / LTT") %></td><td class="text-end" id="c_trc">—</td></tr>
+              <tr><td class="text-muted"><%= t("Handling Charges") %></td><td class="text-end" id="c_handling">—</td></tr>
+              <tr><td class="text-muted"><%= t("Transport") %></td><td class="text-end" id="c_transport">—</td></tr>
+              <tr class="table-danger fw-bold"><td><%= t("Grand Total") %></td><td class="text-end fs-6" id="c_total">—</td></tr>
             </table>
             <div class="mt-3 p-2 bg-light rounded">
-              <small class="text-muted">Amount in words:</small>
+              <small class="text-muted"><%= t("Amount in words:") %></small>
               <div id="c_words" class="fst-italic small">—</div>
             </div>
           </div>
           <div class="card-footer">
             <button type="submit" class="btn btn-danger w-100 fw-bold">
-              <i class="bi bi-check-lg me-1"></i><%= quotation ? 'Update' : 'Create' %> Quotation
+              <i class="bi bi-check-lg me-1"></i><%= quotation ? t('Update') : t('Create') %> <%= t("Quotation") %>
             </button>
           </div>
         </div>
@@ -439,7 +439,7 @@ function showValidity(){
   if (!v) { hint.textContent = ''; return; }
   const [y, m] = v.split('-').map(Number);
   const last = new Date(Date.UTC(y, m, 0));
-  hint.textContent = 'Valid till ' + last.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric', timeZone:'UTC' });
+  hint.textContent = 'Valid till ' + last.toLocaleDateString((window.LOCALE||'en-IN'), { day:'2-digit', month:'long', year:'numeric', timeZone:'UTC' });
 }
 
 // Price is always locked to MRP - no markup for any user

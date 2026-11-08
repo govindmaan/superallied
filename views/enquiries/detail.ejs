@@ -5,11 +5,11 @@
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
     <div>
       <h4 class="mb-0 fw-bold"><%= enquiry.enquiry_number %></h4>
-      <small class="text-muted">Created <%= new Date(enquiry.created_at).toLocaleDateString('en-IN') %> by <%= enquiry.creator_name || 'Unknown' %></small>
+      <small class="text-muted"><%= t("Created") %> <%= new Date(enquiry.created_at).toLocaleDateString(locale) %> <%= t("by") %> <%= enquiry.creator_name || t('Unknown') %></small>
     </div>
     <div class="d-flex gap-2">
-      <% if (user.role === 'admin') { %><a href="/enquiries/<%= enquiry.id %>/edit" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i>Edit</a><% } %>
-      <a href="/enquiries" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+      <% if (user.role === 'admin') { %><a href="/enquiries/<%= enquiry.id %>/edit" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil me-1"></i><%= t("Edit") %></a><% } %>
+      <a href="/enquiries" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
     </div>
   </div>
 
@@ -25,7 +25,7 @@
           <div class="text-muted d-flex flex-wrap gap-3 align-items-center">
             <% if (enquiry.phone) { %>
             <a href="tel:<%= enquiry.phone %>" class="text-decoration-none text-success"><i class="bi bi-telephone-fill me-1"></i><%= enquiry.phone %></a>
-            <a href="https://wa.me/91<%= enquiry.phone.replace(/\D/g,'').slice(-10) %>" target="_blank" class="text-decoration-none text-success"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
+            <a href="https://wa.me/91<%= enquiry.phone.replace(/\D/g,'').slice(-10) %>" target="_blank" class="text-decoration-none text-success"><i class="bi bi-whatsapp me-1"></i><%= t("WhatsApp") %></a>
             <% } %>
             <% if (enquiry.machine_model || enquiry.machine_interested) { %><span><i class="bi bi-gear me-1"></i><%= enquiry.machine_model || enquiry.machine_interested %></span><% } %>
             <% if (enquiry.village_city || enquiry.district) { %>
@@ -37,16 +37,16 @@
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
           <% if (enquiry.status === 'won') { %>
-          <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-trophy me-1"></i>WON</span>
+          <span class="badge bg-success fs-6 px-3 py-2"><i class="bi bi-trophy me-1"></i><%= t("WON") %></span>
           <% } else if (enquiry.status === 'lost') { %>
-          <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle me-1"></i>LOST</span>
+          <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle me-1"></i><%= t("LOST") %></span>
           <% } else { %>
           <span class="badge bg-<%= STAGES[enquiry.current_stage]?.color||'secondary' %> fs-6 px-3 py-2"><i class="bi bi-activity me-1"></i><%= STAGES[enquiry.current_stage]?.label %></span>
           <% } %>
           <div class="mt-2">
-            <% if (enquiry.status !== 'won') { %><button class="btn btn-sm btn-success me-1" onclick="changeStatus('won')"><i class="bi bi-trophy me-1"></i>Mark Won</button><% } %>
-            <% if (enquiry.status !== 'lost') { %><button class="btn btn-sm btn-danger" onclick="changeStatus('lost')"><i class="bi bi-x-circle me-1"></i>Mark Lost</button><% } %>
-            <% if (enquiry.status !== 'active') { %><button class="btn btn-sm btn-outline-secondary" onclick="changeStatus('active')"><i class="bi bi-arrow-repeat me-1"></i>Reopen</button><% } %>
+            <% if (enquiry.status !== 'won') { %><button class="btn btn-sm btn-success me-1" onclick="changeStatus('won')"><i class="bi bi-trophy me-1"></i><%= t("Mark Won") %></button><% } %>
+            <% if (enquiry.status !== 'lost') { %><button class="btn btn-sm btn-danger" onclick="changeStatus('lost')"><i class="bi bi-x-circle me-1"></i><%= t("Mark Lost") %></button><% } %>
+            <% if (enquiry.status !== 'active') { %><button class="btn btn-sm btn-outline-secondary" onclick="changeStatus('active')"><i class="bi bi-arrow-repeat me-1"></i><%= t("Reopen") %></button><% } %>
           </div>
         </div>
       </div>
@@ -64,7 +64,7 @@
               <%= STAGES[sk].order %>
             </div>
             <div class="text-xs" style="margin-top:2px;color:<%= STAGES[enquiry.current_stage].order >= STAGES[sk].order ? '#dc3545' : '#6c757d' %>">
-              <%= STAGES[sk].label %>
+              <%= t(STAGES[sk].label) %>
             </div>
           </div>
           <% }) %>
@@ -81,16 +81,16 @@
 
       <% if (allAccess) { %>
       <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header py-2 bg-light"><span class="fw-semibold small">Assignment</span></div>
+        <div class="card-header py-2 bg-light"><span class="fw-semibold small"><%= t("Assignment") %></span></div>
         <div class="card-body">
           <form method="post" action="/enquiries/<%= enquiry.id %>/assign" class="d-flex gap-2">
             <select class="form-select form-select-sm" name="assigned_to" required>
-              <option value="">— Select Salesperson —</option>
+              <option value=""><%= t("— Select Salesperson —") %></option>
               <% staff.forEach(s => { %><option value="<%= s.id %>" <%= enquiry.assigned_to==s.id?'selected':'' %>><%= s.full_name %></option><% }) %>
             </select>
-            <button class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-arrow-left-right"></i> Reassign</button>
+            <button class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-arrow-left-right"></i> <%= t("Reassign") %></button>
           </form>
-          <div class="small text-muted mt-2">Currently: <strong><%= enquiry.assignee_name || 'Unassigned' %></strong></div>
+          <div class="small text-muted mt-2"><%= t("Currently:") %> <strong><%= enquiry.assignee_name || t('Unassigned') %></strong></div>
         </div>
       </div>
       <% } %>
@@ -98,50 +98,50 @@
       <!-- Enquiry Generated -->
       <div class="card border-0 shadow-sm mb-3">
         <div class="card-header py-2 bg-light d-flex justify-content-between align-items-center">
-          <span class="fw-semibold small">Enquiry Generated</span>
-          <% if (enquiry.quotation_sent) { %><span class="badge bg-success">Quotation Sent</span><% } %>
+          <span class="fw-semibold small"><%= t("Enquiry Generated") %></span>
+          <% if (enquiry.quotation_sent) { %><span class="badge bg-success"><%= t("Quotation Sent") %></span><% } %>
         </div>
         <div class="card-body">
           <form method="post" action="/enquiries/<%= enquiry.id %>/generate">
             <div class="row g-2">
               <div class="col-6">
-                <label class="form-label small">Machine Model</label>
+                <label class="form-label small"><%= t("Machine Model") %></label>
                 <input type="text" class="form-control form-control-sm" name="machine_model" value="<%= enquiry.machine_model||'' %>">
               </div>
               <div class="col-6">
-                <label class="form-label small">Expected Purchase Date</label>
+                <label class="form-label small"><%= t("Expected Purchase Date") %></label>
                 <input type="date" class="form-control form-control-sm" name="expected_purchase_date" value="<%= enquiry.expected_purchase_date ? enquiry.expected_purchase_date.slice(0,10) : '' %>">
               </div>
               <div class="col-6">
-                <label class="form-label small">Budget (₹)</label>
+                <label class="form-label small"><%= t("Budget (₹)") %></label>
                 <input type="number" class="form-control form-control-sm" name="budget" value="<%= enquiry.budget||'' %>">
               </div>
               <div class="col-6">
-                <label class="form-label small">Probability %</label>
+                <label class="form-label small"><%= t("Probability %") %></label>
                 <input type="number" min="0" max="100" class="form-control form-control-sm" name="probability_percent" value="<%= enquiry.probability_percent||'' %>">
               </div>
               <div class="col-6 form-check pt-4">
                 <input class="form-check-input" type="checkbox" name="finance_required" value="1" <%= enquiry.finance_required?'checked':'' %> id="chkFinance">
-                <label class="form-check-label small" for="chkFinance">Finance Required</label>
+                <label class="form-check-label small" for="chkFinance"><%= t("Finance Required") %></label>
               </div>
               <div class="col-6 form-check pt-4">
                 <input class="form-check-input" type="checkbox" name="quotation_sent" value="1" <%= enquiry.quotation_sent?'checked':'' %> id="chkQtnSent">
-                <label class="form-check-label small" for="chkQtnSent">Quotation Sent</label>
+                <label class="form-check-label small" for="chkQtnSent"><%= t("Quotation Sent") %></label>
               </div>
             </div>
-            <button class="btn btn-sm btn-warning mt-2"><i class="bi bi-check-lg me-1"></i>Save</button>
+            <button class="btn btn-sm btn-warning mt-2"><i class="bi bi-check-lg me-1"></i><%= t("Save") %></button>
           </form>
           <hr>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="small fw-semibold">Quotations</span>
-            <a href="/enquiries/<%= enquiry.id %>/quotations/new" class="btn btn-xs btn-outline-warning"><i class="bi bi-plus-lg"></i> New Quotation</a>
+            <span class="small fw-semibold"><%= t("Quotations") %></span>
+            <a href="/enquiries/<%= enquiry.id %>/quotations/new" class="btn btn-xs btn-outline-warning"><i class="bi bi-plus-lg"></i> <%= t("New Quotation") %></a>
           </div>
           <% if (quotations.length) { %>
           <ul class="list-unstyled small mt-2 mb-0">
             <% quotations.forEach(q => { %>
             <li class="d-flex justify-content-between border-bottom py-1">
               <span><%= q.quotation_number %> <span class="badge bg-secondary-subtle text-secondary"><%= q.status %></span></span>
-              <a href="/enquiries/quotations/<%= q.id %>/pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+              <a href="/enquiries/quotations/<%= q.id %>/pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i> <%= t("PDF") %></a>
             </li>
             <% }) %>
           </ul>
@@ -151,36 +151,36 @@
 
       <!-- Sales Closed -->
       <div class="card border-0 shadow-sm mb-3 <%= enquiry.current_stage==='sales_closed'?'':'opacity-75' %>">
-        <div class="card-header py-2 bg-light"><span class="fw-semibold small">Sales Closed</span></div>
+        <div class="card-header py-2 bg-light"><span class="fw-semibold small"><%= t("Sales Closed") %></span></div>
         <div class="card-body">
           <% if (sale) { %>
           <table class="table table-sm mb-0">
-            <tr><td class="text-muted small">Invoice #</td><td><%= sale.invoice_number||'—' %></td></tr>
-            <tr><td class="text-muted small">Machine #</td><td><%= sale.machine_number||'—' %></td></tr>
-            <tr><td class="text-muted small">Delivery Date</td><td><%= sale.delivery_date ? new Date(sale.delivery_date).toLocaleDateString('en-IN') : '—' %></td></tr>
-            <tr><td class="text-muted small">Finance Company</td><td><%= sale.finance_company||'—' %></td></tr>
-            <tr><td class="text-muted small">Sale Amount</td><td class="fw-bold">₹<%= sale.sale_amount ? sale.sale_amount.toLocaleString('en-IN') : 0 %></td></tr>
+            <tr><td class="text-muted small"><%= t("Invoice #") %></td><td><%= sale.invoice_number||'—' %></td></tr>
+            <tr><td class="text-muted small"><%= t("Machine #") %></td><td><%= sale.machine_number||'—' %></td></tr>
+            <tr><td class="text-muted small"><%= t("Delivery Date") %></td><td><%= sale.delivery_date ? new Date(sale.delivery_date).toLocaleDateString(locale) : '—' %></td></tr>
+            <tr><td class="text-muted small"><%= t("Finance Company") %></td><td><%= sale.finance_company||'—' %></td></tr>
+            <tr><td class="text-muted small"><%= t("Sale Amount") %></td><td class="fw-bold">₹<%= sale.sale_amount ? sale.sale_amount.toLocaleString('en-IN') : 0 %></td></tr>
           </table>
           <% } else if (enquiry.status !== 'won') { %>
           <form method="post" action="/enquiries/<%= enquiry.id %>/close">
             <div class="row g-2">
-              <div class="col-6"><label class="form-label small">Invoice Number</label><input type="text" class="form-control form-control-sm" name="invoice_number"></div>
-              <div class="col-6"><label class="form-label small">Machine Number</label><input type="text" class="form-control form-control-sm" name="machine_number"></div>
-              <div class="col-6"><label class="form-label small">Delivery Date</label><input type="date" class="form-control form-control-sm" name="delivery_date"></div>
-              <div class="col-6"><label class="form-label small">Finance Company</label><input type="text" class="form-control form-control-sm" name="finance_company"></div>
-              <div class="col-12"><label class="form-label small">Sale Amount (₹)</label><input type="number" class="form-control form-control-sm" name="sale_amount"></div>
+              <div class="col-6"><label class="form-label small"><%= t("Invoice Number") %></label><input type="text" class="form-control form-control-sm" name="invoice_number"></div>
+              <div class="col-6"><label class="form-label small"><%= t("Machine Number") %></label><input type="text" class="form-control form-control-sm" name="machine_number"></div>
+              <div class="col-6"><label class="form-label small"><%= t("Delivery Date") %></label><input type="date" class="form-control form-control-sm" name="delivery_date"></div>
+              <div class="col-6"><label class="form-label small"><%= t("Finance Company") %></label><input type="text" class="form-control form-control-sm" name="finance_company"></div>
+              <div class="col-12"><label class="form-label small"><%= t("Sale Amount (₹)") %></label><input type="number" class="form-control form-control-sm" name="sale_amount"></div>
             </div>
-            <button class="btn btn-sm btn-success mt-2" onclick="return confirm('Close this sale? This will mark the enquiry as WON.')"><i class="bi bi-check-circle me-1"></i>Close Sale</button>
+            <button class="btn btn-sm btn-success mt-2" onclick="return confirm('<%= tjs("Close this sale? This will mark the enquiry as WON.") %>')"><i class="bi bi-check-circle me-1"></i><%= t("Close Sale") %></button>
           </form>
           <% } else { %>
-          <div class="text-muted small">No sale record yet.</div>
+          <div class="text-muted small"><%= t("No sale record yet.") %></div>
           <% } %>
         </div>
       </div>
 
       <% if (user.role === 'admin') { %>
-      <form method="post" action="/enquiries/<%= enquiry.id %>/delete" onsubmit="return confirm('Delete this enquiry permanently?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Delete Enquiry</button>
+      <form method="post" action="/enquiries/<%= enquiry.id %>/delete" onsubmit="return confirm('<%= tjs("Delete this enquiry permanently?") %>')">
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i><%= t("Delete Enquiry") %></button>
       </form>
       <% } %>
     </div>
@@ -192,9 +192,9 @@
       <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
           <ul class="nav nav-pills nav-fill mb-3 small" id="actionTabs">
-            <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tabRemark"><i class="bi bi-chat-dots me-1"></i>Remark</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabFollowup"><i class="bi bi-telephone me-1"></i>Follow-up</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabVisit"><i class="bi bi-geo-alt me-1"></i>Visit</a></li>
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tabRemark"><i class="bi bi-chat-dots me-1"></i><%= t("Remark") %></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabFollowup"><i class="bi bi-telephone me-1"></i><%= t("Follow-up") %></a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tabVisit"><i class="bi bi-geo-alt me-1"></i><%= t("Visit") %></a></li>
           </ul>
           <div class="tab-content">
 
@@ -202,16 +202,16 @@
             <div class="tab-pane fade show active" id="tabRemark">
               <form method="post" action="/enquiries/<%= enquiry.id %>/remark" enctype="application/x-www-form-urlencoded">
                 <div class="input-group">
-                  <textarea class="form-control" name="body" id="remarkBody" rows="2" placeholder="Type a remark…" required></textarea>
-                  <button type="button" class="btn btn-outline-secondary" id="micBtn" title="Voice to text" style="display:none"><i class="bi bi-mic"></i></button>
+                  <textarea class="form-control" name="body" id="remarkBody" rows="2" placeholder="<%= t("Type a remark…") %>" required></textarea>
+                  <button type="button" class="btn btn-outline-secondary" id="micBtn" title="<%= t("Voice to text") %>" style="display:none"><i class="bi bi-mic"></i></button>
                 </div>
                 <input type="hidden" name="photo" id="remarkPhoto">
                 <div class="d-flex justify-content-between align-items-center mt-2">
                   <label class="btn btn-sm btn-outline-secondary mb-0">
-                    <i class="bi bi-camera me-1"></i>Attach Photo
+                    <i class="bi bi-camera me-1"></i><%= t("Attach Photo") %>
                     <input type="file" accept="image/*" capture="environment" class="d-none" onchange="readPhoto(this,'remarkPhoto')">
                   </label>
-                  <button class="btn btn-sm btn-danger"><i class="bi bi-send me-1"></i>Post Remark</button>
+                  <button class="btn btn-sm btn-danger"><i class="bi bi-send me-1"></i><%= t("Post Remark") %></button>
                 </div>
               </form>
             </div>
@@ -221,21 +221,21 @@
               <form method="post" action="/enquiries/<%= enquiry.id %>/followup">
                 <div class="row g-2">
                   <div class="col-md-6">
-                    <label class="form-label small">Call Status</label>
+                    <label class="form-label small"><%= t("Call Status") %></label>
                     <select class="form-select form-select-sm" name="call_status">
                       <% CALL_STATUSES.forEach(c => { %><option value="<%= c %>"><%= c %></option><% }) %>
                     </select>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label small">Next Follow-up Date</label>
+                    <label class="form-label small"><%= t("Next Follow-up Date") %></label>
                     <input type="date" class="form-control form-control-sm" name="next_followup_date">
                   </div>
                   <div class="col-12">
-                    <label class="form-label small">Notes</label>
+                    <label class="form-label small"><%= t("Notes") %></label>
                     <textarea class="form-control form-control-sm" name="notes" rows="2"></textarea>
                   </div>
                 </div>
-                <button class="btn btn-sm btn-primary mt-2"><i class="bi bi-telephone me-1"></i>Log Follow-up</button>
+                <button class="btn btn-sm btn-primary mt-2"><i class="bi bi-telephone me-1"></i><%= t("Log Follow-up") %></button>
               </form>
             </div>
 
@@ -243,22 +243,22 @@
             <div class="tab-pane fade" id="tabVisit">
               <form method="post" action="/enquiries/<%= enquiry.id %>/visit" id="visitForm">
                 <div class="row g-2">
-                  <div class="col-md-6"><label class="form-label small">Visit Date</label><input type="date" class="form-control form-control-sm" name="visit_date" value="<%= new Date().toLocaleDateString('en-CA') %>"></div>
-                  <div class="col-md-6"><label class="form-label small">Visit Location</label><input type="text" class="form-control form-control-sm" name="visit_location"></div>
-                  <div class="col-md-6"><label class="form-label small">Purpose</label><input type="text" class="form-control form-control-sm" name="purpose" placeholder="e.g. Demo, negotiation"></div>
-                  <div class="col-md-6"><label class="form-label small">Competitor Machine (if any)</label><input type="text" class="form-control form-control-sm" name="competitor_machine"></div>
-                  <div class="col-12"><label class="form-label small">Outcome</label><textarea class="form-control form-control-sm" name="outcome" rows="2"></textarea></div>
-                  <div class="col-6 form-check"><input class="form-check-input" type="checkbox" name="demo_given" value="1" id="chkDemoGiven"><label class="form-check-label small" for="chkDemoGiven">Demo Given</label></div>
+                  <div class="col-md-6"><label class="form-label small"><%= t("Visit Date") %></label><input type="date" class="form-control form-control-sm" name="visit_date" value="<%= new Date().toLocaleDateString('en-CA') %>"></div>
+                  <div class="col-md-6"><label class="form-label small"><%= t("Visit Location") %></label><input type="text" class="form-control form-control-sm" name="visit_location"></div>
+                  <div class="col-md-6"><label class="form-label small"><%= t("Purpose") %></label><input type="text" class="form-control form-control-sm" name="purpose" placeholder="<%= t("e.g. Demo, negotiation") %>"></div>
+                  <div class="col-md-6"><label class="form-label small"><%= t("Competitor Machine (if any)") %></label><input type="text" class="form-control form-control-sm" name="competitor_machine"></div>
+                  <div class="col-12"><label class="form-label small"><%= t("Outcome") %></label><textarea class="form-control form-control-sm" name="outcome" rows="2"></textarea></div>
+                  <div class="col-6 form-check"><input class="form-check-input" type="checkbox" name="demo_given" value="1" id="chkDemoGiven"><label class="form-check-label small" for="chkDemoGiven"><%= t("Demo Given") %></label></div>
                 </div>
                 <input type="hidden" name="lat" id="visitLat"><input type="hidden" name="lng" id="visitLng"><input type="hidden" name="accuracy" id="visitAcc"><input type="hidden" name="photo" id="visitPhoto">
                 <div class="small mt-2" id="gpsStatus"></div>
                 <div class="d-flex gap-2 mt-2 flex-wrap">
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="captureGPS()"><i class="bi bi-crosshair me-1"></i><span id="gpsLabel">Use My Location</span></button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="captureGPS()"><i class="bi bi-crosshair me-1"></i><span id="gpsLabel"><%= t("Use My Location") %></span></button>
                   <label class="btn btn-sm btn-outline-secondary mb-0">
-                    <i class="bi bi-camera me-1"></i>Attach Photo
+                    <i class="bi bi-camera me-1"></i><%= t("Attach Photo") %>
                     <input type="file" accept="image/*" capture="environment" class="d-none" onchange="readPhoto(this,'visitPhoto')">
                   </label>
-                  <button class="btn btn-sm btn-info ms-auto"><i class="bi bi-geo-alt me-1"></i>Log Visit</button>
+                  <button class="btn btn-sm btn-info ms-auto"><i class="bi bi-geo-alt me-1"></i><%= t("Log Visit") %></button>
                 </div>
               </form>
             </div>
@@ -269,27 +269,27 @@
 
       <!-- Timeline feed -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header py-2 bg-light"><span class="fw-semibold small">Timeline</span></div>
+        <div class="card-header py-2 bg-light"><span class="fw-semibold small"><%= t("Timeline") %></span></div>
         <div class="card-body" style="max-height:640px;overflow-y:auto">
           <% if (!timeline.length) { %>
-          <div class="text-center text-muted py-4">No activity yet.</div>
+          <div class="text-center text-muted py-4"><%= t("No activity yet.") %></div>
           <% } %>
           <% const typeIcon = { remark:'chat-dots-fill text-primary', followup:'telephone-fill text-info', visit:'geo-alt-fill text-warning', quotation:'file-earmark-text-fill text-success', sale:'trophy-fill text-success', system:'gear-fill text-muted' }; %>
-          <% timeline.forEach(t => { %>
+          <% timeline.forEach(ev => { %>
           <div class="d-flex gap-2 mb-3">
             <div class="flex-shrink-0">
               <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:36px;height:36px">
-                <i class="bi bi-<%= typeIcon[t.type] || 'circle-fill text-secondary' %>"></i>
+                <i class="bi bi-<%= typeIcon[ev.type] || 'circle-fill text-secondary' %>"></i>
               </div>
             </div>
             <div class="flex-grow-1">
               <div class="bg-light rounded p-2">
                 <div class="d-flex justify-content-between">
-                  <span class="fw-semibold small"><%= t.user_name %></span>
-                  <small class="text-muted"><%= dbTime(t.created_at).toLocaleDateString('en-IN') %> · <%= dbTime(t.created_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) %></small>
+                  <span class="fw-semibold small"><%= ev.user_name %></span>
+                  <small class="text-muted"><%= dbTime(ev.created_at).toLocaleDateString(locale) %> · <%= dbTime(ev.created_at).toLocaleTimeString(locale, {hour:'2-digit',minute:'2-digit'}) %></small>
                 </div>
-                <div class="small mt-1" style="white-space:pre-wrap"><%= t.text %></div>
-                <% t.attachments.forEach(a => { %>
+                <div class="small mt-1" style="white-space:pre-wrap"><%= ev.text %></div>
+                <% ev.attachments.forEach(a => { %>
                   <% if (a.file_type === 'image') { %><a href="<%= a.file_path %>" target="_blank"><img src="<%= a.file_path %>" class="mt-2 rounded" style="max-height:120px"></a><% } %>
                 <% }) %>
               </div>

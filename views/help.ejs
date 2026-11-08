@@ -2,24 +2,25 @@
 <%- include('partials/sidebar', { active: 'help', user }) %>
 <%
   const typeMeta = {
-    new:      { label: 'New',      cls: 'bg-success' },
-    improved: { label: 'Improved', cls: 'bg-primary' },
-    fixed:    { label: 'Fixed',    cls: 'bg-warning text-dark' },
-    removed:  { label: 'Removed',  cls: 'bg-secondary' },
+    new:      { label: t('New'),      cls: 'bg-success' },
+    improved: { label: t('Improved'), cls: 'bg-primary' },
+    fixed:    { label: t('Fixed'),    cls: 'bg-warning text-dark' },
+    removed:  { label: t('Removed'),  cls: 'bg-secondary' },
   };
   const total = changelog.reduce((n, d) => n + d.items.length, 0);
-  const fmtDate = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const tr = (it) => (lang === 'hi' && changelogHi[it.title]) || { t: it.title, d: it.details };
+  const fmtDate = d => new Date(d + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
 %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-question-circle me-2 text-danger"></i>Help &amp; Updates</h4>
-    <span class="badge bg-light text-dark border"><%= total %> updates · <%= changelog.length %> dates</span>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-question-circle me-2 text-danger"></i><%= t("Help & Updates") %></h4>
+    <span class="badge bg-light text-dark border"><%= total %> <%= t("updates ·") %> <%= changelog.length %> <%= t("dates") %></span>
   </div>
 
   <div class="d-flex flex-wrap gap-2 mb-3" id="typeFilter">
-    <button type="button" class="btn btn-sm btn-dark" data-type="all">All</button>
+    <button type="button" class="btn btn-sm btn-dark" data-type="all"><%= t("All") %></button>
     <% Object.entries(typeMeta).forEach(([k, m]) => { %>
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-type="<%= k %>"><%= m.label %></button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-type="<%= k %>"><%= t(m.label) %></button>
     <% }) %>
   </div>
 
@@ -30,15 +31,15 @@
       <span class="badge bg-light text-muted border ms-auto"><%= day.items.length %></span>
     </div>
     <div class="list-group list-group-flush">
-      <% day.items.forEach(it => { const m = typeMeta[it.type] || typeMeta.improved; %>
+      <% day.items.forEach(it => { const m = typeMeta[it.type] || typeMeta.improved; const h = tr(it); %>
       <div class="list-group-item help-item" data-type="<%= it.type %>">
         <div class="d-flex align-items-start gap-2">
-          <span class="badge <%= m.cls %> mt-1" style="min-width:70px"><%= m.label %></span>
+          <span class="badge <%= m.cls %> mt-1" style="min-width:70px"><%= t(m.label) %></span>
           <div class="flex-grow-1">
-            <div class="fw-semibold"><%= it.title %></div>
-            <% if (it.details.length) { %>
+            <div class="fw-semibold"><%= h.t %></div>
+            <% if (h.d.length) { %>
             <ul class="small text-muted mb-0 ps-3">
-              <% it.details.forEach(d => { %><li><%= d %></li><% }) %>
+              <% h.d.forEach(d => { %><li><%= d %></li><% }) %>
             </ul>
             <% } %>
           </div>

@@ -1,9 +1,9 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'telecaller', user }) %>
 <div class="main-content" style="max-width:640px">
-  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Telecaller Home</a>
-  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-clock-history me-2"></i>My Call History</h4>
-  <% if (!rows.length) { %><div class="text-muted">No calls logged yet.</div><% } %>
+  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Telecaller Home") %></a>
+  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-clock-history me-2"></i><%= t("My Call History") %></h4>
+  <% if (!rows.length) { %><div class="text-muted"><%= t("No calls logged yet.") %></div><% } %>
   <div class="list-group shadow-sm">
     <% rows.forEach(c => { %>
     <a href="/telecaller/call/<%= c.enquiry_id %>" class="list-group-item list-group-item-action">
@@ -11,7 +11,7 @@
         <span class="fw-semibold"><%= c.customer_name %></span>
         <span class="badge bg-light text-dark border"><%= c.outcome %></span>
       </div>
-      <div class="small text-muted"><%= c.enquiry_number %> · <%= c.phone %> · <%= new Date((c.called_at||'').replace(' ','T')+'Z').toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Kolkata'}) %></div>
+      <div class="small text-muted"><%= c.enquiry_number %> · <%= c.phone %> · <%= new Date((c.called_at||'').replace(' ','T')+'Z').toLocaleString(locale,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Kolkata'}) %></div>
       <% if (c.notes) { %><div class="small"><%= c.notes %></div><% } %>
     </a>
     <% }) %>

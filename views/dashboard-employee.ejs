@@ -11,20 +11,20 @@
         <div class="emp-avatar-fallback"><%= (emp.full_name||'U').charAt(0).toUpperCase() %></div>
       <% } %>
       <div>
-        <div class="emp-hello">Good <%= new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening' %> 👋</div>
+        <div class="emp-hello"><%= t("Good") %> <%= new Date().getHours() < 12 ? t('Morning') : new Date().getHours() < 17 ? t('Afternoon') : t('Evening') %> 👋</div>
         <div class="emp-name"><%= emp.full_name || emp.username %></div>
-        <div class="emp-date"><%= new Date(today).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) %></div>
+        <div class="emp-date"><%= new Date(today).toLocaleDateString(locale,{weekday:'long',day:'numeric',month:'long',year:'numeric'}) %></div>
       </div>
     </div>
 
     <!-- Today's attendance pill -->
     <div class="mt-3">
       <% if (todayAtt?.check_out_time) { %>
-        <span class="att-pill att-done"><i class="bi bi-check-circle-fill me-1"></i>Day Complete</span>
+        <span class="att-pill att-done"><i class="bi bi-check-circle-fill me-1"></i><%= t("Day Complete") %></span>
       <% } else if (todayAtt?.check_in_time) { %>
-        <span class="att-pill att-in"><i class="bi bi-dot me-1" style="font-size:1.4rem;line-height:0"></i>Checked In at <%= new Date(todayAtt.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+        <span class="att-pill att-in"><i class="bi bi-dot me-1" style="font-size:1.4rem;line-height:0"></i><%= t("Checked In at") %> <%= new Date(todayAtt.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) %></span>
       <% } else { %>
-        <span class="att-pill att-out"><i class="bi bi-exclamation-circle me-1"></i>Not Checked In</span>
+        <span class="att-pill att-out"><i class="bi bi-exclamation-circle me-1"></i><%= t("Not Checked In") %></span>
       <% } %>
     </div>
   </div>
@@ -33,11 +33,11 @@
   <div class="primary-actions">
     <a href="/attendance" class="pa-btn <%= todayAtt?.check_out_time ? 'pa-done' : todayAtt?.check_in_time ? 'pa-out' : 'pa-in' %>">
       <i class="bi <%= todayAtt?.check_out_time ? 'bi-check2-circle' : todayAtt?.check_in_time ? 'bi-box-arrow-right' : 'bi-box-arrow-in-right' %>"></i>
-      <span><%= todayAtt?.check_out_time ? 'Day complete' : todayAtt?.check_in_time ? 'Check Out' : 'Check In' %></span>
+      <span><%= todayAtt?.check_out_time ? t('Day complete') : todayAtt?.check_in_time ? t('Check Out') : t('Check In') %></span>
     </a>
     <a href="#" class="pa-btn pa-visit" onclick="openVisitModal(); return false">
-      <i class="bi bi-geo-alt-fill"></i><span>Site Visit</span>
-      <small><%= myVisits %> today</small>
+      <i class="bi bi-geo-alt-fill"></i><span><%= t("Site Visit") %></span>
+      <small><%= myVisits %> <%= t("today") %></small>
     </a>
   </div>
 
@@ -45,7 +45,7 @@
   <% if (hasPerm('enquiries')) { %>
   <div class="card border-0 shadow-sm mb-3 followups">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-telephone-forward me-1 text-danger"></i>Follow-ups due</span>
+      <span class="fw-semibold"><i class="bi bi-telephone-forward me-1 text-danger"></i><%= t("Follow-ups due") %></span>
       <span class="badge <%= followupsDue.length ? 'bg-danger' : 'bg-light text-muted border' %>"><%= followupsDue.length %></span>
     </div>
     <% if (followupsDue.length) { %>
@@ -55,7 +55,7 @@
         <a href="/enquiries/<%= f.id %>" class="flex-grow-1 text-decoration-none text-dark" style="min-width:0">
           <div class="fw-semibold text-truncate"><%= f.customer_name %></div>
           <div class="small <%= overdue ? 'text-danger' : 'text-muted' %> text-truncate">
-            <%= overdue ? 'Overdue · ' + new Date(f.due + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Today' %><%= f.machine_interested ? ' · ' + f.machine_interested : '' %>
+            <%= overdue ? t('Overdue · ') + new Date(f.due + 'T00:00:00').toLocaleDateString(locale, { day: '2-digit', month: 'short' }) : t('Today') %><%= f.machine_interested ? ' · ' + f.machine_interested : '' %>
           </div>
         </a>
         <% if (ph) { %>
@@ -66,17 +66,17 @@
       <% }) %>
     </div>
     <% } else { %>
-    <div class="card-body py-3 small text-muted"><i class="bi bi-check-circle me-1 text-success"></i>No follow-ups due today.</div>
+    <div class="card-body py-3 small text-muted"><i class="bi bi-check-circle me-1 text-success"></i><%= t("No follow-ups due today.") %></div>
     <% } %>
   </div>
   <% } %>
 
   <!-- Quick stat chips -->
   <div class="d-flex flex-wrap gap-2 mb-3">
-    <% if (hasPerm('enquiries')) { %><div class="stat-chip"><i class="bi bi-funnel me-1"></i><strong><%= myEnquiries %></strong> Open enquiries</div><% } %>
-    <% if (hasPerm('quotations')) { %><div class="stat-chip"><i class="bi bi-file-earmark-text me-1"></i><strong><%= myQuotes %></strong> Quotations this month</div><% } %>
+    <% if (hasPerm('enquiries')) { %><div class="stat-chip"><i class="bi bi-funnel me-1"></i><strong><%= myEnquiries %></strong> <%= t("Open enquiries") %></div><% } %>
+    <% if (hasPerm('quotations')) { %><div class="stat-chip"><i class="bi bi-file-earmark-text me-1"></i><strong><%= myQuotes %></strong> <%= t("Quotations this month") %></div><% } %>
     <% if (pendingLeaves > 0) { %>
-    <div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> Leave pending</div>
+    <div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> <%= t("Leave pending") %></div>
     <% } %>
   </div>
 
@@ -85,62 +85,62 @@
     <% if (hasPerm('enquiries')) { %>
     <a href="/enquiries/new" class="tile tile-enquiry">
       <div class="tile-icon"><i class="bi bi-person-plus-fill"></i></div>
-      <div class="tile-label">New Enquiry</div>
-      <div class="tile-sub">Add a customer lead</div>
+      <div class="tile-label"><%= t("New Enquiry") %></div>
+      <div class="tile-sub"><%= t("Add a customer lead") %></div>
     </a>
     <a href="/enquiries" class="tile tile-pipeline">
       <div class="tile-icon"><i class="bi bi-funnel-fill"></i></div>
-      <div class="tile-label">My Enquiries</div>
-      <div class="tile-sub"><%= myEnquiries %> open</div>
+      <div class="tile-label"><%= t("My Enquiries") %></div>
+      <div class="tile-sub"><%= myEnquiries %> <%= t("open") %></div>
     </a>
     <% } %>
 
     <% if (hasPerm('quotations')) { %>
     <a href="/quotations/new" class="tile tile-quote">
       <div class="tile-icon"><i class="bi bi-file-earmark-plus-fill"></i></div>
-      <div class="tile-label">New Quotation</div>
-      <div class="tile-sub"><%= myQuotes %> this month</div>
+      <div class="tile-label"><%= t("New Quotation") %></div>
+      <div class="tile-sub"><%= myQuotes %> <%= t("this month") %></div>
     </a>
     <% } %>
 
     <% if (hasPerm('customers')) { %>
     <a href="/customers" class="tile tile-customers">
       <div class="tile-icon"><i class="bi bi-people-fill"></i></div>
-      <div class="tile-label">Customers</div>
-      <div class="tile-sub">Search & add</div>
+      <div class="tile-label"><%= t("Customers") %></div>
+      <div class="tile-sub"><%= t("Search & add") %></div>
     </a>
     <% } %>
 
     <% if (hasPerm('expense_claim')) { %>
     <a href="/travel-expenses/new" class="tile tile-expense">
       <div class="tile-icon"><i class="bi bi-truck"></i></div>
-      <div class="tile-label">Travel Expense</div>
-      <div class="tile-sub">₹<%= monthClaim.toFixed(0) %> this month</div>
+      <div class="tile-label"><%= t("Travel Expense") %></div>
+      <div class="tile-sub">₹<%= monthClaim.toFixed(0) %> <%= t("this month") %></div>
     </a>
     <% } %>
 
     <a href="/route-map" class="tile tile-route">
       <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
-      <div class="tile-label">Route Map</div>
-      <div class="tile-sub">Today's route</div>
+      <div class="tile-label"><%= t("Route Map") %></div>
+      <div class="tile-sub"><%= t("Today's route") %></div>
     </a>
 
     <a href="/leaves" class="tile tile-leave">
       <div class="tile-icon"><i class="bi bi-calendar-x-fill"></i></div>
-      <div class="tile-label">My Leaves</div>
-      <div class="tile-sub"><%= pendingLeaves > 0 ? pendingLeaves + ' pending' : 'Apply leave' %></div>
+      <div class="tile-label"><%= t("My Leaves") %></div>
+      <div class="tile-sub"><%= pendingLeaves > 0 ? pendingLeaves + ' pending' : t('Apply leave') %></div>
     </a>
 
     <a href="/salary" class="tile tile-salary">
       <div class="tile-icon"><i class="bi bi-cash-coin"></i></div>
-      <div class="tile-label">My Salary</div>
-      <div class="tile-sub">View slips</div>
+      <div class="tile-label"><%= t("My Salary") %></div>
+      <div class="tile-sub"><%= t("View slips") %></div>
     </a>
 
     <a href="/id-card" class="tile tile-id">
       <div class="tile-icon"><i class="bi bi-credit-card-2-front-fill"></i></div>
-      <div class="tile-label">ID Card</div>
-      <div class="tile-sub">View & Download</div>
+      <div class="tile-label"><%= t("ID Card") %></div>
+      <div class="tile-sub"><%= t("View & Download") %></div>
     </a>
   </div>
 
@@ -148,7 +148,7 @@
   <% if (unreadCount > 0) { %>
   <a href="/notifications" class="notif-bar">
     <i class="bi bi-bell-fill me-2"></i>
-    You have <strong><%= unreadCount %></strong> unread notification<%= unreadCount===1?'':'s' %>
+    <%= t("You have") %> <strong><%= unreadCount %></strong> <%= t("unread notification") %><%= unreadCount===1?'':'s' %>
     <i class="bi bi-chevron-right ms-auto"></i>
   </a>
   <% } %>
@@ -158,76 +158,76 @@
 <div class="modal fade" id="visitModal" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Site Punch-In</h5></div>
+      <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-geo-alt-fill text-danger me-2"></i><%= t("Site Punch-In") %></h5></div>
       <div class="modal-body">
         <div id="visitStep1">
           <div class="mb-3">
-            <label class="form-label fw-semibold">Customer / Site Name <span class="text-danger">*</span></label>
-            <input type="text" id="v_customer" class="form-control form-control-lg" placeholder="Enter customer / site name…">
+            <label class="form-label fw-semibold"><%= t("Customer / Site Name") %> <span class="text-danger">*</span></label>
+            <input type="text" id="v_customer" class="form-control form-control-lg" placeholder="<%= t("Enter customer / site name…") %>">
           </div>
           <div class="row g-2 mb-3">
             <div class="col-7">
-              <label class="form-label fw-semibold">Contact Person</label>
-              <input type="text" id="v_contact" class="form-control" placeholder="Who did you meet?">
+              <label class="form-label fw-semibold"><%= t("Contact Person") %></label>
+              <input type="text" id="v_contact" class="form-control" placeholder="<%= t("Who did you meet?") %>">
             </div>
             <div class="col-5">
-              <label class="form-label fw-semibold">Phone</label>
-              <input type="tel" id="v_phone" class="form-control" inputmode="numeric" maxlength="13" placeholder="10-digit">
+              <label class="form-label fw-semibold"><%= t("Phone") %></label>
+              <input type="tel" id="v_phone" class="form-control" inputmode="numeric" maxlength="13" placeholder="<%= t("10-digit") %>">
             </div>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Purpose of Visit</label>
+            <label class="form-label fw-semibold"><%= t("Purpose of Visit") %></label>
             <select id="v_purpose" class="form-select">
-              <option value="">— Select —</option>
-              <option>Customer Visit</option>
-              <option>Site Visit</option>
-              <option>Sales Meeting</option>
-              <option>Service Support</option>
-              <option>Other</option>
+              <option value=""><%= t("— Select —") %></option>
+              <option value="Customer Visit"><%= t("Customer Visit") %></option>
+              <option value="Site Visit"><%= t("Site Visit") %></option>
+              <option value="Sales Meeting"><%= t("Sales Meeting") %></option>
+              <option value="Service Support"><%= t("Service Support") %></option>
+              <option value="Other"><%= t("Other") %></option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Remarks</label>
-            <textarea id="v_remarks" class="form-control" rows="2" placeholder="Outcome, notes…"></textarea>
+            <label class="form-label fw-semibold"><%= t("Remarks") %></label>
+            <textarea id="v_remarks" class="form-control" rows="2" placeholder="<%= t("Outcome, notes…") %>"></textarea>
           </div>
           <div class="d-flex align-items-start gap-2">
-            <div id="v_gps_status" class="small text-muted flex-grow-1"><i class="bi bi-geo-alt me-1"></i>Getting location…</div>
-            <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="v_gps_retry" onclick="getVisitLocation()">Retry</button>
+            <div id="v_gps_status" class="small text-muted flex-grow-1"><i class="bi bi-geo-alt me-1"></i><%= t("Getting location…") %></div>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="v_gps_retry" onclick="getVisitLocation()"><%= t("Retry") %></button>
           </div>
           <div class="mt-2 d-none" id="v_address_wrap">
-            <label class="form-label fw-semibold small mb-1">Visit address <span class="text-danger">*</span></label>
-            <textarea id="v_address" class="form-control form-control-sm" rows="2" maxlength="300" placeholder="Village / area, town — needed because GPS is not available"></textarea>
+            <label class="form-label fw-semibold small mb-1"><%= t("Visit address") %> <span class="text-danger">*</span></label>
+            <textarea id="v_address" class="form-control form-control-sm" rows="2" maxlength="300" placeholder="<%= t("Village / area, town — needed because GPS is not available") %>"></textarea>
           </div>
           <div class="mt-3 d-flex gap-2">
             <button class="btn btn-danger flex-grow-1 fw-bold" onclick="goToVisitCamera()" id="v_submit_btn">
-              <i class="bi bi-camera-fill me-1"></i>Take Site Photo & Punch In
+              <i class="bi bi-camera-fill me-1"></i><%= t("Take Site Photo & Punch In") %>
             </button>
-            <button class="btn btn-outline-secondary" onclick="closeVisitModal()">Cancel</button>
+            <button class="btn btn-outline-secondary" onclick="closeVisitModal()"><%= t("Cancel") %></button>
           </div>
         </div>
 
         <!-- Camera step -->
         <div id="visitStepCam" class="d-none text-center">
-          <p class="text-muted small mb-2">Take a photo of the site / customer</p>
+          <p class="text-muted small mb-2"><%= t("Take a photo of the site / customer") %></p>
           <video id="visitVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
           <div class="mt-3 d-flex gap-2 justify-content-center">
-            <button class="btn btn-danger px-5 fw-bold" onclick="snapVisitPhoto()"><i class="bi bi-camera-fill me-1"></i>Snap Photo</button>
+            <button class="btn btn-danger px-5 fw-bold" onclick="snapVisitPhoto()"><i class="bi bi-camera-fill me-1"></i><%= t("Snap Photo") %></button>
           </div>
-          <button class="btn btn-link text-muted btn-sm mt-1" onclick="backToVisitForm()">Back</button>
+          <button class="btn btn-link text-muted btn-sm mt-1" onclick="backToVisitForm()"><%= t("Back") %></button>
         </div>
 
         <div id="visitStep2" class="d-none text-center py-3">
-          <div class="spinner-border text-danger mb-3"></div><p>Saving visit…</p>
+          <div class="spinner-border text-danger mb-3"></div><p><%= t("Saving visit…") %></p>
         </div>
         <div id="visitStep3" class="d-none text-center py-3">
           <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
-          <p class="fw-bold mt-2 mb-1">Site visit successfully recorded!</p>
+          <p class="fw-bold mt-2 mb-1"><%= t("Site visit successfully recorded!") %></p>
           <div class="text-start small bg-light rounded p-3 mt-2" id="v_summary"></div>
         </div>
         <div id="visitStepErr" class="d-none text-center py-3">
           <i class="bi bi-exclamation-circle-fill text-danger" style="font-size:2.5rem"></i>
-          <p class="fw-bold mt-2" id="v_err_msg">Something went wrong.</p>
-          <button class="btn btn-outline-danger btn-sm" onclick="backToVisitForm()">Try Again</button>
+          <p class="fw-bold mt-2" id="v_err_msg"><%= t("Something went wrong.") %></p>
+          <button class="btn btn-outline-danger btn-sm" onclick="backToVisitForm()"><%= t("Try Again") %></button>
         </div>
       </div>
     </div>
@@ -385,7 +385,7 @@ async function goToVisitCamera() {
   const customer = document.getElementById('v_customer').value.trim();
   if (!customer) { document.getElementById('v_customer').focus(); return; }
   const phone = document.getElementById('v_phone').value.replace(/[^0-9+]/g, '');
-  if (phone && !/^(\+?91)?[6-9]\d{9}$/.test(phone)) { alert('Enter a valid 10-digit mobile number, or leave it blank.'); document.getElementById('v_phone').focus(); return; }
+  if (phone && !/^(\+?91)?[6-9]\d{9}$/.test(phone)) { alert(T('Enter a valid 10-digit mobile number, or leave it blank.')); document.getElementById('v_phone').focus(); return; }
   if (_visitLat == null && !document.getElementById('v_address').value.trim()) {
     document.getElementById('v_address_wrap').classList.remove('d-none');
     document.getElementById('v_address').focus(); return;
@@ -448,8 +448,8 @@ async function snapVisitPhoto() {
     const now = new Date();
     document.getElementById('v_summary').innerHTML = `
       <div><strong>Visit ID:</strong> ${resp.visitId}</div>
-      <div><strong>Date:</strong> ${now.toLocaleDateString('en-IN')}</div>
-      <div><strong>Time:</strong> ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div><strong>Date:</strong> ${now.toLocaleDateString((window.LOCALE||'en-IN'))}</div>
+      <div><strong>Time:</strong> ${now.toLocaleTimeString((window.LOCALE||'en-IN'),{hour:'2-digit',minute:'2-digit'})}</div>
       <div><strong>Customer/Site:</strong> ${customer}</div>
       <div><strong>Location:</strong> ${_visitLat != null ? _visitLat.toFixed(5)+', '+_visitLng.toFixed(5) + ' (±' + Math.round(_visitAcc) + ' m)' : 'No GPS — address: ' + document.getElementById('v_address').value.trim()}</div>
     `;

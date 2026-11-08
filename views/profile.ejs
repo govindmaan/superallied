@@ -2,7 +2,7 @@
 <%- include('partials/sidebar', { active: 'profile', user }) %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-person-circle me-2 text-danger"></i>My Profile</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-circle me-2 text-danger"></i><%= t("My Profile") %></h4>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -32,12 +32,12 @@
             <video id="camVideo" style="display:none;width:100%;border-radius:8px;max-height:240px" autoplay playsinline></video>
           </div>
           <div id="camControls" class="d-none d-flex gap-2 justify-content-center mb-3">
-            <button class="btn btn-danger" onclick="snapSelfie()"><i class="bi bi-camera-fill me-1"></i>Snap</button>
-            <button class="btn btn-outline-secondary" onclick="closeCamera()">Cancel</button>
+            <button class="btn btn-danger" onclick="snapSelfie()"><i class="bi bi-camera-fill me-1"></i><%= t("Snap") %></button>
+            <button class="btn btn-outline-secondary" onclick="closeCamera()"><%= t("Cancel") %></button>
           </div>
           <div id="uploadStatus" class="small text-muted mb-2"></div>
           <button id="openCamBtn" class="btn btn-outline-danger" onclick="openCamera()">
-            <i class="bi bi-camera me-1"></i>Update Photo
+            <i class="bi bi-camera me-1"></i><%= t("Update Photo") %>
           </button>
         </div>
 
@@ -45,15 +45,15 @@
 
         <div class="card-body">
           <dl class="row mb-0">
-            <dt class="col-5 text-muted small">Employee Code</dt><dd class="col-7 font-monospace small"><%= emp.employee_code || '—' %></dd>
-            <dt class="col-5 text-muted small">Mobile</dt><dd class="col-7 small"><%= emp.mobile || '—' %></dd>
-            <dt class="col-5 text-muted small">Department</dt><dd class="col-7 small"><%= emp.department || '—' %></dd>
-            <dt class="col-5 text-muted small">Date of Joining</dt><dd class="col-7 small"><%= emp.date_of_joining || '—' %></dd>
-            <dt class="col-5 text-muted small">Username</dt><dd class="col-7 font-monospace small"><%= emp.username %></dd>
+            <dt class="col-5 text-muted small"><%= t("Employee Code") %></dt><dd class="col-7 font-monospace small"><%= emp.employee_code || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Mobile") %></dt><dd class="col-7 small"><%= emp.mobile || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Department") %></dt><dd class="col-7 small"><%= emp.department || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Date of Joining") %></dt><dd class="col-7 small"><%= emp.date_of_joining || '—' %></dd>
+            <dt class="col-5 text-muted small"><%= t("Username") %></dt><dd class="col-7 font-monospace small"><%= emp.username %></dd>
           </dl>
           <div class="mt-3">
-            <a href="/settings" class="btn btn-outline-secondary btn-sm"><i class="bi bi-key me-1"></i>Change Password</a>
-            <a href="/id-card" class="btn btn-outline-danger btn-sm ms-2"><i class="bi bi-credit-card-2-front me-1"></i>My ID Card</a>
+            <a href="/settings" class="btn btn-outline-secondary btn-sm"><i class="bi bi-key me-1"></i><%= t("Change Password") %></a>
+            <a href="/id-card" class="btn btn-outline-danger btn-sm ms-2"><i class="bi bi-credit-card-2-front me-1"></i><%= t("My ID Card") %></a>
           </div>
         </div>
       </div>
@@ -63,39 +63,39 @@
     <div class="col-md-6 col-lg-5">
       <div class="card border-0 shadow-sm" id="pin">
         <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-grid-3x3-gap me-1 text-danger"></i>Login PIN</span>
-          <% if (emp.pin_hash) { %><span class="badge bg-success">On</span><% } else { %><span class="badge bg-secondary">Not set</span><% } %>
+          <span><i class="bi bi-grid-3x3-gap me-1 text-danger"></i><%= t("Login PIN") %></span>
+          <% if (emp.pin_hash) { %><span class="badge bg-success"><%= t("On") %></span><% } else { %><span class="badge bg-secondary"><%= t("Not set") %></span><% } %>
         </div>
         <div class="card-body">
-          <p class="small text-muted">A 6-digit PIN lets you log in quickly on your phone. Your password still works too.</p>
+          <p class="small text-muted"><%= t("A 6-digit PIN lets you log in quickly on your phone. Your password still works too.") %></p>
           <form method="POST" action="/profile/pin" autocomplete="off">
             <div class="row g-2">
               <div class="col-6">
-                <label class="form-label small fw-semibold"><%= emp.pin_hash ? 'New PIN' : 'PIN' %></label>
+                <label class="form-label small fw-semibold"><%= emp.pin_hash ? t('New PIN') : 'PIN' %></label>
                 <input type="password" name="pin" class="form-control form-control-lg text-center pin-field" inputmode="numeric"
                        pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autocomplete="new-password">
               </div>
               <div class="col-6">
-                <label class="form-label small fw-semibold">Repeat PIN</label>
+                <label class="form-label small fw-semibold"><%= t("Repeat PIN") %></label>
                 <input type="password" name="confirm" class="form-control form-control-lg text-center pin-field" inputmode="numeric"
                        pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autocomplete="new-password">
               </div>
               <div class="col-12">
-                <label class="form-label small fw-semibold">Current password</label>
+                <label class="form-label small fw-semibold"><%= t("Current password") %></label>
                 <input type="password" name="password" class="form-control" required autocomplete="current-password">
               </div>
             </div>
             <div class="d-flex gap-2 mt-3">
-              <button class="btn btn-danger flex-grow-1"><i class="bi bi-check-lg me-1"></i><%= emp.pin_hash ? 'Change PIN' : 'Set PIN' %></button>
+              <button class="btn btn-danger flex-grow-1"><i class="bi bi-check-lg me-1"></i><%= emp.pin_hash ? t('Change PIN') : t('Set PIN') %></button>
             </div>
           </form>
           <% if (emp.pin_hash) { %>
           <details class="mt-3 small">
-            <summary class="text-muted">Remove PIN</summary>
+            <summary class="text-muted"><%= t("Remove PIN") %></summary>
             <form method="POST" action="/profile/pin" class="d-flex gap-2 mt-2">
               <input type="hidden" name="remove" value="1">
-              <input type="password" name="password" class="form-control form-control-sm" placeholder="Current password" required autocomplete="current-password">
-              <button class="btn btn-sm btn-outline-danger text-nowrap">Remove</button>
+              <input type="password" name="password" class="form-control form-control-sm" placeholder="<%= t("Current password") %>" required autocomplete="current-password">
+              <button class="btn btn-sm btn-outline-danger text-nowrap"><%= t("Remove") %></button>
             </form>
           </details>
           <% } %>

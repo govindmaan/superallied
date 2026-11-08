@@ -2,12 +2,12 @@
 <%- include('../partials/sidebar', { active: 'sold-machines', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-hdd-rack me-2 text-primary"></i>Sold Machines Registry</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-hdd-rack me-2 text-primary"></i><%= t("Sold Machines Registry") %></h4>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('importModal').style.display='flex'" title="Import Excel">
-        <i class="bi bi-upload me-1"></i>Import
+      <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('importModal').style.display='flex'" title="<%= t("Import Excel") %>">
+        <i class="bi bi-upload me-1"></i><%= t("Import") %>
       </button>
-      <a href="/sold-machines/new" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Register Machine</a>
+      <a href="/sold-machines/new" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i><%= t("Register Machine") %></a>
     </div>
   </div>
 
@@ -17,20 +17,20 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="get" class="d-flex gap-2 flex-wrap">
-        <input name="q" value="<%= q %>" class="form-control" placeholder="Search by Machine No, Customer, Chassis, Mobile…" style="max-width:400px">
+        <input name="q" value="<%= q %>" class="form-control" placeholder="<%= t("Search by Machine No, Customer, Chassis, Mobile…") %>" style="max-width:400px">
         <% if (showInactive) { %>
         <input type="hidden" name="show_inactive" value="1">
         <% } %>
-        <button class="btn btn-outline-secondary">Search</button>
-        <% if (q) { %><a href="/sold-machines<%= showInactive?'?show_inactive=1':'' %>" class="btn btn-outline-secondary">Clear</a><% } %>
+        <button class="btn btn-outline-secondary"><%= t("Search") %></button>
+        <% if (q) { %><a href="/sold-machines<%= showInactive?'?show_inactive=1':'' %>" class="btn btn-outline-secondary"><%= t("Clear") %></a><% } %>
         <% if (user && user.role === 'admin') { %>
           <% if (showInactive) { %>
           <a href="/sold-machines<%= q?'?q='+encodeURIComponent(q):'' %>" class="btn btn-outline-secondary ms-auto">
-            <i class="bi bi-eye-slash me-1"></i>Hide Inactive
+            <i class="bi bi-eye-slash me-1"></i><%= t("Hide Inactive") %>
           </a>
           <% } else { %>
           <a href="/sold-machines?show_inactive=1<%= q?'&q='+encodeURIComponent(q):'' %>" class="btn btn-outline-secondary ms-auto text-muted">
-            <i class="bi bi-eye me-1"></i>Show Inactive
+            <i class="bi bi-eye me-1"></i><%= t("Show Inactive") %>
           </a>
           <% } %>
         <% } %>
@@ -40,31 +40,31 @@
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold">Machines (<%= rows.length %>)</span>
+      <span class="fw-semibold"><%= t("Machines (") %><%= rows.length %>)</span>
     </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th>Machine No</th>
-            <th>Customer</th>
-            <th>Model</th>
-            <th>Mobile</th>
-            <th>Date of Sale</th>
-            <th>Quotations</th>
+            <th><%= t("Machine No") %></th>
+            <th><%= t("Customer") %></th>
+            <th><%= t("Model") %></th>
+            <th><%= t("Mobile") %></th>
+            <th><%= t("Date of Sale") %></th>
+            <th><%= t("Quotations") %></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% if (rows.length === 0) { %>
-          <tr><td colspan="7" class="text-center text-muted py-4">No machines found. <a href="/sold-machines/new">Register the first one.</a></td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4"><%= t("No machines found.") %> <a href="/sold-machines/new"><%= t("Register the first one.") %></a></td></tr>
           <% } %>
           <% rows.forEach(m => { %>
           <% const isActive = m.is_active !== 0; %>
           <tr class="<%= isActive ? '' : 'table-secondary text-muted' %>">
             <td>
               <a href="/sold-machines/<%= m.id %>" class="fw-semibold text-decoration-none <%= isActive?'':'text-muted' %>"><%= m.machine_no %></a>
-              <% if (!isActive) { %><span class="badge bg-secondary ms-1">Inactive</span><% } %>
+              <% if (!isActive) { %><span class="badge bg-secondary ms-1"><%= t("Inactive") %></span><% } %>
             </td>
             <td>
               <div class="fw-semibold"><%= m.customer_name %></div>
@@ -76,28 +76,28 @@
               <a href="tel:<%= m.mobile_1 %>" class="text-decoration-none <%= isActive?'':'text-muted' %>"><i class="bi bi-phone me-1 text-success"></i><%= m.mobile_1 %></a>
               <% } else { %>—<% } %>
             </td>
-            <td><small><%= m.date_of_sale ? new Date(m.date_of_sale).toLocaleDateString('en-IN') : '—' %></small></td>
+            <td><small><%= m.date_of_sale ? new Date(m.date_of_sale).toLocaleDateString(locale) : '—' %></small></td>
             <td>
               <span class="badge bg-primary-subtle text-primary"><%= m.quotation_count %></span>
             </td>
             <td>
               <div class="d-flex gap-1">
                 <% if (isActive) { %>
-                <a href="/spare-quotations/new?machine_no=<%= encodeURIComponent(m.machine_no) %>" class="btn btn-sm btn-success" title="New Spare Quotation">
+                <a href="/spare-quotations/new?machine_no=<%= encodeURIComponent(m.machine_no) %>" class="btn btn-sm btn-success" title="<%= t("New Spare Quotation") %>">
                   <i class="bi bi-file-plus"></i>
                 </a>
-                <a href="/sold-machines/<%= m.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                <a href="/sold-machines/<%= m.id %>/edit" class="btn btn-sm btn-outline-secondary" title="<%= t("Edit") %>">
                   <i class="bi bi-pencil"></i>
                 </a>
                 <% if (user && user.role === 'admin') { %>
                 <form method="POST" action="/sold-machines/<%= m.id %>/deactivate" class="d-inline"
                   onsubmit="return confirm('Deactivate machine <%= m.machine_no %>?')">
-                  <button class="btn btn-sm btn-outline-danger" title="Deactivate"><i class="bi bi-slash-circle"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" title="<%= t("Deactivate") %>"><i class="bi bi-slash-circle"></i></button>
                 </form>
                 <% } %>
                 <% } else if (user && user.role === 'admin') { %>
                 <form method="POST" action="/sold-machines/<%= m.id %>/reactivate" class="d-inline">
-                  <button class="btn btn-sm btn-outline-success" title="Reactivate"><i class="bi bi-arrow-counterclockwise"></i></button>
+                  <button class="btn btn-sm btn-outline-success" title="<%= t("Reactivate") %>"><i class="bi bi-arrow-counterclockwise"></i></button>
                 </form>
                 <% } %>
               </div>
@@ -114,13 +114,13 @@
 <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:20px 0">
   <div class="card border-0 shadow-lg" style="width:700px;max-width:96vw">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-upload me-2"></i>Import Machines from Excel</span>
+      <span class="fw-semibold"><i class="bi bi-upload me-2"></i><%= t("Import Machines from Excel") %></span>
       <button class="btn btn-sm btn-outline-secondary" onclick="closeImport()">✕</button>
     </div>
 
     <!-- Step 1: File pick -->
     <div id="step1" class="card-body">
-      <p class="text-muted small mb-3">Upload any Excel file. You'll map columns on the next screen.</p>
+      <p class="text-muted small mb-3"><%= t("Upload any Excel file. You'll map columns on the next screen.") %></p>
       <input type="file" id="importFile" accept=".xlsx,.xls" class="form-control mb-2">
       <div id="parseError" class="alert alert-danger d-none small py-2"></div>
     </div>
@@ -130,7 +130,7 @@
       <div class="alert alert-info small py-2 mb-3" id="previewInfo"></div>
       <div class="table-responsive" style="max-height:55vh;overflow-y:auto">
         <table class="table table-sm table-bordered mb-0 small">
-          <thead class="table-light"><tr><th style="width:35%">System Field</th><th>Excel Column</th><th style="width:38%">Sample Value</th></tr></thead>
+          <thead class="table-light"><tr><th style="width:35%"><%= t("System Field") %></th><th><%= t("Excel Column") %></th><th style="width:38%"><%= t("Sample Value") %></th></tr></thead>
           <tbody id="mappingRows"></tbody>
         </table>
       </div>
@@ -138,9 +138,9 @@
     </div>
 
     <div class="card-footer d-flex gap-2 justify-content-end">
-      <button class="btn btn-outline-secondary" onclick="closeImport()">Cancel</button>
-      <button id="btnParse"  class="btn btn-primary"  onclick="parseFile()"><i class="bi bi-arrow-right me-1"></i>Next: Map Fields</button>
-      <button id="btnImport" class="btn btn-success d-none" onclick="doImport()"><i class="bi bi-upload me-1"></i>Import</button>
+      <button class="btn btn-outline-secondary" onclick="closeImport()"><%= t("Cancel") %></button>
+      <button id="btnParse"  class="btn btn-primary"  onclick="parseFile()"><i class="bi bi-arrow-right me-1"></i><%= t("Next: Map Fields") %></button>
+      <button id="btnImport" class="btn btn-success d-none" onclick="doImport()"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
     </div>
   </div>
 </div>
@@ -197,7 +197,7 @@ function autoDetect(headers) {
 
 async function parseFile() {
   const file = document.getElementById('importFile').files[0];
-  if (!file) return alert('Select an Excel file first.');
+  if (!file) return alert(T('Select an Excel file first.'));
   const errDiv = document.getElementById('parseError');
   errDiv.classList.add('d-none');
   document.getElementById('btnParse').disabled = true;
@@ -257,7 +257,7 @@ async function doImport() {
     const v = document.getElementById(`map_${f.key}`)?.value;
     if (v) mapping[f.key] = v;
   });
-  if (!mapping.machine_no) return alert('Machine No. column mapping is required.');
+  if (!mapping.machine_no) return alert(T('Machine No. column mapping is required.'));
 
   const btn = document.getElementById('btnImport');
   btn.disabled = true; btn.textContent = 'Importing…';

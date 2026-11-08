@@ -3,23 +3,23 @@
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h4 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2 text-warning"></i>Spare Parts Master</h4>
-      <small class="text-muted"><%= total %> parts in catalog<% if (priceDate) { %> · price list dated <%= new Date(priceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %><% } %></small>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2 text-warning"></i><%= t("Spare Parts Master") %></h4>
+      <small class="text-muted"><%= total %> <%= t("parts in catalog") %><% if (priceDate) { %> <%= t("· price list dated") %> <%= new Date(priceDate + 'T00:00:00').toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }) %><% } %></small>
     </div>
     <div class="d-flex gap-2">
-      <a href="/spare-parts/export/sample" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Sample Excel</a>
-      <a href="/spare-parts/export/csv" class="btn btn-outline-info btn-sm"><i class="bi bi-filetype-csv me-1"></i>Export CSV</a>
+      <a href="/spare-parts/export/sample" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i><%= t("Sample Excel") %></a>
+      <a href="/spare-parts/export/csv" class="btn btn-outline-info btn-sm"><i class="bi bi-filetype-csv me-1"></i><%= t("Export CSV") %></a>
       <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('importModal').style.display='flex'">
-        <i class="bi bi-upload me-1"></i>Import Excel
+        <i class="bi bi-upload me-1"></i><%= t("Import Excel") %>
       </button>
       <% if (user && user.role === 'admin') { %>
       <form method="POST" action="/spare-parts/delete-all" class="d-inline"
         onsubmit="return confirm('DELETE ALL <%= total %> PARTS? This cannot be undone.')">
-        <button class="btn btn-danger btn-sm"><i class="bi bi-trash3-fill me-1"></i>Delete All</button>
+        <button class="btn btn-danger btn-sm"><i class="bi bi-trash3-fill me-1"></i><%= t("Delete All") %></button>
       </form>
       <% } %>
       <button class="btn btn-warning text-dark btn-sm" onclick="document.getElementById('addPartModal').style.display='flex'">
-        <i class="bi bi-plus-lg me-1"></i>Add Part
+        <i class="bi bi-plus-lg me-1"></i><%= t("Add Part") %>
       </button>
     </div>
   </div>
@@ -30,9 +30,9 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="get" class="d-flex gap-2">
-        <input name="q" value="<%= q %>" class="form-control" placeholder="Search by SAP No, RND No, Description…" style="max-width:400px">
-        <button class="btn btn-outline-secondary">Search</button>
-        <% if (q) { %><a href="/spare-parts" class="btn btn-outline-secondary">Clear</a><% } %>
+        <input name="q" value="<%= q %>" class="form-control" placeholder="<%= t("Search by SAP No, RND No, Description…") %>" style="max-width:400px">
+        <button class="btn btn-outline-secondary"><%= t("Search") %></button>
+        <% if (q) { %><a href="/spare-parts" class="btn btn-outline-secondary"><%= t("Clear") %></a><% } %>
       </form>
     </div>
   </div>
@@ -42,21 +42,21 @@
       <table class="table table-hover mb-0 align-middle small">
         <thead class="table-light">
           <tr>
-            <th>SAP Part No.</th>
-            <th>RND Part No.</th>
-            <th>Description</th>
-            <th>HSN</th>
-            <th class="text-end">NDP (Basic)</th>
-            <th class="text-end">MRP (Basic)</th>
-            <th class="text-end">MRP (With Tax)</th>
-            <th class="text-center">Tax %</th>
+            <th><%= t("SAP Part No.") %></th>
+            <th><%= t("RND Part No.") %></th>
+            <th><%= t("Description") %></th>
+            <th><%= t("HSN") %></th>
+            <th class="text-end"><%= t("NDP (Basic)") %></th>
+            <th class="text-end"><%= t("MRP (Basic)") %></th>
+            <th class="text-end"><%= t("MRP (With Tax)") %></th>
+            <th class="text-center"><%= t("Tax %") %></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% if (parts.length === 0) { %>
           <tr><td colspan="9" class="text-center text-muted py-4">
-            No parts found. <button class="btn btn-sm btn-warning" onclick="document.getElementById('importModal').style.display='flex'">Import from Excel</button>
+            <%= t("No parts found.") %> <button class="btn btn-sm btn-warning" onclick="document.getElementById('importModal').style.display='flex'"><%= t("Import from Excel") %></button>
           </td></tr>
           <% } %>
           <% parts.forEach(p => { %>
@@ -70,9 +70,9 @@
             <td class="text-end fw-semibold">₹<%= Number(p.mrp_price).toFixed(2) %></td>
             <td class="text-center"><%= p.tax_rate %>%</td>
             <td>
-              <button class="btn btn-sm btn-outline-secondary" onclick="openEdit(<%= JSON.stringify(p).replace(/'/g,"&#39;") %>)" title="Edit"><i class="bi bi-pencil"></i></button>
-              <form method="post" action="/spare-parts/<%= p.id %>/delete" style="display:inline" onsubmit="return confirm('Delete this part?')">
-                <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="openEdit(<%= JSON.stringify(p).replace(/'/g,"&#39;") %>)" title="<%= t("Edit") %>"><i class="bi bi-pencil"></i></button>
+              <form method="post" action="/spare-parts/<%= p.id %>/delete" style="display:inline" onsubmit="return confirm('<%= tjs("Delete this part?") %>')">
+                <button class="btn btn-sm btn-outline-danger" title="<%= t("Delete") %>"><i class="bi bi-trash"></i></button>
               </form>
             </td>
           </tr>
@@ -81,7 +81,7 @@
       </table>
     </div>
     <% if (q && parts.length === 200) { %>
-    <div class="card-footer text-muted small">Showing first 200 results. Refine your search.</div>
+    <div class="card-footer text-muted small"><%= t("Showing first 200 results. Refine your search.") %></div>
     <% } %>
   </div>
 </div>
@@ -90,7 +90,7 @@
 <div id="addPartModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;overflow-y:auto">
   <div class="card border-0 shadow-lg my-3" style="width:640px;max-width:95vw">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold" id="modalTitle">Add New Part</span>
+      <span class="fw-semibold" id="modalTitle"><%= t("Add New Part") %></span>
       <button class="btn btn-sm btn-outline-secondary" onclick="closeModals()">✕</button>
     </div>
     <form method="post" id="partForm" action="/spare-parts">
@@ -98,23 +98,23 @@
       <div class="card-body">
         <div class="row g-2">
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">SAP Part No.</label>
+            <label class="form-label small fw-semibold"><%= t("SAP Part No.") %></label>
             <input name="sap_part_no" id="f_sap" class="form-control form-control-sm">
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">RND Part No.</label>
+            <label class="form-label small fw-semibold"><%= t("RND Part No.") %></label>
             <input name="rnd_part_no" id="f_rnd" class="form-control form-control-sm">
           </div>
           <div class="col-12">
-            <label class="form-label small fw-semibold">Material Description <span class="text-danger">*</span></label>
+            <label class="form-label small fw-semibold"><%= t("Material Description") %> <span class="text-danger">*</span></label>
             <input name="material_description" id="f_desc" class="form-control form-control-sm" required>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">HSN Code</label>
+            <label class="form-label small fw-semibold"><%= t("HSN Code") %></label>
             <input name="hsn_code" id="f_hsn" class="form-control form-control-sm">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Tax Rate %</label>
+            <label class="form-label small fw-semibold"><%= t("Tax Rate %") %></label>
             <select name="tax_rate" id="f_tax" class="form-select form-select-sm">
               <option value="5">5%</option>
               <option value="12">12%</option>
@@ -124,34 +124,34 @@
           </div>
           <div class="col-12"><hr class="my-1"></div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">NDP Basic</label>
+            <label class="form-label small fw-semibold"><%= t("NDP Basic") %></label>
             <input name="ndp_basic" id="f_ndp_basic" type="number" step="0.01" class="form-control form-control-sm" value="0" oninput="calcModal()">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">NDP GST Amt</label>
+            <label class="form-label small fw-semibold"><%= t("NDP GST Amt") %></label>
             <input name="ndp_gst" id="f_ndp_gst" type="number" step="0.01" class="form-control form-control-sm" value="0">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">NDP (Total)</label>
+            <label class="form-label small fw-semibold"><%= t("NDP (Total)") %></label>
             <input name="ndp_price" id="f_ndp" type="number" step="0.01" class="form-control form-control-sm" value="0">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">MRP Basic</label>
+            <label class="form-label small fw-semibold"><%= t("MRP Basic") %></label>
             <input name="mrp_basic" id="f_mrp_basic" type="number" step="0.01" class="form-control form-control-sm" value="0" oninput="calcModal()">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">MRP GST Amt</label>
+            <label class="form-label small fw-semibold"><%= t("MRP GST Amt") %></label>
             <input name="mrp_gst" id="f_mrp_gst" type="number" step="0.01" class="form-control form-control-sm" value="0">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">MRP (Total)</label>
+            <label class="form-label small fw-semibold"><%= t("MRP (Total)") %></label>
             <input name="mrp_price" id="f_mrp" type="number" step="0.01" class="form-control form-control-sm" value="0">
           </div>
         </div>
       </div>
       <div class="card-footer d-flex gap-2 justify-content-end">
-        <button type="button" class="btn btn-outline-secondary" onclick="closeModals()">Cancel</button>
-        <button type="submit" class="btn btn-warning text-dark">Save Part</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModals()"><%= t("Cancel") %></button>
+        <button type="submit" class="btn btn-warning text-dark"><%= t("Save Part") %></button>
       </div>
     </form>
   </div>
@@ -161,18 +161,18 @@
 <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:20px 0">
   <div class="card border-0 shadow-lg" style="width:720px;max-width:96vw">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-upload me-2"></i>Import Spare Parts from Excel</span>
+      <span class="fw-semibold"><i class="bi bi-upload me-2"></i><%= t("Import Spare Parts from Excel") %></span>
       <button class="btn btn-sm btn-outline-secondary" onclick="closePartsImport()">✕</button>
     </div>
 
     <!-- Step 1 -->
     <div id="pStep1" class="card-body">
-      <p class="text-muted small mb-3">Upload any Excel file. You'll map columns on the next screen.</p>
+      <p class="text-muted small mb-3"><%= t("Upload any Excel file. You'll map columns on the next screen.") %></p>
       <div class="mb-3">
-        <label class="form-label small fw-semibold">Import Mode</label>
+        <label class="form-label small fw-semibold"><%= t("Import Mode") %></label>
         <select id="importMode" class="form-select form-select-sm" style="max-width:320px">
-          <option value="insert">Insert New Only (skip duplicates)</option>
-          <option value="upsert">Insert + Update Existing (by SAP Part No)</option>
+          <option value="insert"><%= t("Insert New Only (skip duplicates)") %></option>
+          <option value="upsert"><%= t("Insert + Update Existing (by SAP Part No)") %></option>
         </select>
       </div>
       <input type="file" id="importFile" accept=".xlsx,.xls" class="form-control mb-2">
@@ -184,7 +184,7 @@
       <div class="alert alert-info small py-2 mb-3" id="pPreviewInfo"></div>
       <div class="table-responsive" style="max-height:55vh;overflow-y:auto">
         <table class="table table-sm table-bordered mb-0 small">
-          <thead class="table-light"><tr><th style="width:32%">System Field</th><th>Excel Column</th><th style="width:36%">Sample Value</th></tr></thead>
+          <thead class="table-light"><tr><th style="width:32%"><%= t("System Field") %></th><th><%= t("Excel Column") %></th><th style="width:36%"><%= t("Sample Value") %></th></tr></thead>
           <tbody id="pMappingRows"></tbody>
         </table>
       </div>
@@ -192,9 +192,9 @@
     </div>
 
     <div class="card-footer d-flex gap-2 justify-content-end">
-      <button class="btn btn-outline-secondary" onclick="closePartsImport()">Cancel</button>
-      <button id="pBtnParse"  class="btn btn-primary"  onclick="parsePartsFile()"><i class="bi bi-arrow-right me-1"></i>Next: Map Fields</button>
-      <button id="pBtnImport" class="btn btn-success d-none" onclick="doImportParts()"><i class="bi bi-upload me-1"></i>Import</button>
+      <button class="btn btn-outline-secondary" onclick="closePartsImport()"><%= t("Cancel") %></button>
+      <button id="pBtnParse"  class="btn btn-primary"  onclick="parsePartsFile()"><i class="bi bi-arrow-right me-1"></i><%= t("Next: Map Fields") %></button>
+      <button id="pBtnImport" class="btn btn-success d-none" onclick="doImportParts()"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
     </div>
   </div>
 </div>
@@ -281,7 +281,7 @@ function partsAutoDetect(headers) {
 
 async function parsePartsFile() {
   const file = document.getElementById('importFile').files[0];
-  if (!file) return alert('Select an Excel file first.');
+  if (!file) return alert(T('Select an Excel file first.'));
   const errDiv = document.getElementById('pParseError');
   errDiv.classList.add('d-none');
   const btn = document.getElementById('pBtnParse');
@@ -333,7 +333,7 @@ function pUpdateSample(field) {
 async function doImportParts() {
   const mapping = {};
   PARTS_FIELDS.forEach(f => { const v = document.getElementById(`pmap_${f.key}`)?.value; if (v) mapping[f.key] = v; });
-  if (!mapping.material_description) return alert('Material Description column mapping is required.');
+  if (!mapping.material_description) return alert(T('Material Description column mapping is required.'));
   const mode = document.getElementById('importMode').value;
   const btn  = document.getElementById('pBtnImport');
   btn.disabled = true; btn.textContent = 'Importing…';

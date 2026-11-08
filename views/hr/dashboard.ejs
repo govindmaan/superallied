@@ -2,7 +2,7 @@
 <%- include('../partials/sidebar', { active: 'hr', user }) %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-danger"></i>HR Dashboard</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-danger"></i><%= t("HR Dashboard") %></h4>
     <p class="text-muted small mb-0 mt-1"><%= today %></p>
   </div>
 
@@ -11,25 +11,25 @@
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center py-3">
         <div class="fw-bold fs-2 text-primary"><%= totalEmployees %></div>
-        <div class="small text-muted">Total Employees</div>
+        <div class="small text-muted"><%= t("Total Employees") %></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center py-3">
         <div class="fw-bold fs-2 text-success"><%= presentToday %></div>
-        <div class="small text-muted">Present Today</div>
+        <div class="small text-muted"><%= t("Present Today") %></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center py-3">
         <div class="fw-bold fs-2 <%= pendingLeaves > 0 ? 'text-warning' : 'text-muted' %>"><%= pendingLeaves %></div>
-        <div class="small text-muted">Pending Leaves</div>
+        <div class="small text-muted"><%= t("Pending Leaves") %></div>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center py-3">
         <div class="fw-bold fs-2 text-info"><%= thisMonthSalaries %></div>
-        <div class="small text-muted">Salaries This Month</div>
+        <div class="small text-muted"><%= t("Salaries This Month") %></div>
       </div>
     </div>
   </div>
@@ -39,12 +39,12 @@
     <div class="col-lg-7">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">Today's Check-ins</span>
-          <a href="/hr/attendance" class="btn btn-sm btn-outline-secondary">View All</a>
+          <span class="fw-semibold"><%= t("Today's Check-ins") %></span>
+          <a href="/hr/attendance" class="btn btn-sm btn-outline-secondary"><%= t("View All") %></a>
         </div>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
-            <thead class="table-light"><tr><th>Employee</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+            <thead class="table-light"><tr><th><%= t("Employee") %></th><th><%= t("In") %></th><th><%= t("Out") %></th><th><%= t("Status") %></th></tr></thead>
             <tbody>
               <% recentAttendance.forEach(a => { %>
               <tr>
@@ -52,17 +52,17 @@
                   <div class="fw-semibold small"><%= a.full_name %></div>
                   <small class="text-muted"><%= a.department || a.employee_code %></small>
                 </td>
-                <td class="small"><%= a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
-                <td class="small"><%= a.check_out_time ? new Date(a.check_out_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+                <td class="small"><%= a.check_in_time ? new Date(a.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+                <td class="small"><%= a.check_out_time ? new Date(a.check_out_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
                 <td>
-                  <% if (a.check_out_time) { %><span class="badge bg-success">Done</span>
-                  <% } else if (a.check_in_time) { %><span class="badge bg-warning text-dark">In</span>
+                  <% if (a.check_out_time) { %><span class="badge bg-success"><%= t("Done") %></span>
+                  <% } else if (a.check_in_time) { %><span class="badge bg-warning text-dark"><%= t("In") %></span>
                   <% } else { %><span class="badge bg-secondary">—</span><% } %>
                 </td>
               </tr>
               <% }) %>
               <% if (!recentAttendance.length) { %>
-              <tr><td colspan="4" class="text-center text-muted py-3">No check-ins yet today.</td></tr>
+              <tr><td colspan="4" class="text-center text-muted py-3"><%= t("No check-ins yet today.") %></td></tr>
               <% } %>
             </tbody>
           </table>
@@ -74,28 +74,28 @@
     <div class="col-lg-5">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">Pending Leave Requests</span>
-          <a href="/hr/leaves?status=pending" class="btn btn-sm btn-outline-secondary">View All</a>
+          <span class="fw-semibold"><%= t("Pending Leave Requests") %></span>
+          <a href="/hr/leaves?status=pending" class="btn btn-sm btn-outline-secondary"><%= t("View All") %></a>
         </div>
         <div class="list-group list-group-flush">
           <% pendingLeaveList.forEach(l => { %>
           <div class="list-group-item py-2">
             <div class="fw-semibold small"><%= l.full_name %></div>
-            <div class="small text-muted"><%= l.lt_name %> · <%= l.days %> day(s) · <%= l.start_date %></div>
+            <div class="small text-muted"><%= l.lt_name %> · <%= l.days %> <%= t("day(s) ·") %> <%= l.start_date %></div>
             <div class="mt-1 d-flex gap-1">
               <form method="POST" action="/hr/leaves/<%= l.id %>/review" class="d-inline">
                 <input type="hidden" name="status" value="approved">
-                <button class="btn btn-xs btn-success py-0 px-2 small">Approve</button>
+                <button class="btn btn-xs btn-success py-0 px-2 small"><%= t("Approve") %></button>
               </form>
               <form method="POST" action="/hr/leaves/<%= l.id %>/review" class="d-inline">
                 <input type="hidden" name="status" value="rejected">
-                <button class="btn btn-xs btn-danger py-0 px-2 small">Reject</button>
+                <button class="btn btn-xs btn-danger py-0 px-2 small"><%= t("Reject") %></button>
               </form>
             </div>
           </div>
           <% }) %>
           <% if (!pendingLeaveList.length) { %>
-          <div class="list-group-item text-center text-muted py-3">No pending requests.</div>
+          <div class="list-group-item text-center text-muted py-3"><%= t("No pending requests.") %></div>
           <% } %>
         </div>
       </div>
@@ -107,11 +107,11 @@
     <div class="col-12">
       <div class="card border-0 shadow-sm">
         <div class="card-body d-flex flex-wrap gap-2">
-          <a href="/hr/employees/new" class="btn btn-danger"><i class="bi bi-person-plus me-1"></i>Add Employee</a>
-          <a href="/hr/attendance" class="btn btn-outline-secondary"><i class="bi bi-calendar-check me-1"></i>Attendance</a>
-          <a href="/hr/leaves" class="btn btn-outline-secondary"><i class="bi bi-calendar-x me-1"></i>Leave Requests</a>
-          <a href="/hr/salary" class="btn btn-outline-secondary"><i class="bi bi-cash-coin me-1"></i>Upload Salary</a>
-          <a href="/hr/employees" class="btn btn-outline-secondary"><i class="bi bi-people me-1"></i>All Employees</a>
+          <a href="/hr/employees/new" class="btn btn-danger"><i class="bi bi-person-plus me-1"></i><%= t("Add Employee") %></a>
+          <a href="/hr/attendance" class="btn btn-outline-secondary"><i class="bi bi-calendar-check me-1"></i><%= t("Attendance") %></a>
+          <a href="/hr/leaves" class="btn btn-outline-secondary"><i class="bi bi-calendar-x me-1"></i><%= t("Leave Requests") %></a>
+          <a href="/hr/salary" class="btn btn-outline-secondary"><i class="bi bi-cash-coin me-1"></i><%= t("Upload Salary") %></a>
+          <a href="/hr/employees" class="btn btn-outline-secondary"><i class="bi bi-people me-1"></i><%= t("All Employees") %></a>
         </div>
       </div>
     </div>

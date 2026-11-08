@@ -1,42 +1,42 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'telecaller-reports', user }) %>
 <div class="main-content" style="max-width:920px">
-  <h4 class="fw-bold mb-3"><i class="bi bi-clipboard-data me-2"></i>Lead Reports</h4>
+  <h4 class="fw-bold mb-3"><i class="bi bi-clipboard-data me-2"></i><%= t("Lead Reports") %></h4>
 
   <form method="get" class="card border-0 shadow-sm mb-3">
     <div class="card-body d-flex flex-wrap gap-2 align-items-end">
-      <div><label class="form-label small fw-semibold mb-0">From</label><input type="date" name="from" value="<%= from %>" class="form-control form-control-sm"></div>
-      <div><label class="form-label small fw-semibold mb-0">To</label><input type="date" name="to" value="<%= to %>" class="form-control form-control-sm"></div>
-      <button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i>Apply</button>
-      <span class="text-muted small ms-auto">Cohort: enquiries entered in the window</span>
+      <div><label class="form-label small fw-semibold mb-0"><%= t("From") %></label><input type="date" name="from" value="<%= from %>" class="form-control form-control-sm"></div>
+      <div><label class="form-label small fw-semibold mb-0"><%= t("To") %></label><input type="date" name="to" value="<%= to %>" class="form-control form-control-sm"></div>
+      <button class="btn btn-primary btn-sm"><i class="bi bi-funnel me-1"></i><%= t("Apply") %></button>
+      <span class="text-muted small ms-auto"><%= t("Cohort: enquiries entered in the window") %></span>
     </div>
   </form>
 
   <!-- Conversion funnel -->
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold">Conversion Funnel</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Conversion Funnel") %></div>
     <div class="card-body">
       <% const top = Math.max(1, funnel[0][1]); %>
       <% funnel.forEach(([label, val], i) => { const pct = Math.round(val/top*100); %>
       <div class="d-flex align-items-center mb-2">
-        <div class="small text-muted" style="width:150px"><%= label %></div>
+        <div class="small text-muted" style="width:150px"><%= t(label) %></div>
         <div class="flex-fill bg-light rounded position-relative" style="height:26px">
           <div class="bg-<%= i===0?'primary':i===funnel.length-1?'success':'info' %> rounded" style="height:26px;width:<%= Math.max(pct,3) %>%"></div>
           <span class="position-absolute top-50 translate-middle-y small fw-semibold" style="left:8px"><%= val %><% if (i>0) { %> <span class="text-muted">· <%= pct %>%</span><% } %></span>
         </div>
       </div>
       <% }) %>
-      <div class="small text-muted mt-2">“Calls Attempted” counts every call logged; all other steps count unique leads. <% if (unassigned) { %><span class="text-danger">· <%= unassigned %> qualified lead(s) still unassigned.</span><% } %></div>
+      <div class="small text-muted mt-2"><%= t("“Calls Attempted” counts every call logged; all other steps count unique leads.") %> <% if (unassigned) { %><span class="text-danger">· <%= unassigned %> <%= t("qualified lead(s) still unassigned.") %></span><% } %></div>
     </div>
   </div>
 
   <!-- Telecaller performance -->
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold">Telecaller Performance</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Telecaller Performance") %></div>
     <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-      <thead class="table-light"><tr><th>Telecaller</th><th class="text-end">Entered</th><th class="text-end">Attempts</th><th class="text-end">Connected</th><th class="text-end">Hot</th><th class="text-end">Warm</th><th class="text-end">Pending</th><th class="text-end">Avg hrs→1st call</th><th class="text-end">SLA breach</th></tr></thead>
+      <thead class="table-light"><tr><th><%= t("Telecaller") %></th><th class="text-end"><%= t("Entered") %></th><th class="text-end"><%= t("Attempts") %></th><th class="text-end"><%= t("Connected") %></th><th class="text-end"><%= t("Hot") %></th><th class="text-end"><%= t("Warm") %></th><th class="text-end"><%= t("Pending") %></th><th class="text-end"><%= t("Avg hrs→1st call") %></th><th class="text-end"><%= t("SLA breach") %></th></tr></thead>
       <tbody>
-        <% if (!tc.length) { %><tr><td colspan="9" class="text-muted small p-3">No telecaller activity in this window.</td></tr><% } %>
+        <% if (!tc.length) { %><tr><td colspan="9" class="text-muted small p-3"><%= t("No telecaller activity in this window.") %></td></tr><% } %>
         <% tc.forEach(r => { %>
         <tr>
           <td class="fw-semibold"><%= r.full_name %></td>
@@ -56,11 +56,11 @@
 
   <!-- Salesperson performance -->
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold">Salesperson Performance</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Salesperson Performance") %></div>
     <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-      <thead class="table-light"><tr><th>Salesperson</th><th class="text-end">Received</th><th class="text-end">Contacted</th><th class="text-end">Meetings</th><th class="text-end">Demos</th><th class="text-end">Converted</th><th class="text-end">Pending</th><th class="text-end">Not followed up</th></tr></thead>
+      <thead class="table-light"><tr><th><%= t("Salesperson") %></th><th class="text-end"><%= t("Received") %></th><th class="text-end"><%= t("Contacted") %></th><th class="text-end"><%= t("Meetings") %></th><th class="text-end"><%= t("Demos") %></th><th class="text-end"><%= t("Converted") %></th><th class="text-end"><%= t("Pending") %></th><th class="text-end"><%= t("Not followed up") %></th></tr></thead>
       <tbody>
-        <% if (!sp.length) { %><tr><td colspan="8" class="text-muted small p-3">No assigned leads in this window.</td></tr><% } %>
+        <% if (!sp.length) { %><tr><td colspan="8" class="text-muted small p-3"><%= t("No assigned leads in this window.") %></td></tr><% } %>
         <% sp.forEach(r => { %>
         <tr>
           <td class="fw-semibold"><%= r.full_name %></td>

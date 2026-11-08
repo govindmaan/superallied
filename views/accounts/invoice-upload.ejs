@@ -1,57 +1,57 @@
 <%- include('_top') %>
-<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>Upload Tally Invoice</h4>
-  <small class="text-muted">Record a document already generated in Tally. This does not create a GST invoice and does not prove GST portal / e-invoice validation.</small></div>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i><%= t("Upload Tally Invoice") %></h4>
+  <small class="text-muted"><%= t("Record a document already generated in Tally. This does not create a GST invoice and does not prove GST portal / e-invoice validation.") %></small></div>
 
 <div id="err" class="alert alert-danger d-none"></div>
 <form id="upForm" class="row g-3" autocomplete="off">
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm p-3">
-      <h6 class="fw-bold mb-3">1 · Customer and linked documents</h6>
+      <h6 class="fw-bold mb-3"><%= t("1 · Customer and linked documents") %></h6>
       <div class="row g-3">
-        <div class="col-md-7"><label class="form-label">Customer <span class="text-danger">*</span></label>
-          <select name="customer_id" id="customer" class="form-select" data-search required><option value="">Choose existing customer…</option>
+        <div class="col-md-7"><label class="form-label"><%= t("Customer") %> <span class="text-danger">*</span></label>
+          <select name="customer_id" id="customer" class="form-select" data-search required><option value=""><%= t("Choose existing customer…") %></option>
             <% customers.forEach(c => { %><option value="<%= c.id %>" data-gstin="<%= c.gstin %>" <%= +prefill.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %><%= c.gstin ? ' · ' + c.gstin : '' %></option><% }) %></select>
-          <div class="form-text">Not in the list? Add them in <a href="/customers/new" target="_blank">Customers</a> first — the accounts module never creates duplicate customers.</div></div>
-        <div class="col-md-5"><label class="form-label">Document type <span class="text-danger">*</span></label>
+          <div class="form-text"><%= t("Not in the list? Add them in") %> <a href="/customers/new" target="_blank"><%= t("Customers") %></a> <%= t("first — the accounts module never creates duplicate customers.") %></div></div>
+        <div class="col-md-5"><label class="form-label"><%= t("Document type") %> <span class="text-danger">*</span></label>
           <select name="doc_type" id="docType" class="form-select"><% Object.entries(DOC_TYPES).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %></select></div>
-        <div class="col-md-6"><label class="form-label">Linked quotation</label><select name="quotation_id" id="quotation" class="form-select"><option value="">None</option></select></div>
-        <div class="col-md-6 d-none" id="againstWrap"><label class="form-label">Against original invoice</label><select name="against_invoice_id" id="against" class="form-select"><option value="">None</option></select>
-          <div class="form-text">A credit note is applied to this invoice’s balance when saved.</div></div>
-        <div class="col-12"><label class="form-label">Linked delivery challan(s)</label>
-          <div id="challans" class="border rounded p-2 small text-muted">Choose a customer to see their challans.</div></div>
+        <div class="col-md-6"><label class="form-label"><%= t("Linked quotation") %></label><select name="quotation_id" id="quotation" class="form-select"><option value=""><%= t("None") %></option></select></div>
+        <div class="col-md-6 d-none" id="againstWrap"><label class="form-label"><%= t("Against original invoice") %></label><select name="against_invoice_id" id="against" class="form-select"><option value=""><%= t("None") %></option></select>
+          <div class="form-text"><%= t("A credit note is applied to this invoice’s balance when saved.") %></div></div>
+        <div class="col-12"><label class="form-label"><%= t("Linked delivery challan(s)") %></label>
+          <div id="challans" class="border rounded p-2 small text-muted"><%= t("Choose a customer to see their challans.") %></div></div>
       </div>
     </div>
 
     <div class="card border-0 shadow-sm p-3 mt-3">
-      <h6 class="fw-bold mb-3">2 · Invoice details <span class="fw-normal small text-muted">exactly as printed on the Tally invoice</span></h6>
+      <h6 class="fw-bold mb-3"><%= t("2 · Invoice details") %> <span class="fw-normal small text-muted"><%= t("exactly as printed on the Tally invoice") %></span></h6>
       <div class="row g-3">
-        <div class="col-md-4"><label class="form-label">Tally invoice number <span class="text-danger">*</span></label><input name="invoice_number" class="form-control" required maxlength="60"><div class="suggest" data-for="invoice_number"></div></div>
-        <div class="col-md-4"><label class="form-label">Invoice date <span class="text-danger">*</span></label><input type="date" name="invoice_date" class="form-control" required max="<%= today %>"><div class="suggest" data-for="invoice_date"></div></div>
-        <div class="col-md-4"><label class="form-label">Customer GSTIN on invoice</label><input name="customer_gstin" id="gstin" class="form-control text-uppercase" maxlength="15"><div class="suggest" data-for="customer_gstin"></div></div>
-        <div class="col-md-4"><label class="form-label">Basic / taxable value (₹) <span class="text-danger">*</span></label><input name="basic_value" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="basic_value"></div></div>
-        <div class="col-md-4"><label class="form-label">GST amount (₹) <span class="text-danger">*</span></label><input name="gst_amount" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="gst_amount"></div></div>
-        <div class="col-md-4"><label class="form-label">Total invoice amount (₹) <span class="text-danger">*</span></label><input name="total_amount" id="total" class="form-control fw-bold" inputmode="decimal" required>
+        <div class="col-md-4"><label class="form-label"><%= t("Tally invoice number") %> <span class="text-danger">*</span></label><input name="invoice_number" class="form-control" required maxlength="60"><div class="suggest" data-for="invoice_number"></div></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Invoice date") %> <span class="text-danger">*</span></label><input type="date" name="invoice_date" class="form-control" required max="<%= today %>"><div class="suggest" data-for="invoice_date"></div></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Customer GSTIN on invoice") %></label><input name="customer_gstin" id="gstin" class="form-control text-uppercase" maxlength="15"><div class="suggest" data-for="customer_gstin"></div></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Basic / taxable value (₹)") %> <span class="text-danger">*</span></label><input name="basic_value" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="basic_value"></div></div>
+        <div class="col-md-4"><label class="form-label"><%= t("GST amount (₹)") %> <span class="text-danger">*</span></label><input name="gst_amount" class="form-control amt" inputmode="decimal" required><div class="suggest" data-for="gst_amount"></div></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Total invoice amount (₹)") %> <span class="text-danger">*</span></label><input name="total_amount" id="total" class="form-control fw-bold" inputmode="decimal" required>
           <div class="form-text" id="sumHint"></div><div class="suggest" data-for="total_amount"></div></div>
-        <div class="col-md-4"><label class="form-label">Due date</label><input type="date" name="due_date" class="form-control"></div>
-        <div class="col-md-8"><label class="form-label">Payment terms</label><input name="payment_terms" class="form-control" maxlength="200" placeholder="e.g. 100% before delivery / 30 days / finance DO"></div>
-        <div class="col-12"><label class="form-label">Machine / equipment details</label><input name="machine_details" id="machine" class="form-control" maxlength="1000" placeholder="Model, chassis no., engine no."></div>
-        <div class="col-md-4"><label class="form-label">Salesperson</label><select name="salesperson_id" id="sp" class="form-select"><option value="">From quotation</option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
-        <div class="col-md-4"><label class="form-label">Branch</label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
-        <div class="col-md-4"><label class="form-label">Delivery challan expected?</label><select name="challan_expected" class="form-select"><option value="1">Yes</option><option value="0">No</option></select></div>
-        <div class="col-12"><label class="form-label">Internal remarks</label><textarea name="remarks" class="form-control" rows="2" maxlength="1000"></textarea></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Due date") %></label><input type="date" name="due_date" class="form-control"></div>
+        <div class="col-md-8"><label class="form-label"><%= t("Payment terms") %></label><input name="payment_terms" class="form-control" maxlength="200" placeholder="<%= t("e.g. 100% before delivery / 30 days / finance DO") %>"></div>
+        <div class="col-12"><label class="form-label"><%= t("Machine / equipment details") %></label><input name="machine_details" id="machine" class="form-control" maxlength="1000" placeholder="<%= t("Model, chassis no., engine no.") %>"></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Salesperson") %></label><select name="salesperson_id" id="sp" class="form-select"><option value=""><%= t("From quotation") %></option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Branch") %></label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Delivery challan expected?") %></label><select name="challan_expected" class="form-select"><option value="1"><%= t("Yes") %></option><option value="0"><%= t("No") %></option></select></div>
+        <div class="col-12"><label class="form-label"><%= t("Internal remarks") %></label><textarea name="remarks" class="form-control" rows="2" maxlength="1000"></textarea></div>
       </div>
     </div>
   </div>
 
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm p-3 position-sticky" style="top:16px">
-      <h6 class="fw-bold mb-2">3 · Invoice file <span class="text-danger">*</span></h6>
+      <h6 class="fw-bold mb-2"><%= t("3 · Invoice file") %> <span class="text-danger">*</span></h6>
       <input type="file" id="file" class="form-control" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" required>
-      <div class="form-text">PDF from Tally, or JPG/PNG scan. Max <%= maxMb %> MB. Stored privately; only authorised users can open it.</div>
+      <div class="form-text"><%= t("PDF from Tally, or JPG/PNG scan. Max") %> <%= maxMb %> <%= t("MB. Stored privately; only authorised users can open it.") %></div>
       <div id="extractBox" class="small mt-2"></div>
       <hr>
-      <button type="submit" id="go" class="btn btn-primary w-100"><i class="bi bi-eye me-1"></i>Continue to review</button>
-      <div class="form-text">Nothing is final until you confirm on the review screen. Duplicate numbers in the same financial year are refused.</div>
+      <button type="submit" id="go" class="btn btn-primary w-100"><i class="bi bi-eye me-1"></i><%= t("Continue to review") %></button>
+      <div class="form-text"><%= t("Nothing is final until you confirm on the review screen. Duplicate numbers in the same financial year are refused.") %></div>
     </div>
   </div>
   <input type="hidden" name="client_token" value="<%= token %>">

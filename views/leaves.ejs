@@ -2,9 +2,9 @@
 <%- include('partials/sidebar', { active: 'leaves', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-calendar-x me-2 text-danger"></i>My Leaves — <%= year %></h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-calendar-x me-2 text-danger"></i><%= t("My Leaves —") %> <%= year %></h4>
     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#applyModal">
-      <i class="bi bi-plus-lg me-1"></i>Apply Leave
+      <i class="bi bi-plus-lg me-1"></i><%= t("Apply Leave") %>
     </button>
   </div>
 
@@ -18,7 +18,7 @@
       <div class="card border-0 shadow-sm text-center py-3">
         <div class="fw-bold fs-3 text-<%= avail > 3 ? 'success' : avail > 0 ? 'warning' : 'danger' %>"><%= avail %></div>
         <div class="small fw-semibold"><%= b.name %></div>
-        <div class="text-muted" style="font-size:11px"><%= b.used %> used / <%= b.allocated %> total</div>
+        <div class="text-muted" style="font-size:11px"><%= b.used %> <%= t("used /") %> <%= b.allocated %> <%= t("total") %></div>
       </div>
     </div>
     <% }) %>
@@ -26,10 +26,10 @@
 
   <!-- Leave History -->
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold">Leave History</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Leave History") %></div>
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Comment</th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Type") %></th><th><%= t("From") %></th><th><%= t("To") %></th><th><%= t("Days") %></th><th><%= t("Reason") %></th><th><%= t("Status") %></th><th><%= t("Comment") %></th></tr></thead>
         <tbody>
           <% history.forEach(l => { %>
           <tr>
@@ -46,7 +46,7 @@
             <td class="small text-muted"><%= l.reviewer_comment || '—' %></td>
           </tr>
           <% }) %>
-          <% if (!history.length) { %><tr><td colspan="7" class="text-center text-muted py-3">No leave records yet.</td></tr><% } %>
+          <% if (!history.length) { %><tr><td colspan="7" class="text-center text-muted py-3"><%= t("No leave records yet.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>
@@ -56,12 +56,12 @@
   <div class="modal fade" id="applyModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold">Apply for Leave</h5>
+        <div class="modal-header"><h5 class="modal-title fw-bold"><%= t("Apply for Leave") %></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <form method="POST" action="/leaves/apply">
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Leave Type</label>
+              <label class="form-label fw-semibold"><%= t("Leave Type") %></label>
               <select name="leave_type_id" class="form-select" required onchange="checkHalfDay(this)">
                 <% leaveTypes.forEach(lt => { %>
                 <option value="<%= lt.id %>" data-hd="<%= lt.code==='HD' ? 1 : 0 %>"><%= lt.name %></option>
@@ -70,28 +70,28 @@
             </div>
             <div class="row g-2 mb-3" id="dateFields">
               <div class="col-6">
-                <label class="form-label fw-semibold">From Date</label>
+                <label class="form-label fw-semibold"><%= t("From Date") %></label>
                 <input type="date" name="start_date" class="form-control" required
                        min="<%= new Date().toISOString().slice(0,10) %>" onchange="updateEndMin(this)">
               </div>
               <div class="col-6">
-                <label class="form-label fw-semibold">To Date</label>
+                <label class="form-label fw-semibold"><%= t("To Date") %></label>
                 <input type="date" name="end_date" id="endDate" class="form-control" required
                        min="<%= new Date().toISOString().slice(0,10) %>">
               </div>
             </div>
             <div class="mb-3 d-none" id="hdNote">
               <input type="hidden" name="is_half_day" value="1">
-              <div class="alert alert-info small py-2 mb-0">Half Day leave = 0.5 day deducted. Only start date matters.</div>
+              <div class="alert alert-info small py-2 mb-0"><%= t("Half Day leave = 0.5 day deducted. Only start date matters.") %></div>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Reason</label>
-              <textarea name="reason" class="form-control" rows="2" placeholder="Optional reason…"></textarea>
+              <label class="form-label fw-semibold"><%= t("Reason") %></label>
+              <textarea name="reason" class="form-control" rows="2" placeholder="<%= t("Optional reason…") %>"></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-danger fw-bold">Submit Application</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
+            <button type="submit" class="btn btn-danger fw-bold"><%= t("Submit Application") %></button>
           </div>
         </form>
       </div>

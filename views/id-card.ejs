@@ -2,13 +2,13 @@
 <%- include('partials/sidebar', { active: 'id-card', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-credit-card-2-front me-2 text-danger"></i>Employee ID Card</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-credit-card-2-front me-2 text-danger"></i><%= t("Employee ID Card") %></h4>
     <div class="d-flex gap-2">
-      <button onclick="window.print()" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i>Print</button>
+      <button onclick="window.print()" class="btn btn-outline-secondary"><i class="bi bi-printer me-1"></i><%= t("Print") %></button>
       <a href="<%= adminView ? '/hr/employees/'+emp.id+'/id-card/pdf' : '/id-card/pdf' %>" class="btn btn-danger">
-        <i class="bi bi-file-pdf me-1"></i>Download PDF
+        <i class="bi bi-file-pdf me-1"></i><%= t("Download PDF") %>
       </a>
-      <% if (adminView) { %><a href="/hr/employees/<%= emp.id %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a><% } %>
+      <% if (adminView) { %><a href="/hr/employees/<%= emp.id %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a><% } %>
     </div>
   </div>
 
@@ -29,17 +29,17 @@
           <% } %>
         </div>
         <div class="id-name"><%= emp.full_name %></div>
-        <div class="id-designation"><%= emp.designation || 'Employee' %></div>
+        <div class="id-designation"><%= emp.designation || t('Employee') %></div>
         <div class="id-dept"><%= emp.department || '' %></div>
         <hr class="my-2">
-        <div class="id-detail-row"><span>Emp. Code</span><span class="fw-bold"><%= emp.employee_code || '—' %></span></div>
-        <div class="id-detail-row"><span>Mobile</span><span class="fw-bold"><%= emp.mobile || '—' %></span></div>
-        <div class="id-detail-row"><span>DOJ</span><span class="fw-bold"><%= emp.date_of_joining || '—' %></span></div>
-        <div class="id-detail-row"><span>Emergency</span><span><%= emp.emergency_contact || '—' %></span></div>
+        <div class="id-detail-row"><span><%= t("Emp. Code") %></span><span class="fw-bold"><%= emp.employee_code || '—' %></span></div>
+        <div class="id-detail-row"><span><%= t("Mobile") %></span><span class="fw-bold"><%= emp.mobile || '—' %></span></div>
+        <div class="id-detail-row"><span><%= t("DOJ") %></span><span class="fw-bold"><%= emp.date_of_joining || '—' %></span></div>
+        <div class="id-detail-row"><span><%= t("Emergency") %></span><span><%= emp.emergency_contact || '—' %></span></div>
         <hr class="my-2">
         <div class="text-center">
           <img src="<%= qrDataUrl %>" style="width:90px;height:90px">
-          <div style="font-size:9px;color:#666;margin-top:2px">Scan to verify</div>
+          <div style="font-size:9px;color:#666;margin-top:2px"><%= t("Scan to verify") %></div>
         </div>
       </div>
       <!-- Footer -->

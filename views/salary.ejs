@@ -2,38 +2,38 @@
 <%- include('partials/sidebar', { active: 'salary', user }) %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-2 text-danger"></i>My Salary</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-cash-coin me-2 text-danger"></i><%= t("My Salary") %></h4>
   </div>
 
   <!-- Incentive summary -->
   <% if (totalIncentive > 0) { %>
   <div class="alert alert-success d-flex align-items-center gap-2 mb-4">
     <i class="bi bi-trophy-fill fs-5"></i>
-    <div>Total Incentive Earned: <strong>₹<%= formatINR(totalIncentive) %></strong></div>
+    <div><%= t("Total Incentive Earned:") %> <strong>₹<%= formatINR(totalIncentive) %></strong></div>
   </div>
   <% } %>
 
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold">Salary History</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Salary History") %></div>
     <% if (!records.length) { %>
-    <div class="card-body text-center text-muted py-4">No salary records yet. Contact your admin.</div>
+    <div class="card-body text-center text-muted py-4"><%= t("No salary records yet. Contact your admin.") %></div>
     <% } else { %>
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Month</th><th>Gross</th><th>Deductions</th><th>Net Salary</th><th>Incentive</th><th>Paid On</th><th></th></tr>
+          <tr><th><%= t("Month") %></th><th><%= t("Gross") %></th><th><%= t("Deductions") %></th><th><%= t("Net Salary") %></th><th><%= t("Incentive") %></th><th><%= t("Paid On") %></th><th></th></tr>
         </thead>
         <tbody>
           <% records.forEach(r => { %>
           <tr>
             <td class="fw-semibold"><%= r.month %></td>
             <td>₹<%= formatINR(r.gross) %></td>
-            <td class="text-danger small">PF ₹<%= formatINR(r.pf) %> + ESIC ₹<%= formatINR(r.esic) %> + TDS ₹<%= formatINR(r.tds) %></td>
+            <td class="text-danger small"><%= t("PF ₹") %><%= formatINR(r.pf) %> <%= t("+ ESIC ₹") %><%= formatINR(r.esic) %> <%= t("+ TDS ₹") %><%= formatINR(r.tds) %></td>
             <td class="fw-bold text-success">₹<%= formatINR(r.net_salary) %></td>
             <td><%= r.incentive > 0 ? '₹' + formatINR(r.incentive) : '—' %></td>
             <td class="text-muted small"><%= r.paid_on || '—' %></td>
             <td>
-              <a href="/salary/<%= r.month %>/pdf" class="btn btn-sm btn-outline-danger" title="Download Slip">
+              <a href="/salary/<%= r.month %>/pdf" class="btn btn-sm btn-outline-danger" title="<%= t("Download Slip") %>">
                 <i class="bi bi-file-pdf"></i>
               </a>
             </td>

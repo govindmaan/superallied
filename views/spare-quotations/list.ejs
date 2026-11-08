@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'spare-quotations', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-success"></i>Spare Part Quotations</h4>
-    <a href="/spare-quotations/new" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i>New Quotation</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-success"></i><%= t("Spare Part Quotations") %></h4>
+    <a href="/spare-quotations/new" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i><%= t("New Quotation") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -14,31 +14,31 @@
     <div class="card-body py-2">
       <form method="get" class="row g-2 align-items-end">
         <div class="col-md-3">
-          <input name="q" value="<%= q %>" class="form-control form-control-sm" placeholder="Search quotation, customer, machine…">
+          <input name="q" value="<%= q %>" class="form-control form-control-sm" placeholder="<%= t("Search quotation, customer, machine…") %>">
         </div>
         <div class="col-md-2">
           <select name="status" class="form-select form-select-sm">
-            <option value="">All Status</option>
-            <option value="draft" <%= status==='draft'?'selected':'' %>>Draft</option>
-            <option value="sent" <%= status==='sent'?'selected':'' %>>Sent</option>
-            <option value="approved" <%= status==='approved'?'selected':'' %>>Approved</option>
-            <option value="rejected" <%= status==='rejected'?'selected':'' %>>Rejected</option>
-            <option value="converted" <%= status==='converted'?'selected':'' %>>Converted</option>
+            <option value=""><%= t("All Status") %></option>
+            <option value="draft" <%= status==='draft'?'selected':'' %>><%= t("Draft") %></option>
+            <option value="sent" <%= status==='sent'?'selected':'' %>><%= t("Sent") %></option>
+            <option value="approved" <%= status==='approved'?'selected':'' %>><%= t("Approved") %></option>
+            <option value="rejected" <%= status==='rejected'?'selected':'' %>><%= t("Rejected") %></option>
+            <option value="converted" <%= status==='converted'?'selected':'' %>><%= t("Converted") %></option>
           </select>
         </div>
         <div class="col-md-2">
-          <input type="date" name="from" value="<%= from %>" class="form-control form-control-sm" placeholder="From">
+          <input type="date" name="from" value="<%= from %>" class="form-control form-control-sm" placeholder="<%= t("From") %>">
         </div>
         <div class="col-md-2">
-          <input type="date" name="to" value="<%= to %>" class="form-control form-control-sm" placeholder="To">
+          <input type="date" name="to" value="<%= to %>" class="form-control form-control-sm" placeholder="<%= t("To") %>">
         </div>
         <div class="col-auto">
-          <button class="btn btn-outline-secondary btn-sm">Filter</button>
-          <a href="/spare-quotations" class="btn btn-outline-secondary btn-sm">Clear</a>
+          <button class="btn btn-outline-secondary btn-sm"><%= t("Filter") %></button>
+          <a href="/spare-quotations" class="btn btn-outline-secondary btn-sm"><%= t("Clear") %></a>
         </div>
         <div class="col-auto ms-auto">
           <a href="/spare-quotations/reports/summary?from=<%= from %>&to=<%= to %>" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-bar-chart me-1"></i>Reports
+            <i class="bi bi-bar-chart me-1"></i><%= t("Reports") %>
           </a>
         </div>
       </form>
@@ -47,27 +47,27 @@
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white">
-      <span class="fw-semibold">Quotations (<%= quotations.length %>)</span>
+      <span class="fw-semibold"><%= t("Quotations (") %><%= quotations.length %>)</span>
     </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th>Quotation No</th>
-            <th>Machine No</th>
-            <th>Customer</th>
-            <th>Date</th>
-            <th class="text-end">Basic</th>
-            <th class="text-end">GST</th>
-            <th class="text-end">Grand Total</th>
-            <th>Status</th>
-            <th>By</th>
+            <th><%= t("Quotation No") %></th>
+            <th><%= t("Machine No") %></th>
+            <th><%= t("Customer") %></th>
+            <th><%= t("Date") %></th>
+            <th class="text-end"><%= t("Basic") %></th>
+            <th class="text-end"><%= t("GST") %></th>
+            <th class="text-end"><%= t("Grand Total") %></th>
+            <th><%= t("Status") %></th>
+            <th><%= t("By") %></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% if (!quotations.length) { %>
-          <tr><td colspan="10" class="text-center text-muted py-4">No quotations found. <a href="/spare-quotations/new">Create the first one.</a></td></tr>
+          <tr><td colspan="10" class="text-center text-muted py-4"><%= t("No quotations found.") %> <a href="/spare-quotations/new"><%= t("Create the first one.") %></a></td></tr>
           <% } %>
           <% quotations.forEach(q => { %>
           <tr>
@@ -77,7 +77,7 @@
               <div class="fw-semibold"><%= q.customer_name %></div>
               <small class="text-muted"><%= q.mobile || '' %></small>
             </td>
-            <td><small><%= new Date(q.created_at).toLocaleDateString('en-IN') %></small></td>
+            <td><small><%= new Date(q.created_at).toLocaleDateString(locale) %></small></td>
             <td class="text-end small">₹<%= formatINR(q.total_basic) %></td>
             <td class="text-end small">₹<%= formatINR(q.total_gst) %></td>
             <td class="text-end fw-semibold">₹<%= formatINR(q.grand_total) %></td>
@@ -88,9 +88,9 @@
             <td><small class="text-muted"><%= q.creator_name || '' %></small></td>
             <td>
               <div class="d-flex gap-1">
-                <a href="/spare-quotations/<%= q.id %>/pdf" class="btn btn-sm btn-outline-danger" title="PDF"><i class="bi bi-file-pdf"></i></a>
-                <a href="/spare-quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
-                <form method="post" action="/spare-quotations/<%= q.id %>/clone"><button class="btn btn-sm btn-outline-primary" title="Clone"><i class="bi bi-copy"></i></button></form>
+                <a href="/spare-quotations/<%= q.id %>/pdf" class="btn btn-sm btn-outline-danger" title="<%= t("PDF") %>"><i class="bi bi-file-pdf"></i></a>
+                <a href="/spare-quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary" title="<%= t("Edit") %>"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="/spare-quotations/<%= q.id %>/clone"><button class="btn btn-sm btn-outline-primary" title="<%= t("Clone") %>"><i class="bi bi-copy"></i></button></form>
               </div>
             </td>
           </tr>

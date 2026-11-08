@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-truck me-2 text-danger"></i><%= expense ? 'Edit' : 'New' %> Travel Expense</h4>
-    <a href="/travel-expenses/my" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-truck me-2 text-danger"></i><%= expense ? t('Edit') : t('New') %> <%= t("Travel Expense") %></h4>
+    <a href="/travel-expenses/my" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -18,37 +18,37 @@
 
         <!-- Basic Information -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Basic Information</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Basic Information") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Date</label>
+                <label class="form-label fw-semibold"><%= t("Date") %></label>
                 <input type="date" name="date" class="form-control" value="<%= expense ? expense.date : todayStr %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Travel Type</label>
+                <label class="form-label fw-semibold"><%= t("Travel Type") %></label>
                 <select name="travel_type" id="travelType" class="form-select">
                   <% rates.forEach(r => { %>
                   <option value="<%= r.vehicle_type %>" data-rate="<%= r.rate_per_km %>"
                     <%= (expense ? expense.travel_type : user.vehicle_type) === r.vehicle_type ? 'selected' : '' %>>
-                    <%= r.vehicle_type %> (₹<%= r.rate_per_km %>/km)
+                    <%= r.vehicle_type %> (₹<%= r.rate_per_km %><%= t("/km)") %>
                   </option>
                   <% }) %>
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Vehicle Number</label>
+                <label class="form-label fw-semibold"><%= t("Vehicle Number") %></label>
                 <% const vn = expense ? expense.vehicle_number : (user.vehicle_number||''); %>
                 <% if (vn) { %>
                 <input type="text" class="form-control" value="<%= vn %>" disabled>
-                <small class="text-muted">From your profile</small>
+                <small class="text-muted"><%= t("From your profile") %></small>
                 <% } else { %>
                 <input type="text" class="form-control" value="Not set" disabled>
-                <small class="text-danger">No vehicle number on file — contact HR/Admin to add one.</small>
+                <small class="text-danger"><%= t("No vehicle number on file — contact HR/Admin to add one.") %></small>
                 <% } %>
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Purpose of Travel</label>
+                <label class="form-label fw-semibold"><%= t("Purpose of Travel") %></label>
                 <select name="purpose" class="form-select">
                   <% ['Customer Visit','Site Visit','Sales Meeting','Service Support','Other'].forEach(p => { %>
                   <option <%= (expense?.purpose)===p ? 'selected' : '' %>><%= p %></option>
@@ -61,36 +61,36 @@
 
         <!-- Odometer / Distance -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Odometer &amp; Distance</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Odometer & Distance") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Starting Odometer (km)</label>
+                <label class="form-label fw-semibold"><%= t("Starting Odometer (km)") %></label>
                 <input type="number" step="0.1" name="start_odo" id="startOdo" class="form-control"
                   value="<%= expense ? expense.start_odo : (journey?.start_km || '') %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Ending Odometer (km)</label>
+                <label class="form-label fw-semibold"><%= t("Ending Odometer (km)") %></label>
                 <input type="number" step="0.1" name="end_odo" id="endOdo" class="form-control"
                   value="<%= expense ? expense.end_odo : (journey?.end_km || '') %>">
               </div>
             </div>
-            <div class="alert alert-info py-2 mt-3 mb-0 small" id="distancePreview">Distance: — km · Travel Amount: —</div>
+            <div class="alert alert-info py-2 mt-3 mb-0 small" id="distancePreview"><%= t("Distance: — km · Travel Amount: —") %></div>
           </div>
         </div>
 
         <% if (todaysVisits.length) { %>
         <!-- Linked site visits -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Linked Site Visits</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Linked Site Visits") %></div>
           <div class="card-body">
             <% todaysVisits.forEach(v => { %>
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="visit_ids" value="<%= v.id %>" id="v<%= v.id %>"
                 <%= linkedVisitIds.includes(v.id) ? 'checked' : '' %>>
               <label class="form-check-label small" for="v<%= v.id %>">
-                VIS-<%= String(v.id).padStart(5,'0') %> — <%= v.customer_name %>
-                <span class="text-muted"><%= dbTime(v.visit_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+                <%= t("VIS-") %><%= String(v.id).padStart(5,'0') %> — <%= v.customer_name %>
+                <span class="text-muted"><%= dbTime(v.visit_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) %></span>
               </label>
             </div>
             <% }) %>
@@ -100,7 +100,7 @@
 
         <!-- Remarks -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Remarks</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Remarks") %></div>
           <div class="card-body"><textarea name="remarks" class="form-control" rows="2"><%= expense?.remarks || '' %></textarea></div>
         </div>
 
@@ -109,21 +109,21 @@
       <div class="col-lg-4">
         <!-- Computed total -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Claim Summary</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Claim Summary") %></div>
           <div class="card-body" id="claimSummary">
-            <div class="d-flex justify-content-between small"><span>Travel</span><strong id="sumTravel">₹0</strong></div>
+            <div class="d-flex justify-content-between small"><span><%= t("Travel") %></span><strong id="sumTravel">₹0</strong></div>
             <hr class="my-2">
-            <div class="d-flex justify-content-between"><span class="fw-bold">Total</span><strong class="text-danger fs-5" id="sumTotal">₹0</strong></div>
-            <small class="text-muted d-block mt-2">Final amount is always recalculated by the server before saving.</small>
+            <div class="d-flex justify-content-between"><span class="fw-bold"><%= t("Total") %></span><strong class="text-danger fs-5" id="sumTotal">₹0</strong></div>
+            <small class="text-muted d-block mt-2"><%= t("Final amount is always recalculated by the server before saving.") %></small>
           </div>
         </div>
 
         <!-- Receipts -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Receipts / Photos</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Receipts / Photos") %></div>
           <div class="card-body">
             <% if (!expense) { %>
-              <small class="text-muted">Save this expense as a draft first, then come back here to attach receipt photos.</small>
+              <small class="text-muted"><%= t("Save this expense as a draft first, then come back here to attach receipt photos.") %></small>
             <% } else { %>
               <div id="docList" class="mb-2">
                 <% docs.forEach(d => { %>
@@ -135,10 +135,10 @@
                 <% }) %>
               </div>
               <select id="docType" class="form-select form-select-sm mb-2">
-                <option value="odometer">Odometer / Trip Meter</option>
-                <option value="other">Other</option>
+                <option value="odometer"><%= t("Odometer / Trip Meter") %></option>
+                <option value="other"><%= t("Other") %></option>
               </select>
-              <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-1" onclick="openDocCamera()"><i class="bi bi-camera-fill me-1"></i>Take Photo</button>
+              <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-1" onclick="openDocCamera()"><i class="bi bi-camera-fill me-1"></i><%= t("Take Photo") %></button>
               <input type="file" id="docFile" accept="image/*" class="form-control form-control-sm" onchange="uploadDocFile(this)">
               <div id="docOcrResult" class="small mt-2"></div>
             <% } %>
@@ -146,9 +146,9 @@
         </div>
 
         <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-danger fw-bold"><i class="bi bi-save me-1"></i>Save Draft</button>
+          <button type="submit" class="btn btn-danger fw-bold"><i class="bi bi-save me-1"></i><%= t("Save Draft") %></button>
           <% if (expense && ['draft','rejected'].includes(expense.status)) { %>
-          <button type="button" class="btn btn-success fw-bold" onclick="submitExpense()"><i class="bi bi-send-check me-1"></i>Submit for Approval</button>
+          <button type="button" class="btn btn-success fw-bold" onclick="submitExpense()"><i class="bi bi-send-check me-1"></i><%= t("Submit for Approval") %></button>
           <% } %>
         </div>
       </div>
@@ -160,7 +160,7 @@
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
       <div class="modal-body text-center">
         <video id="docVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
-        <div class="mt-3"><button type="button" class="btn btn-danger px-5 fw-bold" onclick="snapDoc()"><i class="bi bi-camera-fill me-1"></i>Snap</button></div>
+        <div class="mt-3"><button type="button" class="btn btn-danger px-5 fw-bold" onclick="snapDoc()"><i class="bi bi-camera-fill me-1"></i><%= t("Snap") %></button></div>
       </div>
     </div></div>
   </div>
@@ -194,16 +194,16 @@ updateSummary();
 document.getElementById('expForm').addEventListener('submit', (e) => {
   const s = parseFloat(document.getElementById('startOdo').value) || 0;
   const en = parseFloat(document.getElementById('endOdo').value) || 0;
-  if (en < s) { e.preventDefault(); alert('Ending odometer cannot be lower than starting odometer.'); }
+  if (en < s) { e.preventDefault(); alert(T('Ending odometer cannot be lower than starting odometer.')); }
 });
 
 function submitExpense() {
-  if (!confirm('Submit this expense for approval? You will not be able to edit it after submission.')) return;
+  if (!confirm(T('Submit this expense for approval? You will not be able to edit it after submission.'))) return;
   fetch(`/travel-expenses/${EXPENSE_ID}/submit`, { method: 'POST' }).then(() => location.href = `/travel-expenses/${EXPENSE_ID}`);
 }
 
 function deleteDoc(id) {
-  if (!confirm('Remove this document?')) return;
+  if (!confirm(T('Remove this document?'))) return;
   fetch(`/travel-expenses/documents/${id}/delete`, { method: 'POST' })
     .then(r => r.json()).then(r => { if (r.ok) document.getElementById('doc'+id).remove(); });
 }

@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'salespersons', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge-fill me-2 text-danger"></i>Salespersons</h4>
-    <a href="/salespersons/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>Add Salesperson</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge-fill me-2 text-danger"></i><%= t("Salespersons") %></h4>
+    <a href="/salespersons/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("Add Salesperson") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -14,13 +14,13 @@
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Territory</th>
-            <th>Monthly Target</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th><%= t("Name") %></th>
+            <th><%= t("Phone") %></th>
+            <th><%= t("Email") %></th>
+            <th><%= t("Territory") %></th>
+            <th><%= t("Monthly Target") %></th>
+            <th><%= t("Status") %></th>
+            <th><%= t("Actions") %></th>
           </tr>
         </thead>
         <tbody>
@@ -31,23 +31,23 @@
             <td><small class="text-muted"><%= sp.email %></small></td>
             <td><small class="text-muted"><%= sp.territory %></small></td>
             <td><span class="badge bg-info">₹<%= sp.target_monthly.toLocaleString('en-IN') %></span></td>
-            <td><span class="badge <%= sp.active ? 'bg-success' : 'bg-secondary' %>"><%= sp.active ? 'Active' : 'Inactive' %></span></td>
+            <td><span class="badge <%= sp.active ? 'bg-success' : 'bg-secondary' %>"><%= sp.active ? t('Active') : t('Inactive') %></span></td>
             <td>
               <% if (sp.active) { %>
-                <a href="/salespersons/<%= sp.id %>/edit" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                <a href="/salespersons/<%= sp.id %>/edit" class="btn btn-sm btn-outline-primary me-1" title="<%= t("Edit") %>">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form method="POST" action="/salespersons/<%= sp.id %>/delete" style="display:inline" onsubmit="return confirm('Deactivate this salesperson?')">
-                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate">
+                <form method="POST" action="/salespersons/<%= sp.id %>/delete" style="display:inline" onsubmit="return confirm('<%= tjs("Deactivate this salesperson?") %>')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="<%= t("Deactivate") %>">
                     <i class="bi bi-trash"></i>
                   </button>
                 </form>
               <% } else { %>
-                <a href="/salespersons/<%= sp.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="Edit">
+                <a href="/salespersons/<%= sp.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="<%= t("Edit") %>">
                   <i class="bi bi-pencil"></i>
                 </a>
-                <form method="POST" action="/salespersons/<%= sp.id %>/delete" style="display:inline" onsubmit="return confirm('Reactivate this salesperson?')">
-                  <button type="submit" class="btn btn-sm btn-outline-success" title="Reactivate">
+                <form method="POST" action="/salespersons/<%= sp.id %>/delete" style="display:inline" onsubmit="return confirm('<%= tjs("Reactivate this salesperson?") %>')">
+                  <button type="submit" class="btn btn-sm btn-outline-success" title="<%= t("Reactivate") %>">
                     <i class="bi bi-arrow-repeat"></i>
                   </button>
                 </form>
@@ -56,7 +56,7 @@
           </tr>
           <% }) %>
           <% if (!salespersons.length) { %>
-          <tr><td colspan="7" class="text-center text-muted py-4">No salespersons found. <a href="/salespersons/new">Add one</a></td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4"><%= t("No salespersons found.") %> <a href="/salespersons/new"><%= t("Add one") %></a></td></tr>
           <% } %>
         </tbody>
       </table>

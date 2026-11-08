@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'salespersons', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge-fill me-2 text-danger"></i><%= salesperson ? 'Edit Salesperson' : 'Add Salesperson' %></h4>
-    <a href="/salespersons" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge-fill me-2 text-danger"></i><%= salesperson ? t('Edit Salesperson') : t('Add Salesperson') %></h4>
+    <a href="/salespersons" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success"><%= flash.success %></div><% } %>
@@ -15,38 +15,38 @@
         <div class="card-body">
           <form method="POST" action="<%= salesperson ? '/salespersons/' + salesperson.id : '/salespersons' %>">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold"><%= t("Name") %> <span class="text-danger">*</span></label>
               <input type="text" name="name" class="form-control" value="<%= salesperson?.name || '' %>" required>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Phone</label>
-              <input type="text" name="phone" class="form-control" value="<%= salesperson?.phone || '' %>" placeholder="+91-XXXXXXXXXX">
+              <label class="form-label fw-semibold"><%= t("Phone") %></label>
+              <input type="text" name="phone" class="form-control" value="<%= salesperson?.phone || '' %>" placeholder="<%= t("+91-XXXXXXXXXX") %>">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Email</label>
-              <input type="email" name="email" class="form-control" value="<%= salesperson?.email || '' %>" placeholder="name@example.com">
+              <label class="form-label fw-semibold"><%= t("Email") %></label>
+              <input type="email" name="email" class="form-control" value="<%= salesperson?.email || '' %>" placeholder="<%= t("name@example.com") %>">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Territory</label>
-              <input type="text" name="territory" class="form-control" value="<%= salesperson?.territory || '' %>" placeholder="e.g., Meerut, UP">
+              <label class="form-label fw-semibold"><%= t("Territory") %></label>
+              <input type="text" name="territory" class="form-control" value="<%= salesperson?.territory || '' %>" placeholder="<%= t("e.g., Meerut, UP") %>">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Monthly Target (₹)</label>
+              <label class="form-label fw-semibold"><%= t("Monthly Target (₹)") %></label>
               <input type="number" name="target_monthly" class="form-control" value="<%= salesperson?.target_monthly || 0 %>" min="0" step="10000">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Notes</label>
+              <label class="form-label fw-semibold"><%= t("Notes") %></label>
               <textarea name="notes" class="form-control" rows="3"><%= salesperson?.notes || '' %></textarea>
             </div>
             <% if (salesperson) { %>
             <div class="mb-3 form-check">
               <input type="checkbox" name="active" class="form-check-input" id="active" <%= salesperson.active ? 'checked' : '' %>>
-              <label class="form-check-label" for="active">Active</label>
+              <label class="form-check-label" for="active"><%= t("Active") %></label>
             </div>
             <% } %>
             <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i><%= salesperson ? 'Update' : 'Add' %> Salesperson</button>
-              <a href="/salespersons" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i><%= salesperson ? t('Update') : t('Add') %> <%= t("Salesperson") %></button>
+              <a href="/salespersons" class="btn btn-outline-secondary"><%= t("Cancel") %></a>
             </div>
           </form>
         </div>

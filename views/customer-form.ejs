@@ -2,8 +2,8 @@
 <%- include('partials/sidebar', { active: 'customers', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><%= customer?.id ? 'Edit Customer' : 'New Customer' %></h4>
-    <a href="/customers" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><%= customer?.id ? t('Edit Customer') : t('New Customer') %></h4>
+    <a href="/customers" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash.error) { %><div class="alert alert-danger"><%= flash.error %></div><% } %>
@@ -13,60 +13,60 @@
       <form method="POST" action="<%= customer?.id ? '/customers/'+customer.id : '/customers' %>">
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+            <label class="form-label fw-semibold"><%= t("Customer Name") %> <span class="text-danger">*</span></label>
             <input type="text" name="name" class="form-control" required
-                   value="<%= customer?.name || '' %>" placeholder="Full company or person name">
+                   value="<%= customer?.name || '' %>" placeholder="<%= t("Full company or person name") %>">
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Phone</label>
+            <label class="form-label fw-semibold"><%= t("Phone") %></label>
             <input type="text" name="phone" class="form-control"
-                   value="<%= customer?.phone || '' %>" placeholder="10-digit mobile">
+                   value="<%= customer?.phone || '' %>" placeholder="<%= t("10-digit mobile") %>">
           </div>
           <div class="col-12">
-            <label class="form-label fw-semibold">Address</label>
+            <label class="form-label fw-semibold"><%= t("Address") %></label>
             <textarea name="address" class="form-control" rows="2"
-                      placeholder="Full address"><%= customer?.address || '' %></textarea>
+                      placeholder="<%= t("Full address") %>"><%= customer?.address || '' %></textarea>
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">City</label>
+            <label class="form-label fw-semibold"><%= t("City") %></label>
             <input type="text" name="city" class="form-control" value="<%= customer?.city || '' %>">
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">State</label>
+            <label class="form-label fw-semibold"><%= t("State") %></label>
             <input type="text" name="state" class="form-control" value="<%= customer?.state || '' %>">
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-semibold">GSTIN</label>
+            <label class="form-label fw-semibold"><%= t("GSTIN") %></label>
             <input type="text" name="gstin" id="gstin" class="form-control font-monospace text-uppercase"
-                   value="<%= customer?.gstin || '' %>" placeholder="09ABCDE1234F1Z5" maxlength="15"
-                   pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z][Zz][0-9A-Za-z]" title="15-character GSTIN, e.g. 09ABCDE1234F1Z5">
+                   value="<%= customer?.gstin || '' %>" placeholder="<%= t("09ABCDE1234F1Z5") %>" maxlength="15"
+                   pattern="[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][1-9A-Za-z][Zz][0-9A-Za-z]" title="<%= t("15-character GSTIN, e.g. 09ABCDE1234F1Z5") %>">
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-semibold">PAN</label>
+            <label class="form-label fw-semibold"><%= t("PAN") %></label>
             <input type="text" name="pan" id="pan" class="form-control font-monospace text-uppercase"
-                   value="<%= customer?.pan || '' %>" placeholder="ABCDE1234F" maxlength="10"
-                   pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" title="10-character PAN, e.g. ABCDE1234F">
-            <div class="form-text">Filled in from GSTIN if left blank.</div>
+                   value="<%= customer?.pan || '' %>" placeholder="<%= t("ABCDE1234F") %>" maxlength="10"
+                   pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" title="<%= t("10-character PAN, e.g. ABCDE1234F") %>">
+            <div class="form-text"><%= t("Filled in from GSTIN if left blank.") %></div>
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-semibold">Aadhaar</label>
+            <label class="form-label fw-semibold"><%= t("Aadhaar") %></label>
             <input type="text" name="aadhaar" class="form-control font-monospace" inputmode="numeric"
-                   value="<%= customer?.aadhaar || '' %>" placeholder="12-digit Aadhaar" maxlength="14"
-                   pattern="[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}" title="12-digit Aadhaar number">
-            <div class="form-text">Printed on quotations only when there is no GSTIN or PAN.</div>
+                   value="<%= customer?.aadhaar || '' %>" placeholder="<%= t("12-digit Aadhaar") %>" maxlength="14"
+                   pattern="[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}" title="<%= t("12-digit Aadhaar number") %>">
+            <div class="form-text"><%= t("Printed on quotations only when there is no GSTIN or PAN.") %></div>
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">HP With (Hire Purchase Bank)</label>
+            <label class="form-label fw-semibold"><%= t("HP With (Hire Purchase Bank)") %></label>
             <input type="text" name="hp_with" class="form-control"
-                   value="<%= customer?.hp_with || '' %>" placeholder="e.g. HDFC Bank, SBI...">
+                   value="<%= customer?.hp_with || '' %>" placeholder="<%= t("e.g. HDFC Bank, SBI...") %>">
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold">Notes</label>
+            <label class="form-label fw-semibold"><%= t("Notes") %></label>
             <input type="text" name="notes" class="form-control" value="<%= customer?.notes || '' %>">
           </div>
           <div class="col-12 mt-2">
-            <button class="btn btn-danger px-4"><i class="bi bi-check-lg me-1"></i><%= customer?.id ? 'Update' : 'Save' %> Customer</button>
-            <a href="/customers" class="btn btn-outline-secondary ms-2">Cancel</a>
+            <button class="btn btn-danger px-4"><i class="bi bi-check-lg me-1"></i><%= customer?.id ? t('Update') : t('Save') %> <%= t("Customer") %></button>
+            <a href="/customers" class="btn btn-outline-secondary ms-2"><%= t("Cancel") %></a>
           </div>
         </div>
       </form>

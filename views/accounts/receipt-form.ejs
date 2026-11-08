@@ -1,77 +1,77 @@
 <%- include('_top') %>
-<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-danger"></i>Generate Receipt</h4>
-  <small class="text-muted">Record money actually received. A receipt is never created just because a quotation or challan exists. It is not a GST tax invoice.</small></div>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-danger"></i><%= t("Generate Receipt") %></h4>
+  <small class="text-muted"><%= t("Record money actually received. A receipt is never created just because a quotation or challan exists. It is not a GST tax invoice.") %></small></div>
 
 <form method="POST" action="/accounts/receipts" id="rcForm" class="row g-3" autocomplete="off">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <input type="hidden" name="client_token" value="<%= token %>">
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm p-3">
-      <h6 class="fw-bold">1 · Customer</h6>
-      <select name="customer_id" id="customer" class="form-select" data-search required><option value="">Choose existing customer…</option>
+      <h6 class="fw-bold"><%= t("1 · Customer") %></h6>
+      <select name="customer_id" id="customer" class="form-select" data-search required><option value=""><%= t("Choose existing customer…") %></option>
         <% customers.forEach(c => { %><option value="<%= c.id %>" <%= +prefill.customer_id === c.id ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %><%= c.city ? ' · ' + c.city : '' %></option><% }) %></select>
       <div id="custInfo" class="small text-muted mt-1"></div>
     </div>
 
     <div class="card border-0 shadow-sm p-3 mt-3">
-      <h6 class="fw-bold">2 · What is this money for?</h6>
+      <h6 class="fw-bold"><%= t("2 · What is this money for?") %></h6>
       <div class="row g-2" id="purposes">
         <% Object.entries(PURPOSES).forEach(([k, v]) => { %>
         <div class="col-md-6"><label class="border rounded p-2 d-flex gap-2 align-items-start h-100" style="cursor:pointer">
           <input type="radio" name="purpose" value="<%= k %>" class="form-check-input mt-1" <%= (prefill.purpose || 'invoice_payment') === k ? 'checked' : '' %>>
-          <span><b><%= v %></b><br><span class="small text-muted"><%= {
-            quotation_advance: 'Before the Tally invoice exists. Kept as an advance until allocated to the invoice.',
-            challan_payment: 'Against a delivery challan. If its Tally invoice is uploaded, you can allocate to it now.',
-            invoice_payment: 'Against one or more uploaded Tally invoices — full or part payment.',
-            on_account: 'Customer advance not yet tied to a document.',
-            other: 'Any other authorised customer receipt.' }[k] %></span></span></label></div>
+          <span><b><%= t(v) %></b><br><span class="small text-muted"><%= {
+            quotation_advance: t('Before the Tally invoice exists. Kept as an advance until allocated to the invoice.'),
+            challan_payment: t('Against a delivery challan. If its Tally invoice is uploaded, you can allocate to it now.'),
+            invoice_payment: t('Against one or more uploaded Tally invoices — full or part payment.'),
+            on_account: t('Customer advance not yet tied to a document.'),
+            other: t('Any other authorised customer receipt.') }[k] %></span></span></label></div>
         <% }) %>
       </div>
-      <div class="mt-3 d-none" id="quoteWrap"><label class="form-label">Quotation <span class="text-danger">*</span></label><select name="quotation_id" id="quotation" class="form-select"><option value="">Choose…</option></select>
+      <div class="mt-3 d-none" id="quoteWrap"><label class="form-label"><%= t("Quotation") %> <span class="text-danger">*</span></label><select name="quotation_id" id="quotation" class="form-select"><option value=""><%= t("Choose…") %></option></select>
         <div id="quoteInfo" class="small mt-1"></div></div>
-      <div class="mt-3 d-none" id="challanWrap"><label class="form-label">Delivery challan <span class="text-danger">*</span></label><select name="challan_id" id="challan" class="form-select"><option value="">Choose…</option></select>
+      <div class="mt-3 d-none" id="challanWrap"><label class="form-label"><%= t("Delivery challan") %> <span class="text-danger">*</span></label><select name="challan_id" id="challan" class="form-select"><option value=""><%= t("Choose…") %></option></select>
         <div id="challanInfo" class="small mt-1"></div></div>
       <div class="mt-3 d-none" id="allocWrap">
-        <div class="d-flex justify-content-between align-items-end"><label class="form-label mb-1" id="allocLabel">Allocate to invoices</label>
-          <button type="button" class="btn btn-sm btn-outline-secondary mb-1" id="autoFill">Fill oldest first</button></div>
-        <div class="table-responsive"><table class="table table-sm alloc-table mb-1"><thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="money">Open</th><th class="money">Allocate ₹</th></tr></thead>
+        <div class="d-flex justify-content-between align-items-end"><label class="form-label mb-1" id="allocLabel"><%= t("Allocate to invoices") %></label>
+          <button type="button" class="btn btn-sm btn-outline-secondary mb-1" id="autoFill"><%= t("Fill oldest first") %></button></div>
+        <div class="table-responsive"><table class="table table-sm alloc-table mb-1"><thead class="table-light"><tr><th><%= t("Invoice") %></th><th><%= t("Date") %></th><th><%= t("Due") %></th><th class="money"><%= t("Open") %></th><th class="money"><%= t("Allocate ₹") %></th></tr></thead>
           <tbody id="allocBody"></tbody></table></div>
         <div class="small" id="allocSum"></div>
       </div>
     </div>
 
     <div class="card border-0 shadow-sm p-3 mt-3">
-      <h6 class="fw-bold">3 · Payment details</h6>
+      <h6 class="fw-bold"><%= t("3 · Payment details") %></h6>
       <div class="row g-3">
-        <div class="col-md-4"><label class="form-label">Amount received (₹) <span class="text-danger">*</span></label><input name="amount" id="amount" class="form-control form-control-lg fw-bold" inputmode="decimal" required>
+        <div class="col-md-4"><label class="form-label"><%= t("Amount received (₹)") %> <span class="text-danger">*</span></label><input name="amount" id="amount" class="form-control form-control-lg fw-bold" inputmode="decimal" required>
           <div id="words" class="small text-muted"></div></div>
-        <div class="col-md-4"><label class="form-label">Payment date <span class="text-danger">*</span></label><input type="date" name="payment_date" class="form-control" value="<%= today %>" max="<%= today %>" required></div>
-        <div class="col-md-4"><label class="form-label">Payment mode <span class="text-danger">*</span></label>
+        <div class="col-md-4"><label class="form-label"><%= t("Payment date") %> <span class="text-danger">*</span></label><input type="date" name="payment_date" class="form-control" value="<%= today %>" max="<%= today %>" required></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Payment mode") %> <span class="text-danger">*</span></label>
           <select name="mode" id="mode" class="form-select" required><% Object.entries(MODES).forEach(([k, v]) => { %><option value="<%= k %>" <%= k === 'neft' ? 'selected' : '' %>><%= v %></option><% }) %></select></div>
-        <div class="col-md-4"><label class="form-label" id="refLabel">UTR / transaction ID</label><input name="reference" id="reference" class="form-control" maxlength="80"></div>
-        <div class="col-md-4"><label class="form-label">Bank name</label><input name="bank_name" class="form-control" maxlength="80"></div>
-        <div class="col-md-4 d-none" id="chqDateWrap"><label class="form-label">Cheque date</label><input type="date" name="cheque_date" class="form-control"></div>
-        <div class="col-md-4"><label class="form-label">Received by</label><select name="received_by" class="form-select"><% staff.forEach(u => { %><option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>><%= u.full_name || u.username %></option><% }) %></select></div>
-        <div class="col-md-4"><label class="form-label">Salesperson</label><select name="salesperson_id" class="form-select"><option value="">From quotation / challan</option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
-        <div class="col-md-4"><label class="form-label">Branch</label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
-        <div class="col-12"><label class="form-label">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
+        <div class="col-md-4"><label class="form-label" id="refLabel"><%= t("UTR / transaction ID") %></label><input name="reference" id="reference" class="form-control" maxlength="80"></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Bank name") %></label><input name="bank_name" class="form-control" maxlength="80"></div>
+        <div class="col-md-4 d-none" id="chqDateWrap"><label class="form-label"><%= t("Cheque date") %></label><input type="date" name="cheque_date" class="form-control"></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Received by") %></label><select name="received_by" class="form-select"><% staff.forEach(u => { %><option value="<%= u.id %>" <%= u.id === user.id ? 'selected' : '' %>><%= u.full_name || u.username %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Salesperson") %></label><select name="salesperson_id" class="form-select"><option value=""><%= t("From quotation / challan") %></option><% salespersons.forEach(s => { %><option value="<%= s.id %>"><%= s.name %></option><% }) %></select></div>
+        <div class="col-md-4"><label class="form-label"><%= t("Branch") %></label><select name="branch" class="form-select"><% branches.forEach(b => { %><option><%= b %></option><% }) %></select></div>
+        <div class="col-12"><label class="form-label"><%= t("Remarks") %></label><input name="remarks" class="form-control" maxlength="500"></div>
       </div>
-      <div class="alert alert-warning small mt-3 mb-0 d-none" id="chqNote">Cheque: the receipt says “subject to realisation”. Allocations stay pending — the invoice balance only drops when you mark the cheque cleared.</div>
+      <div class="alert alert-warning small mt-3 mb-0 d-none" id="chqNote"><%= t("Cheque: the receipt says “subject to realisation”. Allocations stay pending — the invoice balance only drops when you mark the cheque cleared.") %></div>
     </div>
   </div>
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm p-3 position-sticky" style="top:16px">
-      <h6 class="fw-bold">Summary</h6>
-      <div id="summary" class="small text-muted">Fill in the form.</div>
-      <hr><button type="button" class="btn btn-danger w-100" id="review"><i class="bi bi-check2-square me-1"></i>Review & save receipt</button>
-      <div class="form-text">Receipt numbers are issued by the server in sequence. Saving twice will not create a second receipt.</div>
+      <h6 class="fw-bold"><%= t("Summary") %></h6>
+      <div id="summary" class="small text-muted"><%= t("Fill in the form.") %></div>
+      <hr><button type="button" class="btn btn-danger w-100" id="review"><i class="bi bi-check2-square me-1"></i><%= t("Review & save receipt") %></button>
+      <div class="form-text"><%= t("Receipt numbers are issued by the server in sequence. Saving twice will not create a second receipt.") %></div>
     </div>
   </div>
 
   <div class="modal fade" id="confirmModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Confirm payment received</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-header"><h5 class="modal-title"><%= t("Confirm payment received") %></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body" id="confirmBody"></div>
-    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button><button type="submit" class="btn btn-danger">Confirm & generate receipt</button></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><%= t("Back") %></button><button type="submit" class="btn btn-danger"><%= t("Confirm & generate receipt") %></button></div>
   </div></div></div>
 </form>
 <%- include('_bottom') %>

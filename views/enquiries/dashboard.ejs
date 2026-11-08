@@ -2,11 +2,11 @@
 <%- include('../partials/sidebar', { active: 'enquiries', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill text-danger me-2"></i>Enquiries Dashboard</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill text-danger me-2"></i><%= t("Enquiries Dashboard") %></h4>
     <div class="d-flex gap-2">
-      <a href="/enquiries/pipeline" class="btn btn-outline-secondary btn-sm"><i class="bi bi-kanban me-1"></i>Pipeline</a>
-      <a href="/enquiries" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list me-1"></i>List</a>
-      <a href="/enquiries/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i>New Enquiry</a>
+      <a href="/enquiries/pipeline" class="btn btn-outline-secondary btn-sm"><i class="bi bi-kanban me-1"></i><%= t("Pipeline") %></a>
+      <a href="/enquiries" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list me-1"></i><%= t("List") %></a>
+      <a href="/enquiries/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i><%= t("New Enquiry") %></a>
     </div>
   </div>
 
@@ -15,37 +15,37 @@
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-primary-subtle text-primary mb-2"><i class="bi bi-telephone-fill fs-4"></i></div>
-        <h4 class="fw-bold mb-0"><%= todayCalls %></h4><small class="text-muted">Today's Calls</small>
+        <h4 class="fw-bold mb-0"><%= todayCalls %></h4><small class="text-muted"><%= t("Today's Calls") %></small>
       </div></div>
     </div>
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-info-subtle text-info mb-2"><i class="bi bi-geo-alt-fill fs-4"></i></div>
-        <h4 class="fw-bold mb-0"><%= todayVisits %></h4><small class="text-muted">Today's Visits</small>
+        <h4 class="fw-bold mb-0"><%= todayVisits %></h4><small class="text-muted"><%= t("Today's Visits") %></small>
       </div></div>
     </div>
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-warning-subtle text-warning mb-2"><i class="bi bi-alarm-fill fs-4"></i></div>
-        <h4 class="fw-bold mb-0"><%= pendingFollowups.length %></h4><small class="text-muted">Pending Follow-ups</small>
+        <h4 class="fw-bold mb-0"><%= pendingFollowups.length %></h4><small class="text-muted"><%= t("Pending Follow-ups") %></small>
       </div></div>
     </div>
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-danger-subtle text-danger mb-2"><i class="bi bi-calendar-plus-fill fs-4"></i></div>
-        <h4 class="fw-bold mb-0"><%= newToday %></h4><small class="text-muted">New Enquiries</small>
+        <h4 class="fw-bold mb-0"><%= newToday %></h4><small class="text-muted"><%= t("New Enquiries") %></small>
       </div></div>
     </div>
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-success-subtle text-success mb-2"><i class="bi bi-trophy-fill fs-4"></i></div>
-        <h4 class="fw-bold mb-0"><%= salesClosedMonth %></h4><small class="text-muted">Sales Closed (Month)</small>
+        <h4 class="fw-bold mb-0"><%= salesClosedMonth %></h4><small class="text-muted"><%= t("Sales Closed (Month)") %></small>
       </div></div>
     </div>
     <div class="col-6 col-md-2">
       <div class="card border-0 shadow-sm h-100"><div class="card-body text-center">
         <div class="stat-icon bg-success-subtle text-success mb-2"><i class="bi bi-cash-stack fs-4"></i></div>
-        <h5 class="fw-bold mb-0">₹<%= formatINR(monthlyRevenue) %></h5><small class="text-muted">Monthly Revenue</small>
+        <h5 class="fw-bold mb-0">₹<%= formatINR(monthlyRevenue) %></h5><small class="text-muted"><%= t("Monthly Revenue") %></small>
       </div></div>
     </div>
   </div>
@@ -54,13 +54,13 @@
     <!-- Pipeline funnel -->
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white py-2"><span class="fw-semibold">Pipeline Funnel</span></div>
+        <div class="card-header bg-white py-2"><span class="fw-semibold"><%= t("Pipeline Funnel") %></span></div>
         <div class="card-body">
           <% const maxCount = Math.max(...STAGE_KEYS.map(sk => byStage[sk]), 1); %>
           <% STAGE_KEYS.forEach(sk => { %>
           <div class="mb-3">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="small fw-semibold"><span class="badge bg-<%= STAGES[sk].color %>"><%= STAGES[sk].order %></span> <%= STAGES[sk].label %></span>
+              <span class="small fw-semibold"><span class="badge bg-<%= STAGES[sk].color %>"><%= STAGES[sk].order %></span> <%= t(STAGES[sk].label) %></span>
               <span class="small fw-bold"><%= byStage[sk] %></span>
             </div>
             <div class="progress" style="height:18px">
@@ -71,9 +71,9 @@
           </div>
           <% }) %>
           <div class="d-flex gap-3 mt-3">
-            <div class="d-flex align-items-center gap-2"><span class="badge bg-success">Won</span><span class="fw-bold"><%= wonCount %></span></div>
-            <div class="d-flex align-items-center gap-2"><span class="badge bg-danger">Lost</span><span class="fw-bold"><%= lostCount %></span></div>
-            <div class="d-flex align-items-center gap-2"><span class="badge bg-dark">Conversion Rate</span><span class="fw-bold"><%= conversionRate %>%</span></div>
+            <div class="d-flex align-items-center gap-2"><span class="badge bg-success"><%= t("Won") %></span><span class="fw-bold"><%= wonCount %></span></div>
+            <div class="d-flex align-items-center gap-2"><span class="badge bg-danger"><%= t("Lost") %></span><span class="fw-bold"><%= lostCount %></span></div>
+            <div class="d-flex align-items-center gap-2"><span class="badge bg-dark"><%= t("Conversion Rate") %></span><span class="fw-bold"><%= conversionRate %>%</span></div>
           </div>
         </div>
       </div>
@@ -82,10 +82,10 @@
     <!-- Pending follow-ups -->
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white py-2"><span class="fw-semibold">Pending Follow-ups</span></div>
+        <div class="card-header bg-white py-2"><span class="fw-semibold"><%= t("Pending Follow-ups") %></span></div>
         <div class="card-body p-0" style="max-height:340px;overflow-y:auto">
           <% if (!pendingFollowups.length) { %>
-          <div class="text-center text-muted py-4">No pending follow-ups 🎉</div>
+          <div class="text-center text-muted py-4"><%= t("No pending follow-ups 🎉") %></div>
           <% } %>
           <table class="table table-hover mb-0 small">
             <tbody>
@@ -97,7 +97,7 @@
                 </td>
                 <td class="text-end">
                   <span class="badge <%= f.next_followup_date < (new Date().toISOString().slice(0,10)) ? 'bg-danger' : 'bg-warning text-dark' %>">
-                    <%= new Date(f.next_followup_date).toLocaleDateString('en-IN') %>
+                    <%= new Date(f.next_followup_date).toLocaleDateString(locale) %>
                   </span>
                 </td>
               </tr>
@@ -112,15 +112,15 @@
   <!-- Leaderboard (admin/manager only) -->
   <% if (allAccess && leaderboard.length) { %>
   <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white py-2"><span class="fw-semibold"><i class="bi bi-award-fill text-warning me-1"></i>Top Salesperson Leaderboard (This Month)</span></div>
+    <div class="card-header bg-white py-2"><span class="fw-semibold"><i class="bi bi-award-fill text-warning me-1"></i><%= t("Top Salesperson Leaderboard (This Month)") %></span></div>
     <div class="table-responsive">
       <table class="table table-hover mb-0 small">
-        <thead class="table-light"><tr><th>#</th><th>Salesperson</th><th class="text-center">Sales Closed</th><th class="text-end">Revenue</th></tr></thead>
+        <thead class="table-light"><tr><th>#</th><th><%= t("Salesperson") %></th><th class="text-center"><%= t("Sales Closed") %></th><th class="text-end"><%= t("Revenue") %></th></tr></thead>
         <tbody>
           <% leaderboard.forEach((l, i) => { %>
           <tr>
             <td><%= i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : i+1 %></td>
-            <td class="fw-semibold"><%= l.full_name || 'Unknown' %></td>
+            <td class="fw-semibold"><%= l.full_name || t('Unknown') %></td>
             <td class="text-center"><span class="badge bg-success-subtle text-success"><%= l.sales_this_month %></span></td>
             <td class="text-end">₹<%= formatINR(l.revenue_this_month) %></td>
           </tr>
@@ -134,13 +134,13 @@
   <!-- Recently updated -->
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-      <span class="fw-semibold">Recently Updated Enquiries</span>
-      <a href="/enquiries" class="btn btn-sm btn-outline-secondary">View All</a>
+      <span class="fw-semibold"><%= t("Recently Updated Enquiries") %></span>
+      <a href="/enquiries" class="btn btn-sm btn-outline-secondary"><%= t("View All") %></a>
     </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0 small">
         <thead class="table-light">
-          <tr><th>Enquiry #</th><th>Customer</th><th>Stage</th><th>Status</th><% if (allAccess) { %><th>Assigned To</th><% } %><th>Updated</th></tr>
+          <tr><th><%= t("Enquiry #") %></th><th><%= t("Customer") %></th><th><%= t("Stage") %></th><th><%= t("Status") %></th><% if (allAccess) { %><th><%= t("Assigned To") %></th><% } %><th><%= t("Updated") %></th></tr>
         </thead>
         <tbody>
           <% recentlyUpdated.forEach(e => { %>
@@ -150,7 +150,7 @@
             <td><% if (e.status === 'active') { %><span class="badge bg-<%= STAGES[e.current_stage]?.color||'secondary' %>"><%= STAGES[e.current_stage]?.label %></span><% } else { %>—<% } %></td>
             <td><span class="badge <%= e.status==='active'?'bg-light text-dark border':e.status==='won'?'bg-success':'bg-danger' %>"><%= e.status %></span></td>
             <% if (allAccess) { %><td><small class="text-muted"><%= e.assignee_name||'—' %></small></td><% } %>
-            <td><small class="text-muted"><%= new Date(e.updated_at).toLocaleDateString('en-IN') %></small></td>
+            <td><small class="text-muted"><%= new Date(e.updated_at).toLocaleDateString(locale) %></small></td>
           </tr>
           <% }) %>
         </tbody>

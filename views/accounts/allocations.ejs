@@ -1,33 +1,33 @@
 <%- include('_top') %>
-<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Payment Allocation</h4>
-  <small class="text-muted">Match money already received (advances, unallocated payments, credit notes) to the customer’s Tally invoices. The same money can never be allocated twice.</small></div>
+<div class="page-header"><h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3-fill me-2 text-primary"></i><%= t("Payment Allocation") %></h4>
+  <small class="text-muted"><%= t("Match money already received (advances, unallocated payments, credit notes) to the customer’s Tally invoices. The same money can never be allocated twice.") %></small></div>
 <form method="GET" class="card border-0 shadow-sm p-3 mb-3"><div class="row g-2 align-items-end">
-  <div class="col-md-6"><label class="form-label small mb-0">Customer</label><select name="customer_id" class="form-select" data-search onchange="this.form.submit()"><option value="">Choose customer…</option>
+  <div class="col-md-6"><label class="form-label small mb-0"><%= t("Customer") %></label><select name="customer_id" class="form-select" data-search onchange="this.form.submit()"><option value=""><%= t("Choose customer…") %></option>
     <% customers.forEach(c => { %><option value="<%= c.id %>" <%= c.id === cid ? 'selected' : '' %>><%= c.name %><%= c.phone ? ' · ' + c.phone : '' %></option><% }) %></select></div>
-  <div class="col-auto"><button class="btn btn-primary">Open</button></div></div></form>
+  <div class="col-auto"><button class="btn btn-primary"><%= t("Open") %></button></div></div></form>
 
 <% if (cid) { %>
-<form method="POST" action="/accounts/allocations" id="alForm" data-confirm="Save these allocations?">
+<form method="POST" action="/accounts/allocations" id="alForm" data-confirm="<%= t("Save these allocations?") %>">
   <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="customer_id" value="<%= cid %>">
   <div class="row g-3">
-    <div class="col-lg-5"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold">1 · Money to allocate</div>
-      <div class="list-group list-group-flush" id="sources"><div class="p-3 text-muted small">Loading…</div></div></div></div>
-    <div class="col-lg-7"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold d-flex justify-content-between">2 · Open invoices <button type="button" id="fill" class="btn btn-sm btn-outline-secondary">Fill oldest first</button></div>
-      <div class="table-responsive"><table class="table table-sm alloc-table mb-0"><thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>Due</th><th class="money">Open</th><th class="money">Allocate ₹</th></tr></thead><tbody id="invs"></tbody></table></div>
-      <div class="p-3"><div id="sum" class="small mb-2"></div><input name="remarks" class="form-control form-control-sm mb-2" placeholder="Remarks (optional)" maxlength="300">
-        <button class="btn btn-primary" id="save"><i class="bi bi-check-lg me-1"></i>Save allocation</button></div></div></div>
+    <div class="col-lg-5"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold"><%= t("1 · Money to allocate") %></div>
+      <div class="list-group list-group-flush" id="sources"><div class="p-3 text-muted small"><%= t("Loading…") %></div></div></div></div>
+    <div class="col-lg-7"><div class="card border-0 shadow-sm"><div class="card-header bg-white fw-semibold d-flex justify-content-between"><%= t("2 · Open invoices") %> <button type="button" id="fill" class="btn btn-sm btn-outline-secondary"><%= t("Fill oldest first") %></button></div>
+      <div class="table-responsive"><table class="table table-sm alloc-table mb-0"><thead class="table-light"><tr><th><%= t("Invoice") %></th><th><%= t("Date") %></th><th><%= t("Due") %></th><th class="money"><%= t("Open") %></th><th class="money"><%= t("Allocate ₹") %></th></tr></thead><tbody id="invs"></tbody></table></div>
+      <div class="p-3"><div id="sum" class="small mb-2"></div><input name="remarks" class="form-control form-control-sm mb-2" placeholder="<%= t("Remarks (optional)") %>" maxlength="300">
+        <button class="btn btn-primary" id="save"><i class="bi bi-check-lg me-1"></i><%= t("Save allocation") %></button></div></div></div>
   </div>
 </form>
 <% } %>
 
-<div class="card border-0 shadow-sm mt-3"><div class="card-header bg-white fw-semibold">Recent allocations</div>
-  <div class="table-responsive"><table class="table table-sm mb-0 small align-middle"><thead class="table-light"><tr><th>When</th><th>Customer</th><th>From</th><th>Invoice</th><th class="money">Amount</th><th>Status</th><th>By</th><th></th></tr></thead><tbody>
-  <% if (!recent.length) { %><tr><td colspan="8" class="text-muted text-center py-3">None yet.</td></tr><% } %>
+<div class="card border-0 shadow-sm mt-3"><div class="card-header bg-white fw-semibold"><%= t("Recent allocations") %></div>
+  <div class="table-responsive"><table class="table table-sm mb-0 small align-middle"><thead class="table-light"><tr><th><%= t("When") %></th><th><%= t("Customer") %></th><th><%= t("From") %></th><th><%= t("Invoice") %></th><th class="money"><%= t("Amount") %></th><th><%= t("Status") %></th><th><%= t("By") %></th><th></th></tr></thead><tbody>
+  <% if (!recent.length) { %><tr><td colspan="8" class="text-muted text-center py-3"><%= t("None yet.") %></td></tr><% } %>
   <% recent.forEach(a => { %><tr class="<%= a.status === 'reversed' ? 'cancelled' : '' %>"><td><%= a.allocated_at %></td><td><%= a.customer_name %></td>
     <td><%- a.receipt_number ? `<a href="/accounts/receipts/${a.receipt_id}">${a.receipt_number}</a>` : a.cn_number ? 'Credit note ' + a.cn_number : 'Adjustment' %></td>
     <td><a href="/accounts/invoices/<%= a.invoice_id %>" class="docno"><%= a.invoice_number %></a></td><td class="money"><%= money(a.amount) %></td><td class="keep"><%= a.status %><%= a.reverse_reason ? ' — ' + a.reverse_reason : '' %></td><td><%= a.by_name %></td>
-    <td class="keep text-end"><% if (accCan('accounts_approve') && a.status !== 'reversed') { %><form method="POST" action="/accounts/allocations/<%= a.id %>/reverse" class="d-flex gap-1 justify-content-end" data-confirm="Reverse this allocation?">
-      <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="reason" class="form-control form-control-sm" style="max-width:150px" placeholder="Reason" minlength="5" required><button class="btn btn-sm btn-outline-danger">Reverse</button></form><% } %></td></tr><% }) %>
+    <td class="keep text-end"><% if (accCan('accounts_approve') && a.status !== 'reversed') { %><form method="POST" action="/accounts/allocations/<%= a.id %>/reverse" class="d-flex gap-1 justify-content-end" data-confirm="<%= t("Reverse this allocation?") %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input name="reason" class="form-control form-control-sm" style="max-width:150px" placeholder="<%= t("Reason") %>" minlength="5" required><button class="btn btn-sm btn-outline-danger"><%= t("Reverse") %></button></form><% } %></td></tr><% }) %>
   </tbody></table></div></div>
 <%- include('_bottom') %>
 <% if (cid) { %>

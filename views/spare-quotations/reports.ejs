@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'spare-reports', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-bar-chart me-2 text-primary"></i>Spare Parts Reports</h4>
-    <a href="/spare-quotations" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-bar-chart me-2 text-primary"></i><%= t("Spare Parts Reports") %></h4>
+    <a href="/spare-quotations" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <!-- Filters -->
@@ -11,28 +11,28 @@
     <div class="card-body py-2">
       <form method="get" class="row g-2 align-items-end">
         <div class="col-md-2">
-          <label class="form-label small">From Date</label>
+          <label class="form-label small"><%= t("From Date") %></label>
           <input type="date" name="from" value="<%= from %>" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
-          <label class="form-label small">To Date</label>
+          <label class="form-label small"><%= t("To Date") %></label>
           <input type="date" name="to" value="<%= to %>" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
-          <label class="form-label small">Customer</label>
-          <input name="customer" value="<%= customer %>" class="form-control form-control-sm" placeholder="Customer name">
+          <label class="form-label small"><%= t("Customer") %></label>
+          <input name="customer" value="<%= customer %>" class="form-control form-control-sm" placeholder="<%= t("Customer name") %>">
         </div>
         <div class="col-md-2">
-          <label class="form-label small">Machine No</label>
+          <label class="form-label small"><%= t("Machine No") %></label>
           <input name="machine_no" value="<%= machine_no %>" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
-          <label class="form-label small">Salesperson</label>
+          <label class="form-label small"><%= t("Salesperson") %></label>
           <input name="salesperson" value="<%= salesperson %>" class="form-control form-control-sm">
         </div>
         <div class="col-auto">
-          <button class="btn btn-primary btn-sm">Apply Filters</button>
-          <a href="/spare-quotations/reports/summary" class="btn btn-outline-secondary btn-sm">Clear</a>
+          <button class="btn btn-primary btn-sm"><%= t("Apply Filters") %></button>
+          <a href="/spare-quotations/reports/summary" class="btn btn-outline-secondary btn-sm"><%= t("Clear") %></a>
         </div>
       </form>
     </div>
@@ -43,25 +43,25 @@
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <div class="fw-bold fs-3 text-primary"><%= quotations.length %></div>
-        <small class="text-muted">Total Quotations</small>
+        <small class="text-muted"><%= t("Total Quotations") %></small>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <div class="fw-bold fs-3 text-success">₹<%= formatINR(totalValue) %></div>
-        <small class="text-muted">Total Value</small>
+        <small class="text-muted"><%= t("Total Value") %></small>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <div class="fw-bold fs-3 text-warning"><%= quotations.filter(q=>q.status==='approved').length %></div>
-        <small class="text-muted">Approved</small>
+        <small class="text-muted"><%= t("Approved") %></small>
       </div>
     </div>
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm text-center p-3">
         <div class="fw-bold fs-3 text-info"><%= formatINR(quotations.length ? totalValue/quotations.length : 0) %></div>
-        <small class="text-muted">Avg. Value</small>
+        <small class="text-muted"><%= t("Avg. Value") %></small>
       </div>
     </div>
   </div>
@@ -70,12 +70,12 @@
     <!-- Top Parts -->
     <div class="col-md-5">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white fw-semibold small">Top Quoted Parts</div>
+        <div class="card-header bg-white fw-semibold small"><%= t("Top Quoted Parts") %></div>
         <div class="table-responsive">
           <table class="table table-sm mb-0">
-            <thead class="table-light"><tr><th>Description</th><th class="text-center">Times</th><th class="text-end">Value</th></tr></thead>
+            <thead class="table-light"><tr><th><%= t("Description") %></th><th class="text-center"><%= t("Times") %></th><th class="text-end"><%= t("Value") %></th></tr></thead>
             <tbody>
-              <% if (!topParts.length) { %><tr><td colspan="3" class="text-center text-muted py-2">No data</td></tr><% } %>
+              <% if (!topParts.length) { %><tr><td colspan="3" class="text-center text-muted py-2"><%= t("No data") %></td></tr><% } %>
               <% topParts.forEach(p => { %>
               <tr>
                 <td class="small fw-semibold" style="max-width:200px"><%= p.description %></td>
@@ -92,18 +92,18 @@
     <!-- Quotation list -->
     <div class="col-md-7">
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold small">Quotation List</div>
+        <div class="card-header bg-white fw-semibold small"><%= t("Quotation List") %></div>
         <div class="table-responsive" style="max-height:400px;overflow-y:auto">
           <table class="table table-sm table-hover mb-0">
-            <thead class="table-light sticky-top"><tr><th>No</th><th>Customer</th><th>Machine</th><th>Date</th><th class="text-end">Total</th><th>Status</th></tr></thead>
+            <thead class="table-light sticky-top"><tr><th><%= t("No") %></th><th><%= t("Customer") %></th><th><%= t("Machine") %></th><th><%= t("Date") %></th><th class="text-end"><%= t("Total") %></th><th><%= t("Status") %></th></tr></thead>
             <tbody>
-              <% if (!quotations.length) { %><tr><td colspan="6" class="text-center text-muted py-2">No data</td></tr><% } %>
+              <% if (!quotations.length) { %><tr><td colspan="6" class="text-center text-muted py-2"><%= t("No data") %></td></tr><% } %>
               <% quotations.forEach(q => { %>
               <tr>
                 <td><a href="/spare-quotations/<%= q.id %>" class="text-decoration-none small"><%= q.quotation_no %></a></td>
                 <td class="small fw-semibold"><%= q.customer_name %></td>
                 <td class="small font-monospace"><%= q.machine_no || '—' %></td>
-                <td class="small"><%= new Date(q.created_at).toLocaleDateString('en-IN') %></td>
+                <td class="small"><%= new Date(q.created_at).toLocaleDateString(locale) %></td>
                 <td class="text-end small fw-semibold">₹<%= formatINR(q.grand_total) %></td>
                 <td><% const sc={draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %><span class="badge <%= sc[q.status]||'bg-secondary' %>"><%= q.status %></span></td>
               </tr>

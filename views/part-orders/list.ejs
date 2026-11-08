@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'part-orders', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-fill me-2 text-primary"></i>Spare Part Orders</h4>
-    <a href="/part-orders/new" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New Order</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-cart-fill me-2 text-primary"></i><%= t("Spare Part Orders") %></h4>
+    <a href="/part-orders/new" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i><%= t("New Order") %></a>
   </div>
 
   <% if (flash.success) { %>
@@ -17,38 +17,38 @@
   <form method="GET" class="card border-0 shadow-sm mb-3 p-3">
     <div class="row g-2 align-items-end">
       <div class="col-md-4">
-        <input type="text" name="q" class="form-control form-control-sm" value="<%= filters.q %>" placeholder="Search order no, machine, customer…">
+        <input type="text" name="q" class="form-control form-control-sm" value="<%= filters.q %>" placeholder="<%= t("Search order no, machine, customer…") %>">
       </div>
       <div class="col-md-3">
         <select name="status" class="form-select form-select-sm">
-          <option value="">All Statuses</option>
-          <option value="pending"   <%= filters.status==='pending'  ?'selected':'' %>>Pending</option>
-          <option value="confirmed" <%= filters.status==='confirmed'?'selected':'' %>>Confirmed</option>
-          <option value="cancelled" <%= filters.status==='cancelled'?'selected':'' %>>Cancelled</option>
+          <option value=""><%= t("All Statuses") %></option>
+          <option value="pending"   <%= filters.status==='pending'  ?'selected':'' %>><%= t("Pending") %></option>
+          <option value="confirmed" <%= filters.status==='confirmed'?'selected':'' %>><%= t("Confirmed") %></option>
+          <option value="cancelled" <%= filters.status==='cancelled'?'selected':'' %>><%= t("Cancelled") %></option>
         </select>
       </div>
       <div class="col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="bi bi-search me-1"></i>Filter</button>
-        <a href="/part-orders" class="btn btn-sm btn-outline-secondary">Clear</a>
+        <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="bi bi-search me-1"></i><%= t("Filter") %></button>
+        <a href="/part-orders" class="btn btn-sm btn-outline-secondary"><%= t("Clear") %></a>
       </div>
     </div>
   </form>
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between py-2">
-      <span class="small fw-semibold"><%= total %> orders</span>
+      <span class="small fw-semibold"><%= total %> <%= t("orders") %></span>
     </div>
     <div class="table-responsive">
       <table class="table table-hover table-sm mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th>Order No.</th>
-            <th>Machine No.</th>
-            <th>Customer</th>
-            <th class="text-center">Parts</th>
-            <th>Status</th>
-            <th>Created By</th>
-            <th>Date</th>
+            <th><%= t("Order No.") %></th>
+            <th><%= t("Machine No.") %></th>
+            <th><%= t("Customer") %></th>
+            <th class="text-center"><%= t("Parts") %></th>
+            <th><%= t("Status") %></th>
+            <th><%= t("Created By") %></th>
+            <th><%= t("Date") %></th>
             <th></th>
           </tr>
         </thead>
@@ -68,12 +68,12 @@
             <td class="text-center"><span class="badge bg-primary"><%= r.item_count %></span></td>
             <td><span class="badge <%= statusBadge %>"><%= r.status.charAt(0).toUpperCase() + r.status.slice(1) %></span></td>
             <td class="small text-muted"><%= r.created_by_name || '—' %></td>
-            <td class="small text-muted"><%= new Date(r.created_at).toLocaleDateString('en-IN') %></td>
-            <td><a href="/part-orders/<%= r.id %>" class="btn btn-sm btn-outline-primary py-0 px-2">View</a></td>
+            <td class="small text-muted"><%= new Date(r.created_at).toLocaleDateString(locale) %></td>
+            <td><a href="/part-orders/<%= r.id %>" class="btn btn-sm btn-outline-primary py-0 px-2"><%= t("View") %></a></td>
           </tr>
           <% }) %>
           <% if (!rows.length) { %>
-          <tr><td colspan="8" class="text-center text-muted py-4">No orders found.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4"><%= t("No orders found.") %></td></tr>
           <% } %>
         </tbody>
       </table>

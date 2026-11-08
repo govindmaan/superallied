@@ -1,39 +1,39 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'telecaller-config', user }) %>
 <div class="main-content" style="max-width:720px">
-  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Telecaller Home</a>
+  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Telecaller Home") %></a>
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible mt-2"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
-  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-sliders me-2"></i>Scripts &amp; Pitches</h4>
+  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-sliders me-2"></i><%= t("Scripts & Pitches") %></h4>
 
   <form method="post" action="/telecaller/config" class="card border-0 shadow-sm">
     <div class="card-body">
-      <p class="small text-muted">These show on the telecaller's calling screen. Paste the three pitch texts below.</p>
+      <p class="small text-muted"><%= t("These show on the telecaller's calling screen. Paste the three pitch texts below.") %></p>
 
-      <label class="form-label fw-semibold">Filtering Pitch</label>
-      <textarea name="tc_pitch_filtering" class="form-control mb-3" rows="4" placeholder="Paste the filtering pitch…"><%= s.tc_pitch_filtering || '' %></textarea>
+      <label class="form-label fw-semibold"><%= t("Filtering Pitch") %></label>
+      <textarea name="tc_pitch_filtering" class="form-control mb-3" rows="4" placeholder="<%= t("Paste the filtering pitch…") %>"><%= s.tc_pitch_filtering || '' %></textarea>
 
-      <label class="form-label fw-semibold">Closing Pitch</label>
-      <textarea name="tc_pitch_closing" class="form-control mb-3" rows="4" placeholder="Paste the closing pitch…"><%= s.tc_pitch_closing || '' %></textarea>
+      <label class="form-label fw-semibold"><%= t("Closing Pitch") %></label>
+      <textarea name="tc_pitch_closing" class="form-control mb-3" rows="4" placeholder="<%= t("Paste the closing pitch…") %>"><%= s.tc_pitch_closing || '' %></textarea>
 
-      <label class="form-label fw-semibold">Bull Promise</label>
-      <textarea name="tc_pitch_bull_promise" class="form-control mb-3" rows="4" placeholder="Paste the Bull promise…"><%= s.tc_pitch_bull_promise || '' %></textarea>
+      <label class="form-label fw-semibold"><%= t("Bull Promise") %></label>
+      <textarea name="tc_pitch_bull_promise" class="form-control mb-3" rows="4" placeholder="<%= t("Paste the Bull promise…") %>"><%= s.tc_pitch_bull_promise || '' %></textarea>
 
       <hr>
-      <label class="form-label fw-semibold">WhatsApp message to customer</label>
+      <label class="form-label fw-semibold"><%= t("WhatsApp message to customer") %></label>
       <textarea name="tc_wa_customer_template" class="form-control mb-3" rows="6"><%= s.tc_wa_customer_template || '' %></textarea>
 
       <div class="row g-2">
-        <div class="col-md-6"><label class="form-label fw-semibold">Default sales group link</label>
-          <input name="tc_wa_group_default" class="form-control" value="<%= s.tc_wa_group_default || '' %>" placeholder="https://chat.whatsapp.com/…"></div>
-        <div class="col-md-6"><label class="form-label fw-semibold">Sales phone</label>
+        <div class="col-md-6"><label class="form-label fw-semibold"><%= t("Default sales group link") %></label>
+          <input name="tc_wa_group_default" class="form-control" value="<%= s.tc_wa_group_default || '' %>" placeholder="<%= t("https://chat.whatsapp.com/…") %>"></div>
+        <div class="col-md-6"><label class="form-label fw-semibold"><%= t("Sales phone") %></label>
           <input name="tc_sales_phone" class="form-control" value="<%= s.tc_sales_phone || '' %>"></div>
       </div>
 
-      <details class="mt-3"><summary class="small text-muted">Advanced: calling script (JSON)</summary>
+      <details class="mt-3"><summary class="small text-muted"><%= t("Advanced: calling script (JSON)") %></summary>
         <textarea name="tc_script" class="form-control mt-2 small" rows="6"><%= s.tc_script || '' %></textarea>
       </details>
 
-      <button class="btn btn-primary mt-3"><i class="bi bi-check-lg me-1"></i>Save</button>
+      <button class="btn btn-primary mt-3"><i class="bi bi-check-lg me-1"></i><%= t("Save") %></button>
     </div>
   </form>
 </div>

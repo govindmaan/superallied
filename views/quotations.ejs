@@ -2,8 +2,8 @@
 <%- include('partials/sidebar', { active: 'quotations', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold">Quotations</h4>
-    <a href="/quotations/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>New Quotation</a>
+    <h4 class="mb-0 fw-bold"><%= t("Quotations") %></h4>
+    <a href="/quotations/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("New Quotation") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -12,17 +12,17 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="GET" action="/quotations" class="d-flex gap-2 flex-wrap">
-        <input type="text" name="q" value="<%= q %>" class="form-control" style="max-width:240px" placeholder="Search customer or quot. no…">
+        <input type="text" name="q" value="<%= q %>" class="form-control" style="max-width:240px" placeholder="<%= t("Search customer or quot. no…") %>">
         <select name="status" class="form-select" style="max-width:140px">
-          <option value="">All Status</option>
-          <option value="draft" <%=status==='draft'?'selected':''%>>Draft</option>
-          <option value="sent"  <%=status==='sent'?'selected':''%>>Sent</option>
-          <option value="accepted" <%=status==='accepted'?'selected':''%>>Accepted</option>
-          <option value="rejected" <%=status==='rejected'?'selected':''%>>Rejected</option>
-          <% if (user.role === 'admin') { %><option value="cancelled" <%=status==='cancelled'?'selected':''%>>Cancelled</option><% } %>
+          <option value=""><%= t("All Status") %></option>
+          <option value="draft" <%=status==='draft'?'selected':''%>><%= t("Draft") %></option>
+          <option value="sent"  <%=status==='sent'?'selected':''%>><%= t("Sent") %></option>
+          <option value="accepted" <%=status==='accepted'?'selected':''%>><%= t("Accepted") %></option>
+          <option value="rejected" <%=status==='rejected'?'selected':''%>><%= t("Rejected") %></option>
+          <% if (user.role === 'admin') { %><option value="cancelled" <%=status==='cancelled'?'selected':''%>><%= t("Cancelled") %></option><% } %>
         </select>
-        <button class="btn btn-outline-secondary"><i class="bi bi-filter"></i> Filter</button>
-        <% if (q || status) { %><a href="/quotations" class="btn btn-outline-danger">Clear</a><% } %>
+        <button class="btn btn-outline-secondary"><i class="bi bi-filter"></i> <%= t("Filter") %></button>
+        <% if (q || status) { %><a href="/quotations" class="btn btn-outline-danger"><%= t("Clear") %></a><% } %>
       </form>
     </div>
   </div>
@@ -31,7 +31,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Quot. No.</th><th>Customer</th><th>Machine</th><th>Qty</th><th>Grand Total</th><th>Status</th><th>Date</th><th></th></tr>
+          <tr><th><%= t("Quot. No.") %></th><th><%= t("Customer") %></th><th><%= t("Machine") %></th><th><%= t("Qty") %></th><th><%= t("Grand Total") %></th><th><%= t("Status") %></th><th><%= t("Date") %></th><th></th></tr>
         </thead>
         <tbody>
           <% quotations.forEach(q => {
@@ -45,29 +45,29 @@
             <td class="fw-bold">₹<%= formatINR(calc.total) %></td>
             <td>
               <% if (q.cancelled_at) { %>
-              <span class="badge bg-dark" title="Cancelled<%= q.cancelled_by_name ? ' by ' + q.cancelled_by_name : '' %> on <%= new Date(q.cancelled_at + 'Z').toLocaleDateString('en-IN') %>"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+              <span class="badge bg-dark" title="Cancelled<%= q.cancelled_by_name ? ' by ' + q.cancelled_by_name : '' %> on <%= new Date(q.cancelled_at + 'Z').toLocaleDateString(locale) %>"><i class="bi bi-x-circle me-1"></i><%= t("Cancelled") %></span>
               <% } else { %>
               <span class="badge <%= q.status==='sent'?'bg-primary':q.status==='accepted'?'bg-success':q.status==='rejected'?'bg-danger':'bg-secondary' %>"><%= q.status %></span>
               <% } %>
             </td>
-            <td class="text-muted small"><%= new Date(q.quotation_date || q.created_at).toLocaleDateString('en-IN') %></td>
+            <td class="text-muted small"><%= new Date(q.quotation_date || q.created_at).toLocaleDateString(locale) %></td>
             <td class="text-end text-nowrap" style="text-decoration:none">
               <% if (q.cancelled_at) { %>
               <form method="POST" action="/quotations/<%= q.id %>/restore" class="d-inline">
-                <button class="btn btn-sm btn-outline-success" title="Restore"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button class="btn btn-sm btn-outline-success" title="<%= t("Restore") %>"><i class="bi bi-arrow-counterclockwise"></i></button>
               </form>
               <% } else { %>
-              <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger me-1" title="Download PDF"><i class="bi bi-file-pdf"></i></a>
-              <a href="/quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+              <a href="/quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger me-1" title="<%= t("Download PDF") %>"><i class="bi bi-file-pdf"></i></a>
+              <a href="/quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="<%= t("Edit") %>"><i class="bi bi-pencil"></i></a>
               <form method="POST" action="/quotations/<%= q.id %>/delete" class="d-inline" onsubmit="return confirm('Cancel quotation <%= q.quotation_number %>? It will be removed from your list.')">
-                <button class="btn btn-sm btn-outline-danger" title="Cancel quotation"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-danger" title="<%= t("Cancel quotation") %>"><i class="bi bi-trash"></i></button>
               </form>
               <% } %>
             </td>
           </tr>
           <% }) %>
           <% if (!quotations.length) { %>
-          <tr><td colspan="8" class="text-center text-muted py-4">No quotations found. <a href="/quotations/new">Create one.</a></td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4"><%= t("No quotations found.") %> <a href="/quotations/new"><%= t("Create one.") %></a></td></tr>
           <% } %>
         </tbody>
       </table>

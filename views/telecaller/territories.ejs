@@ -1,24 +1,24 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'telecaller-territories', user }) %>
 <div class="main-content" style="max-width:820px">
-  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Telecaller Home</a>
+  <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Telecaller Home") %></a>
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible mt-2"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error) { %><div class="alert alert-danger alert-dismissible mt-2"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
-  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Territories</h4>
+  <h4 class="fw-bold mt-2 mb-3"><i class="bi bi-geo-alt-fill me-2"></i><%= t("Territories") %></h4>
 
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold">Territory → primary salesperson (district routing)</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Territory → primary salesperson (district routing)") %></div>
     <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-      <thead class="table-light"><tr><th>Territory</th><th>Salesperson</th><th>Districts</th><th>Group link</th><th></th></tr></thead>
+      <thead class="table-light"><tr><th><%= t("Territory") %></th><th><%= t("Salesperson") %></th><th><%= t("Districts") %></th><th><%= t("Group link") %></th><th></th></tr></thead>
       <tbody>
-      <% if (!territories.length) { %><tr><td colspan="5" class="text-muted small p-3">No territories yet. Add one below.</td></tr><% } %>
-      <% territories.forEach(t => { %>
+      <% if (!territories.length) { %><tr><td colspan="5" class="text-muted small p-3"><%= t("No territories yet. Add one below.") %></td></tr><% } %>
+      <% territories.forEach(ter => { %>
       <tr>
-        <td class="fw-semibold"><%= t.name %></td>
-        <td><%= t.primary_name || '<span class="text-danger">unset</span>' %></td>
-        <td class="small"><%= t.districts || '—' %></td>
-        <td class="small text-truncate" style="max-width:140px"><%= t.whatsapp_group_link || '—' %></td>
-        <td><form method="post" action="/telecaller/territories/<%= t.id %>/delete" onsubmit="return confirm('Remove this territory?')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td>
+        <td class="fw-semibold"><%= ter.name %></td>
+        <td><%= ter.primary_name || '<span class="text-danger">unset</span>' %></td>
+        <td class="small"><%= ter.districts || '—' %></td>
+        <td class="small text-truncate" style="max-width:140px"><%= ter.whatsapp_group_link || '—' %></td>
+        <td><form method="post" action="/telecaller/territories/<%= ter.id %>/delete" onsubmit="return confirm('<%= tjs("Remove this territory?") %>')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td>
       </tr>
       <% }) %>
       </tbody>
@@ -26,35 +26,35 @@
   </div>
 
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold">Add territory</div>
+    <div class="card-header bg-white fw-semibold"><%= t("Add territory") %></div>
     <div class="card-body">
       <form method="post" action="/telecaller/territories">
         <div class="row g-2">
-          <div class="col-md-4"><label class="form-label small fw-semibold">Name *</label><input name="name" class="form-control" required placeholder="e.g. Meerut Zone"></div>
-          <div class="col-md-4"><label class="form-label small fw-semibold">Primary salesperson</label>
+          <div class="col-md-4"><label class="form-label small fw-semibold"><%= t("Name *") %></label><input name="name" class="form-control" required placeholder="<%= t("e.g. Meerut Zone") %>"></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold"><%= t("Primary salesperson") %></label>
             <select name="primary_user_id" class="form-select">
-              <option value="">— none —</option>
+              <option value=""><%= t("— none —") %></option>
               <% salespeople.forEach(sp => { %><option value="<%= sp.id %>"><%= sp.full_name || sp.username %></option><% }) %>
             </select></div>
-          <div class="col-md-4"><label class="form-label small fw-semibold">Group link (optional)</label><input name="whatsapp_group_link" class="form-control" placeholder="https://chat.whatsapp.com/…"></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold"><%= t("Group link (optional)") %></label><input name="whatsapp_group_link" class="form-control" placeholder="<%= t("https://chat.whatsapp.com/…") %>"></div>
         </div>
-        <label class="form-label small fw-semibold mt-2">Districts (tick all that this salesperson covers)</label>
+        <label class="form-label small fw-semibold mt-2"><%= t("Districts (tick all that this salesperson covers)") %></label>
         <div class="d-flex flex-wrap gap-2">
           <% ['Meerut','Baghpat','Muzaffarnagar','Shamli','Saharanpur','Hapur','Bijnor','Bulandshahar'].forEach((d,i) => { %>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="districts" value="<%= d %>" id="d<%=i%>"><label class="form-check-label small" for="d<%=i%>"><%= d %></label></div>
           <% }) %>
         </div>
-        <input class="form-control form-control-sm mt-2" name="districts" placeholder="Other district (one)">
-        <button class="btn btn-primary mt-3"><i class="bi bi-plus-lg me-1"></i>Add territory</button>
+        <input class="form-control form-control-sm mt-2" name="districts" placeholder="<%= t("Other district (one)") %>">
+        <button class="btn btn-primary mt-3"><i class="bi bi-plus-lg me-1"></i><%= t("Add territory") %></button>
       </form>
-      <div class="small text-muted mt-2">A district maps to exactly one territory. Leads whose district isn't mapped go to the Unassigned queue below.</div>
+      <div class="small text-muted mt-2"><%= t("A district maps to exactly one territory. Leads whose district isn't mapped go to the Unassigned queue below.") %></div>
     </div>
   </div>
 
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white fw-semibold"><i class="bi bi-exclamation-triangle text-warning me-1"></i>Unassigned qualified leads (<%= unassigned.length %>)</div>
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-exclamation-triangle text-warning me-1"></i><%= t("Unassigned qualified leads (") %><%= unassigned.length %>)</div>
     <ul class="list-group list-group-flush">
-      <% if (!unassigned.length) { %><li class="list-group-item text-muted small">None — every qualified lead has a salesperson.</li><% } %>
+      <% if (!unassigned.length) { %><li class="list-group-item text-muted small"><%= t("None — every qualified lead has a salesperson.") %></li><% } %>
       <% unassigned.forEach(e => { %>
       <li class="list-group-item d-flex justify-content-between align-items-center">
         <span><a href="/telecaller/call/<%= e.id %>"><%= e.customer_name %></a> <span class="text-muted small"><%= e.enquiry_number %></span></span>

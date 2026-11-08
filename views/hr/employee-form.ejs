@@ -2,9 +2,9 @@
 <%- include('../partials/sidebar', { active: 'hr', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><%= emp ? 'Edit Employee' : 'Add New Employee' %></h4>
+    <h4 class="mb-0 fw-bold"><%= emp ? t('Edit Employee') : t('Add New Employee') %></h4>
     <a href="<%= emp ? '/hr/employees/'+emp.id : '/hr/employees' %>" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left me-1"></i>Back
+      <i class="bi bi-arrow-left me-1"></i><%= t("Back") %>
     </a>
   </div>
 
@@ -16,16 +16,16 @@
         <!-- Login Details (only on create) -->
         <% if (!emp) { %>
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Login Credentials</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Login Credentials") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                <input type="text" name="username" class="form-control" required placeholder="e.g. ramesh.sharma">
+                <label class="form-label fw-semibold"><%= t("Username") %> <span class="text-danger">*</span></label>
+                <input type="text" name="username" class="form-control" required placeholder="<%= t("e.g. ramesh.sharma") %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                <input type="password" name="password" class="form-control" required minlength="6" placeholder="Min 6 chars">
+                <label class="form-label fw-semibold"><%= t("Password") %> <span class="text-danger">*</span></label>
+                <input type="password" name="password" class="form-control" required minlength="6" placeholder="<%= t("Min 6 chars") %>">
               </div>
             </div>
           </div>
@@ -34,24 +34,24 @@
 
         <!-- Personal Details -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Personal Details</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Personal Details") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-8">
-                <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold"><%= t("Full Name") %> <span class="text-danger">*</span></label>
                 <input type="text" name="full_name" class="form-control" required value="<%= emp?.full_name || '' %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Employee ID</label>
+                <label class="form-label fw-semibold"><%= t("Employee ID") %></label>
                 <input type="text" class="form-control bg-light font-monospace" value="<%= emp?.employee_code || 'Assigned automatically' %>" readonly tabindex="-1">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Mobile</label>
-                <input type="text" name="mobile" class="form-control" value="<%= emp?.mobile || '' %>" placeholder="10-digit mobile">
+                <label class="form-label fw-semibold"><%= t("Mobile") %></label>
+                <input type="text" name="mobile" class="form-control" value="<%= emp?.mobile || '' %>" placeholder="<%= t("10-digit mobile") %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Emergency Contact</label>
-                <input type="text" name="emergency_contact" class="form-control" value="<%= emp?.emergency_contact || '' %>" placeholder="Name: Number">
+                <label class="form-label fw-semibold"><%= t("Emergency Contact") %></label>
+                <input type="text" name="emergency_contact" class="form-control" value="<%= emp?.emergency_contact || '' %>" placeholder="<%= t("Name: Number") %>">
               </div>
             </div>
           </div>
@@ -59,23 +59,23 @@
 
         <!-- Employment Details -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Employment Details</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Employment Details") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Designation</label>
-                <input type="text" name="designation" class="form-control" value="<%= emp?.designation || '' %>" placeholder="e.g. Sales Executive">
+                <label class="form-label fw-semibold"><%= t("Designation") %></label>
+                <input type="text" name="designation" class="form-control" value="<%= emp?.designation || '' %>" placeholder="<%= t("e.g. Sales Executive") %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Department</label>
-                <input type="text" name="department" class="form-control" value="<%= emp?.department || '' %>" placeholder="e.g. Sales, Admin">
+                <label class="form-label fw-semibold"><%= t("Department") %></label>
+                <input type="text" name="department" class="form-control" value="<%= emp?.department || '' %>" placeholder="<%= t("e.g. Sales, Admin") %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Date of Joining</label>
+                <label class="form-label fw-semibold"><%= t("Date of Joining") %></label>
                 <input type="date" name="date_of_joining" class="form-control" value="<%= emp?.date_of_joining || '' %>">
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Role</label>
+                <label class="form-label fw-semibold"><%= t("Role") %></label>
                 <select name="role" class="form-select">
                   <% allRoles.forEach(r => { %>
                   <option value="<%= r %>" <%=(emp?emp.role===r:r==='sales')?'selected':''%>><%= r.charAt(0).toUpperCase()+r.slice(1) %></option>
@@ -83,9 +83,9 @@
                 </select>
               </div>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Reports To</label>
+                <label class="form-label fw-semibold"><%= t("Reports To") %></label>
                 <select name="manager_id" class="form-select">
-                  <option value="">— None —</option>
+                  <option value=""><%= t("— None —") %></option>
                   <% managers.forEach(m => { %>
                   <option value="<%= m.id %>" <%=emp?.manager_id==m.id?'selected':''%>><%= m.full_name %></option>
                   <% }) %>
@@ -93,10 +93,10 @@
               </div>
               <% if (emp) { %>
               <div class="col-md-4">
-                <label class="form-label fw-semibold">Status</label>
+                <label class="form-label fw-semibold"><%= t("Status") %></label>
                 <select name="is_hr_active" class="form-select">
-                  <option value="1" <%=emp.is_hr_active!==0?'selected':''%>>Active</option>
-                  <option value="0" <%=emp.is_hr_active===0?'selected':''%>>Inactive</option>
+                  <option value="1" <%=emp.is_hr_active!==0?'selected':''%>><%= t("Active") %></option>
+                  <option value="0" <%=emp.is_hr_active===0?'selected':''%>><%= t("Inactive") %></option>
                 </select>
               </div>
               <% } %>
@@ -106,22 +106,22 @@
 
         <!-- Vehicle Details (used to pre-fill Travel Expense claims) -->
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Vehicle Details</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Vehicle Details") %></div>
           <div class="card-body">
             <div class="row g-2">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Vehicle Type</label>
+                <label class="form-label fw-semibold"><%= t("Vehicle Type") %></label>
                 <select name="vehicle_type" class="form-select">
-                  <option value="" <%=!emp?.vehicle_type?'selected':''%>>— Not set —</option>
-                  <option value="Own Two Wheeler"  <%=emp?.vehicle_type==='Own Two Wheeler'?'selected':''%>>Own Two Wheeler</option>
-                  <option value="Own Four Wheeler" <%=emp?.vehicle_type==='Own Four Wheeler'?'selected':''%>>Own Four Wheeler</option>
-                  <option value="Company Vehicle"  <%=emp?.vehicle_type==='Company Vehicle'?'selected':''%>>Company Vehicle</option>
-                  <option value="Other"            <%=emp?.vehicle_type==='Other'?'selected':''%>>Other</option>
+                  <option value="" <%=!emp?.vehicle_type?'selected':''%>><%= t("— Not set —") %></option>
+                  <option value="Own Two Wheeler"  <%=emp?.vehicle_type==='Own Two Wheeler'?'selected':''%>><%= t("Own Two Wheeler") %></option>
+                  <option value="Own Four Wheeler" <%=emp?.vehicle_type==='Own Four Wheeler'?'selected':''%>><%= t("Own Four Wheeler") %></option>
+                  <option value="Company Vehicle"  <%=emp?.vehicle_type==='Company Vehicle'?'selected':''%>><%= t("Company Vehicle") %></option>
+                  <option value="Other"            <%=emp?.vehicle_type==='Other'?'selected':''%>><%= t("Other") %></option>
                 </select>
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Vehicle Number</label>
-                <input type="text" name="vehicle_number" class="form-control" value="<%= emp?.vehicle_number || '' %>" placeholder="e.g. MH12AB1234">
+                <label class="form-label fw-semibold"><%= t("Vehicle Number") %></label>
+                <input type="text" name="vehicle_number" class="form-control" value="<%= emp?.vehicle_number || '' %>" placeholder="<%= t("e.g. MH12AB1234") %>">
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@
       <!-- Right: Photo Upload -->
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm mb-3">
-          <div class="card-header bg-white fw-semibold">Employee Photo</div>
+          <div class="card-header bg-white fw-semibold"><%= t("Employee Photo") %></div>
           <div class="card-body text-center">
             <div id="photoPreview" class="mb-3">
               <% if (emp?.photo_path) { %>
@@ -142,15 +142,15 @@
             </div>
             <% if (emp) { %>
             <button type="button" class="btn btn-outline-danger btn-sm" onclick="openCamera()">
-              <i class="bi bi-camera me-1"></i>Take Photo
+              <i class="bi bi-camera me-1"></i><%= t("Take Photo") %>
             </button>
             <video id="photoCamera" style="display:none;width:100%;border-radius:8px" autoplay playsinline></video>
             <div id="cameraControls" style="display:none" class="mt-2 d-flex gap-2 justify-content-center">
-              <button type="button" class="btn btn-danger btn-sm" onclick="snapPhoto()">Snap</button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeCamera()">Cancel</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="snapPhoto()"><%= t("Snap") %></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeCamera()"><%= t("Cancel") %></button>
             </div>
             <% } else { %>
-            <small class="text-muted">Save employee first, then add photo.</small>
+            <small class="text-muted"><%= t("Save employee first, then add photo.") %></small>
             <% } %>
           </div>
         </div>
@@ -159,9 +159,9 @@
 
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-danger fw-bold px-4">
-        <i class="bi bi-check-lg me-1"></i><%= emp ? 'Update Employee' : 'Create Employee' %>
+        <i class="bi bi-check-lg me-1"></i><%= emp ? t('Update Employee') : t('Create Employee') %>
       </button>
-      <a href="<%= emp ? '/hr/employees/'+emp.id : '/hr/employees' %>" class="btn btn-outline-secondary">Cancel</a>
+      <a href="<%= emp ? '/hr/employees/'+emp.id : '/hr/employees' %>" class="btn btn-outline-secondary"><%= t("Cancel") %></a>
     </div>
   </form>
 </div>

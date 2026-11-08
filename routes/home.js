@@ -12,7 +12,7 @@ const router = express.Router();
 
 // ── Admin dashboard data ──────────────────────────────────────────────────────
 // Business figures exclude cancelled quotations; months follow the quotation date (IST).
-function adminDashboardData() {
+function adminDashboardData(locale = 'en-IN') {
   const s       = getSettings();
   const today   = todayIST();
   const month   = today.slice(0, 7);
@@ -33,7 +33,7 @@ function adminDashboardData() {
   const trend = months.map(ym => {
     const rows = recentQuotes.filter(q => q.ym === ym);
     return { ym, count: rows.length, value: rows.reduce((t, q) => t + calcQuotation(q, s).total, 0),
-             label: new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-IN', { month: 'short', timeZone: 'UTC' }) };
+             label: new Date(ym + '-01T00:00:00Z').toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }) };
   });
   const cur  = trend[trend.length - 1];
   const prev = trend[trend.length - 2];
@@ -150,7 +150,7 @@ router.get('/', requireLogin, (req, res) => {
       myEnquiries, followupsDue, openVisit: req.query.visit === '1' });
   }
 
-  if (role === 'admin') return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(), formatINR });
+  if (role === 'admin') return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(res.locals.locale), formatINR });
 
   // ── Manager / HR dashboard ──
   const isAdmin = role === 'admin';

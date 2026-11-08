@@ -35,14 +35,14 @@
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <div>
-      <h4 class="mb-0 fw-bold"><i class="bi bi-database-fill me-2 text-primary"></i>Databank</h4>
-      <div class="text-muted small"><%= grand.toLocaleString('en-IN') %> potential customers · one record per mobile number</div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-database-fill me-2 text-primary"></i><%= t("Databank") %></h4>
+      <div class="text-muted small"><%= grand.toLocaleString('en-IN') %> <%= t("potential customers · one record per mobile number") %></div>
     </div>
     <% if (isAdmin) { %>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('importModal').style.display='flex'"><i class="bi bi-upload me-1"></i>Import</button>
-      <a class="btn btn-outline-secondary btn-sm" href="<%= '/databank/export' + (here.includes('?') ? here.slice(here.indexOf('?')) : '') %>"><i class="bi bi-download me-1"></i>Export</a>
-      <a class="btn btn-outline-primary btn-sm" href="/databank/access"><i class="bi bi-shield-lock me-1"></i>Access</a>
+      <button class="btn btn-outline-success btn-sm" onclick="document.getElementById('importModal').style.display='flex'"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
+      <a class="btn btn-outline-secondary btn-sm" href="<%= '/databank/export' + (here.includes('?') ? here.slice(here.indexOf('?')) : '') %>"><i class="bi bi-download me-1"></i><%= t("Export") %></a>
+      <a class="btn btn-outline-primary btn-sm" href="/databank/access"><i class="bi bi-shield-lock me-1"></i><%= t("Access") %></a>
     </div>
     <% } %>
   </div>
@@ -52,8 +52,8 @@
 
   <% if (!grand) { %>
   <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">
-    <i class="bi bi-database fs-1 d-block mb-2"></i>The databank is empty.
-    <% if (isAdmin) { %><div class="mt-2">Use <strong>Import</strong> to load the Customer_Databank.xlsx file.</div><% } %>
+    <i class="bi bi-database fs-1 d-block mb-2"></i><%= t("The databank is empty.") %>
+    <% if (isAdmin) { %><div class="mt-2"><%= t("Use") %> <strong><%= t("Import") %></strong> <%= t("to load the Customer_Databank.xlsx file.") %></div><% } %>
   </div></div>
   <% } else { %>
 
@@ -61,57 +61,57 @@
     <div class="card-body py-2">
       <form method="get" class="row g-2 align-items-center">
         <div class="col-12 col-md">
-          <input name="q" value="<%= qs.q %>" class="form-control" placeholder="Search name, mobile, village, remark… (e.g. brick sardhana)" autofocus>
+          <input name="q" value="<%= qs.q %>" class="form-control" placeholder="<%= t("Search name, mobile, village, remark… (e.g. brick sardhana)") %>" autofocus>
         </div>
         <div class="col-6 col-md-auto">
           <select name="remark" class="form-select" onchange="this.form.submit()">
-            <option value="">All records</option>
-            <option value="with" <%= qs.remark==='with'?'selected':'' %>>Has call remark</option>
-            <option value="none" <%= qs.remark==='none'?'selected':'' %>>Never called</option>
-            <option value="machine" <%= qs.remark==='machine'?'selected':'' %>>Machine owners</option>
-            <option value="mine" <%= qs.remark==='mine'?'selected':'' %>>Updated in app</option>
+            <option value=""><%= t("All records") %></option>
+            <option value="with" <%= qs.remark==='with'?'selected':'' %>><%= t("Has call remark") %></option>
+            <option value="none" <%= qs.remark==='none'?'selected':'' %>><%= t("Never called") %></option>
+            <option value="machine" <%= qs.remark==='machine'?'selected':'' %>><%= t("Machine owners") %></option>
+            <option value="mine" <%= qs.remark==='mine'?'selected':'' %>><%= t("Updated in app") %></option>
           </select>
         </div>
         <div class="col-6 col-md-auto">
-          <select name="stage" class="form-select" onchange="this.form.submit()" title="Bull CRM enquiry stage">
-            <option value="">Any enquiry stage</option>
-            <option value="any"  <%= qs.stage==='any' ?'selected':'' %>>Enquired (any stage)</option>
-            <option value="Open" <%= qs.stage==='Open'?'selected':'' %>>Open</option>
-            <option value="Won"  <%= qs.stage==='Won' ?'selected':'' %>>Won</option>
-            <option value="Lost" <%= qs.stage==='Lost'?'selected':'' %>>Lost</option>
-            <option value="Customer Not Interested" <%= qs.stage==='Customer Not Interested'?'selected':'' %>>Not interested</option>
-            <option value="none" <%= qs.stage==='none'?'selected':'' %>>Never enquired</option>
+          <select name="stage" class="form-select" onchange="this.form.submit()" title="<%= t("Bull CRM enquiry stage") %>">
+            <option value=""><%= t("Any enquiry stage") %></option>
+            <option value="any"  <%= qs.stage==='any' ?'selected':'' %>><%= t("Enquired (any stage)") %></option>
+            <option value="Open" <%= qs.stage==='Open'?'selected':'' %>><%= t("Open") %></option>
+            <option value="Won"  <%= qs.stage==='Won' ?'selected':'' %>><%= t("Won") %></option>
+            <option value="Lost" <%= qs.stage==='Lost'?'selected':'' %>><%= t("Lost") %></option>
+            <option value="Customer Not Interested" <%= qs.stage==='Customer Not Interested'?'selected':'' %>><%= t("Not interested") %></option>
+            <option value="none" <%= qs.stage==='none'?'selected':'' %>><%= t("Never enquired") %></option>
           </select>
         </div>
         <div class="col-6 col-md-auto">
           <select name="sort" class="form-select" onchange="this.form.submit()">
-            <option value="">Sort: Village</option>
-            <option value="name" <%= sort==='name'?'selected':'' %>>Sort: Name</option>
-            <option value="recent" <%= sort==='recent'?'selected':'' %>>Sort: Recent activity</option>
+            <option value=""><%= t("Sort: Village") %></option>
+            <option value="name" <%= sort==='name'?'selected':'' %>><%= t("Sort: Name") %></option>
+            <option value="recent" <%= sort==='recent'?'selected':'' %>><%= t("Sort: Recent activity") %></option>
           </select>
         </div>
         <% if (qs.district) { %><input type="hidden" name="district" value="<%= qs.district %>"><% } %>
         <% if (qs.village) { %><input type="hidden" name="village" value="<%= qs.village %>"><% } %>
-        <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-search"></i><span class="d-none d-md-inline ms-1">Search</span></button></div>
-        <% if (filtered) { %><div class="col-auto"><a href="/databank" class="btn btn-outline-secondary">Clear</a></div><% } %>
+        <div class="col-auto"><button class="btn btn-primary"><i class="bi bi-search"></i><span class="d-none d-md-inline ms-1"><%= t("Search") %></span></button></div>
+        <% if (filtered) { %><div class="col-auto"><a href="/databank" class="btn btn-outline-secondary"><%= t("Clear") %></a></div><% } %>
       </form>
     </div>
   </div>
 
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
-      <div class="small fw-semibold text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>DISTRICT</div>
+      <div class="small fw-semibold text-muted mb-2"><i class="bi bi-geo-alt me-1"></i><%= t("DISTRICT") %></div>
       <div class="db-chips">
-        <a class="db-chip <%= !qs.district ? 'on' : '' %>" href="<%= link({ district: '', village: '', page: '' }) %>">All <span class="n"><%= districts.reduce((t, d) => t + d.c, 0).toLocaleString('en-IN') %></span></a>
+        <a class="db-chip <%= !qs.district ? 'on' : '' %>" href="<%= link({ district: '', village: '', page: '' }) %>"><%= t("All") %> <span class="n"><%= districts.reduce((t, d) => t + d.c, 0).toLocaleString('en-IN') %></span></a>
         <% districts.forEach(d => { const val = d.district === 'Unmapped' ? 'Unmapped' : d.district; %>
         <a class="db-chip <%= qs.district === val ? 'on' : '' %>" href="<%= link({ district: val, village: '', page: '' }) %>">
           <%= d.district %> <span class="n"><%= d.c.toLocaleString('en-IN') %></span></a>
         <% }) %>
       </div>
       <% if (qs.district && villages.length) { %>
-      <div class="small fw-semibold text-muted mt-3 mb-2"><i class="bi bi-signpost-split me-1"></i>VILLAGE / TOWN IN <%= qs.district.toUpperCase() %></div>
+      <div class="small fw-semibold text-muted mt-3 mb-2"><i class="bi bi-signpost-split me-1"></i><%= t("VILLAGE / TOWN IN") %> <%= qs.district.toUpperCase() %></div>
       <div class="db-chips db-villages">
-        <a class="db-chip <%= !qs.village ? 'on' : '' %>" href="<%= link({ village: '', page: '' }) %>">All</a>
+        <a class="db-chip <%= !qs.village ? 'on' : '' %>" href="<%= link({ village: '', page: '' }) %>"><%= t("All") %></a>
         <% villages.forEach(v => { %>
         <a class="db-chip <%= qs.village.toLowerCase() === v.village.toLowerCase() ? 'on' : '' %>" href="<%= link({ village: v.village, page: '' }) %>"><%= v.village %> <span class="n"><%= v.c %></span></a>
         <% }) %>
@@ -122,24 +122,24 @@
 
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><%= total.toLocaleString('en-IN') %> customer<%= total === 1 ? '' : 's' %>
-        <% if (qs.village) { %>in <%= qs.village %><% } else if (qs.district) { %>in <%= qs.district %><% } %></span>
-      <% if (pages > 1) { %><span class="text-muted small">Page <%= page %> of <%= pages %></span><% } %>
+      <span class="fw-semibold"><%= total.toLocaleString('en-IN') %> <%= t("customer") %><%= total === 1 ? '' : 's' %>
+        <% if (qs.village) { %><%= t("in") %> <%= qs.village %><% } else if (qs.district) { %><%= t("in") %> <%= qs.district %><% } %></span>
+      <% if (pages > 1) { %><span class="text-muted small"><%= t("Page") %> <%= page %> <%= t("of") %> <%= pages %></span><% } %>
     </div>
-    <div class="db-row db-head"><span>Name</span><span>Mobile</span><span>Location</span><span>Last remark</span></div>
-    <% if (!rows.length) { %><div class="text-center text-muted py-4">No customers match.</div><% } %>
+    <div class="db-row db-head"><span><%= t("Name") %></span><span><%= t("Mobile") %></span><span><%= t("Location") %></span><span><%= t("Last remark") %></span></div>
+    <% if (!rows.length) { %><div class="text-center text-muted py-4"><%= t("No customers match.") %></div><% } %>
     <% rows.forEach(r => { %>
     <a class="db-row" href="/databank/<%= r.id %>?back=<%= encodeURIComponent(here) %>">
       <span class="fw-semibold text-truncate"><%= r.name || '—' %></span>
       <span class="phone font-monospace"><%= r.phone %></span>
       <span class="loc text-truncate"><i class="bi bi-geo-alt text-muted me-1 d-md-none"></i><%= r.location || '—' %><% if (r.district && !r.location.toUpperCase().includes(r.district.split(' ')[0])) { %><span class="text-muted"> · <%= r.district %></span><% } %></span>
-      <span class="remark"><% if (r.remark_at) { %><i class="bi bi-pencil-fill text-success me-1" title="Updated in app"></i><% } %><%= r.last_remark || '' %></span>
+      <span class="remark"><% if (r.remark_at) { %><i class="bi bi-pencil-fill text-success me-1" title="<%= t("Updated in app") %>"></i><% } %><%= r.last_remark || '' %></span>
     </a>
     <% }) %>
     <% if (pages > 1) { %>
     <div class="card-footer bg-white d-flex justify-content-between">
-      <a class="btn btn-sm btn-outline-secondary <%= page <= 1 ? 'disabled' : '' %>" href="<%= link({ page: page - 1 }) %>">‹ Previous</a>
-      <a class="btn btn-sm btn-outline-secondary <%= page >= pages ? 'disabled' : '' %>" href="<%= link({ page: page + 1 }) %>">Next ›</a>
+      <a class="btn btn-sm btn-outline-secondary <%= page <= 1 ? 'disabled' : '' %>" href="<%= link({ page: page - 1 }) %>"><%= t("‹ Previous") %></a>
+      <a class="btn btn-sm btn-outline-secondary <%= page >= pages ? 'disabled' : '' %>" href="<%= link({ page: page + 1 }) %>"><%= t("Next ›") %></a>
     </div>
     <% } %>
   </div>
@@ -150,26 +150,26 @@
 <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;padding:16px">
   <div class="card shadow" style="max-width:520px;width:100%">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-upload me-1"></i>Import into Databank</span>
+      <span class="fw-semibold"><i class="bi bi-upload me-1"></i><%= t("Import into Databank") %></span>
       <button class="btn-close" onclick="document.getElementById('importModal').style.display='none'"></button>
     </div>
     <div class="card-body">
-      <p class="small text-muted mb-2">Excel or CSV with columns <strong>Phone, Name, Location, Last Remark, Data Source</strong>
-        (optional: Area (District), Last Activity). Uses the “Databank” sheet if present.</p>
+      <p class="small text-muted mb-2"><%= t("Excel or CSV with columns") %> <strong><%= t("Phone, Name, Location, Last Remark, Data Source") %></strong>
+        <%= t("(optional: Area (District), Last Activity). Uses the “Databank” sheet if present.") %></p>
       <ul class="small text-muted mb-3">
-        <li>Matched on 10-digit mobile — existing numbers are updated, never duplicated.</li>
-        <li>Remarks your team added in the app are kept.</li>
+        <li><%= t("Matched on 10-digit mobile — existing numbers are updated, never duplicated.") %></li>
+        <li><%= t("Remarks your team added in the app are kept.") %></li>
       </ul>
       <input type="file" id="importFile" accept=".xlsx,.xls,.csv" class="form-control mb-3">
       <div id="importResult" class="alert d-none small"></div>
-      <button id="btnImport" class="btn btn-success w-100" onclick="runImport()"><i class="bi bi-upload me-1"></i>Import</button>
+      <button id="btnImport" class="btn btn-success w-100" onclick="runImport()"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
     </div>
   </div>
 </div>
 <script>
 async function runImport() {
   const file = document.getElementById('importFile').files[0];
-  if (!file) return alert('Choose a file first.');
+  if (!file) return alert(T('Choose a file first.'));
   const btn = document.getElementById('btnImport');
   btn.disabled = true; btn.textContent = 'Importing…';
   const data = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result.split(',')[1]); fr.readAsDataURL(file); });

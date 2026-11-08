@@ -12,109 +12,109 @@
   // user; a group or section with nothing visible is not rendered at all.
   // `keys` are the `active` values pages pass in, used when the URL alone doesn't match.
   const menu = [
-    { id: 'sales', label: 'Sales', icon: 'bi-graph-up-arrow', groups: [
+    { id: 'sales', label: t('Sales'), icon: 'bi-graph-up-arrow', groups: [
       { items: [
-        { href: '/my-leads',            icon: 'bi-person-badge-fill',      label: 'My Leads',           show: can('enquiries'), keys: ['myleads'] },
-        { href: '/enquiries',           icon: 'bi-funnel-fill',            label: 'Enquiries',          show: isMgr || can('enquiries'), keys: ['enquiries'] },
-        { href: '/enquiries/pipeline',  icon: 'bi-kanban',                 label: 'Enquiry Pipeline',   show: isMgr || can('enquiries') },
-        { href: '/enquiries/dashboard', icon: 'bi-bar-chart-fill',         label: 'Enquiry Dashboard',  show: isMgr || can('enquiries') },
-        { href: '/customers',           icon: 'bi-people-fill',            label: 'Customers',          show: can('customers'),  keys: ['customers'] },
-        { href: '/quotations',          icon: 'bi-file-earmark-text-fill', label: 'Machine Quotations', show: can('quotations'), keys: ['quotations'] },
+        { href: '/my-leads',            icon: 'bi-person-badge-fill',      label: t('My Leads'),           show: can('enquiries'), keys: ['myleads'] },
+        { href: '/enquiries',           icon: 'bi-funnel-fill',            label: t('Enquiries'),          show: isMgr || can('enquiries'), keys: ['enquiries'] },
+        { href: '/enquiries/pipeline',  icon: 'bi-kanban',                 label: t('Enquiry Pipeline'),   show: isMgr || can('enquiries') },
+        { href: '/enquiries/dashboard', icon: 'bi-bar-chart-fill',         label: t('Enquiry Dashboard'),  show: isMgr || can('enquiries') },
+        { href: '/customers',           icon: 'bi-people-fill',            label: t('Customers'),          show: can('customers'),  keys: ['customers'] },
+        { href: '/quotations',          icon: 'bi-file-earmark-text-fill', label: t('Machine Quotations'), show: can('quotations'), keys: ['quotations'] },
       ]},
-      { label: 'Sales Team', items: [
-        { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: 'Salespersons',      show: isMgr, keys: ['salespersons'] },
-        { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: 'Sales Reports',     show: isMgr },
-        { href: '/calculator',                   icon: 'bi-calculator-fill',   label: 'Profit Calculator', show: isAdmin, keys: ['calculator'] },
-      ]},
-    ]},
-    { id: 'accounts', label: 'Accounts', icon: 'bi-journal-bookmark-fill', groups: !accRole ? [] : [
-      { items: [
-        { href: '/accounts',                icon: 'bi-speedometer',          label: 'Accountant Dashboard', show: accAll },
-        { href: '/accounts/invoices/upload', icon: 'bi-cloud-arrow-up-fill', label: 'Upload Tally Invoice', show: can('accounts') },
-        { href: '/accounts/receipts/new',   icon: 'bi-receipt',              label: 'Generate Receipt',     show: can('accounts') },
-        { href: '/accounts/customers',      icon: 'bi-person-vcard-fill',    label: 'Customer Accounts',    show: accAll || can('accounts_view') },
-        { href: '/accounts/payments',       icon: 'bi-cash-stack',           label: 'Payment Entry',        show: accAll },
-        { href: '/accounts/allocations',    icon: 'bi-diagram-3-fill',       label: 'Payment Allocation',   show: can('accounts') || can('accounts_approve') },
-        { href: '/accounts/invoices',       icon: 'bi-journal-text',         label: 'Invoice Register',     show: accAll || can('accounts_view') },
-        { href: '/accounts/challans',       icon: 'bi-truck-flatbed',        label: 'Delivery Challans',    show: accAll || can('accounts_view') },
-        { href: '/accounts/reconciliation', icon: 'bi-arrow-left-right',     label: 'Delivery Challan Reconciliation', show: accAll },
-        { href: '/accounts/collections',    icon: 'bi-wallet-fill',          label: 'Collection Register',  show: accAll },
-        { href: '/accounts/reports',        icon: 'bi-clipboard-data-fill',  label: 'Outstanding Reports',  show: accAll },
-        { href: '/accounts/approvals',      icon: 'bi-check2-all',           label: 'Approvals',            show: can('accounts') || can('accounts_approve') },
-        { href: '/accounts/audit',          icon: 'bi-shield-check',         label: 'Audit Log',            show: can('accounts_approve') || can('accounts_reports') },
-        { href: '/accounts/settings',       icon: 'bi-sliders',              label: 'Accounts Settings',    show: isAdmin },
+      { label: t('Sales Team'), items: [
+        { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
+        { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: t('Sales Reports'),     show: isMgr },
+        { href: '/calculator',                   icon: 'bi-calculator-fill',   label: t('Profit Calculator'), show: isAdmin, keys: ['calculator'] },
       ]},
     ]},
-    { id: 'databank', label: 'Databank', icon: 'bi-database-fill', groups: [
+    { id: 'accounts', label: t('Accounts'), icon: 'bi-journal-bookmark-fill', groups: !accRole ? [] : [
       { items: [
-        { href: '/databank',        icon: 'bi-search',      label: 'Search Customers', show: can('databank'), keys: ['databank'] },
-        { href: '/databank/access', icon: 'bi-shield-lock', label: 'Databank Access',  show: isAdmin,         keys: ['databank-access'] },
+        { href: '/accounts',                icon: 'bi-speedometer',          label: t('Accountant Dashboard'), show: accAll },
+        { href: '/accounts/invoices/upload', icon: 'bi-cloud-arrow-up-fill', label: t('Upload Tally Invoice'), show: can('accounts') },
+        { href: '/accounts/receipts/new',   icon: 'bi-receipt',              label: t('Generate Receipt'),     show: can('accounts') },
+        { href: '/accounts/customers',      icon: 'bi-person-vcard-fill',    label: t('Customer Accounts'),    show: accAll || can('accounts_view') },
+        { href: '/accounts/payments',       icon: 'bi-cash-stack',           label: t('Payment Entry'),        show: accAll },
+        { href: '/accounts/allocations',    icon: 'bi-diagram-3-fill',       label: t('Payment Allocation'),   show: can('accounts') || can('accounts_approve') },
+        { href: '/accounts/invoices',       icon: 'bi-journal-text',         label: t('Invoice Register'),     show: accAll || can('accounts_view') },
+        { href: '/accounts/challans',       icon: 'bi-truck-flatbed',        label: t('Delivery Challans'),    show: accAll || can('accounts_view') },
+        { href: '/accounts/reconciliation', icon: 'bi-arrow-left-right',     label: t('Delivery Challan Reconciliation'), show: accAll },
+        { href: '/accounts/collections',    icon: 'bi-wallet-fill',          label: t('Collection Register'),  show: accAll },
+        { href: '/accounts/reports',        icon: 'bi-clipboard-data-fill',  label: t('Outstanding Reports'),  show: accAll },
+        { href: '/accounts/approvals',      icon: 'bi-check2-all',           label: t('Approvals'),            show: can('accounts') || can('accounts_approve') },
+        { href: '/accounts/audit',          icon: 'bi-shield-check',         label: t('Audit Log'),            show: can('accounts_approve') || can('accounts_reports') },
+        { href: '/accounts/settings',       icon: 'bi-sliders',              label: t('Accounts Settings'),    show: isAdmin },
       ]},
     ]},
-    { id: 'telecaller', label: 'Telecaller', icon: 'bi-telephone-inbound-fill', groups: [
+    { id: 'databank', label: t('Databank'), icon: 'bi-database-fill', groups: [
       { items: [
-        { href: '/telecaller',             icon: 'bi-grid-1x2-fill',      label: 'Telecaller Home',  show: can('telecaller'),       keys: ['telecaller'] },
-        { href: '/telecaller/new',         icon: 'bi-plus-circle-fill',   label: 'New Enquiry',      show: can('telecaller') },
-        { href: '/telecaller/queue',       icon: 'bi-telephone-outbound', label: 'Call Queue',       show: can('telecaller') },
-        { href: '/telecaller/history',     icon: 'bi-clock-history',      label: 'My Call History',  show: can('telecaller') },
-        { href: '/telecaller/reports',     icon: 'bi-clipboard-data',     label: 'Lead Reports',     show: can('telecaller_admin'), keys: ['telecaller-reports'] },
-        { href: '/telecaller/territories', icon: 'bi-geo-alt-fill',       label: 'Territories',      show: can('telecaller_admin'), keys: ['telecaller-territories'] },
-        { href: '/telecaller/config',      icon: 'bi-sliders',            label: 'Scripts & Pitches',show: can('telecaller_admin'), keys: ['telecaller-config'] },
+        { href: '/databank',        icon: 'bi-search',      label: t('Search Customers'), show: can('databank'), keys: ['databank'] },
+        { href: '/databank/access', icon: 'bi-shield-lock', label: t('Databank Access'),  show: isAdmin,         keys: ['databank-access'] },
       ]},
     ]},
-    { id: 'operations', label: 'Operations', icon: 'bi-gear-wide-connected', groups: [
+    { id: 'telecaller', label: t('Telecaller'), icon: 'bi-telephone-inbound-fill', groups: [
       { items: [
-        { href: '/form-22',               icon: 'bi-patch-check-fill', label: 'Form 22',        show: can('quotations'), keys: ['form22'] },
-        { href: '/machines',              icon: 'bi-sliders2',         label: 'Machine Master', show: isMgr, keys: ['machines'] },
-        { href: '/machines/price-update', icon: 'bi-currency-rupee',   label: 'Update Prices',  show: isMgr },
+        { href: '/telecaller',             icon: 'bi-grid-1x2-fill',      label: t('Telecaller Home'),  show: can('telecaller'),       keys: ['telecaller'] },
+        { href: '/telecaller/new',         icon: 'bi-plus-circle-fill',   label: t('New Enquiry'),      show: can('telecaller') },
+        { href: '/telecaller/queue',       icon: 'bi-telephone-outbound', label: t('Call Queue'),       show: can('telecaller') },
+        { href: '/telecaller/history',     icon: 'bi-clock-history',      label: t('My Call History'),  show: can('telecaller') },
+        { href: '/telecaller/reports',     icon: 'bi-clipboard-data',     label: t('Lead Reports'),     show: can('telecaller_admin'), keys: ['telecaller-reports'] },
+        { href: '/telecaller/territories', icon: 'bi-geo-alt-fill',       label: t('Territories'),      show: can('telecaller_admin'), keys: ['telecaller-territories'] },
+        { href: '/telecaller/config',      icon: 'bi-sliders',            label: t('Scripts & Pitches'),show: can('telecaller_admin'), keys: ['telecaller-config'] },
       ]},
     ]},
-    { id: 'spares', label: 'Spares', icon: 'bi-box-seam-fill', groups: [
+    { id: 'operations', label: t('Operations'), icon: 'bi-gear-wide-connected', groups: [
       { items: [
-        { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',       label: 'Spare Quotations',   show: can('spare_quotations'), keys: ['spare-quotations'] },
-        { href: '/part-orders',                      icon: 'bi-cart-fill',            label: 'Part Orders',        show: can('spare_parts'),      keys: ['part-orders'] },
-        { href: '/spare-parts',                      icon: 'bi-boxes',                label: 'Parts Master',       show: can('spare_parts'),      keys: ['spare-parts'] },
-        { href: '/stock',                            icon: 'bi-clipboard-data',       label: 'Stock Availability', show: can('stock'),            keys: ['stock'] },
-        { href: '/spare-quotations/reports/summary', icon: 'bi-bar-chart-line-fill',  label: 'Parts Reports',      show: can('spare_reports'),    keys: ['spare-reports'] },
+        { href: '/form-22',               icon: 'bi-patch-check-fill', label: t('Form 22'),        show: can('quotations'), keys: ['form22'] },
+        { href: '/machines',              icon: 'bi-sliders2',         label: t('Machine Master'), show: isMgr, keys: ['machines'] },
+        { href: '/machines/price-update', icon: 'bi-currency-rupee',   label: t('Update Prices'),  show: isMgr },
       ]},
     ]},
-    { id: 'service', label: 'Service', icon: 'bi-tools', groups: [
+    { id: 'spares', label: t('Spares'), icon: 'bi-box-seam-fill', groups: [
       { items: [
-        { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: 'Sold Machines', show: can('sold_machines'), keys: ['sold-machines'] },
-        { href: '/visits',        icon: 'bi-geo-alt-fill',  label: 'Site Visits',   show: can('field_visit'),   keys: ['visits'] },
+        { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',       label: t('Spare Quotations'),   show: can('spare_quotations'), keys: ['spare-quotations'] },
+        { href: '/part-orders',                      icon: 'bi-cart-fill',            label: t('Part Orders'),        show: can('spare_parts'),      keys: ['part-orders'] },
+        { href: '/spare-parts',                      icon: 'bi-boxes',                label: t('Parts Master'),       show: can('spare_parts'),      keys: ['spare-parts'] },
+        { href: '/stock',                            icon: 'bi-clipboard-data',       label: t('Stock Availability'), show: can('stock'),            keys: ['stock'] },
+        { href: '/spare-quotations/reports/summary', icon: 'bi-bar-chart-line-fill',  label: t('Parts Reports'),      show: can('spare_reports'),    keys: ['spare-reports'] },
       ]},
     ]},
-    { id: 'hr', label: 'Human Resources', icon: 'bi-people-fill', groups: [
+    { id: 'service', label: t('Service'), icon: 'bi-tools', groups: [
       { items: [
-        { href: '/notifications', icon: 'bi-bell-fill',            label: 'Notifications', show: true, keys: ['notifications'], badge: unreadCount },
-        { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: 'Attendance',    show: hasPerm('attendance'), keys: ['attendance'] },
+        { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: t('Sold Machines'), show: can('sold_machines'), keys: ['sold-machines'] },
+        { href: '/visits',        icon: 'bi-geo-alt-fill',  label: t('Site Visits'),   show: can('field_visit'),   keys: ['visits'] },
+      ]},
+    ]},
+    { id: 'hr', label: t('Human Resources'), icon: 'bi-people-fill', groups: [
+      { items: [
+        { href: '/notifications', icon: 'bi-bell-fill',            label: t('Notifications'), show: true, keys: ['notifications'], badge: unreadCount },
+        { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: t('Attendance'),    show: hasPerm('attendance'), keys: ['attendance'] },
         { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
-        { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: 'My Leaves',     show: true, keys: ['leaves'] },
-        { href: '/salary',        icon: 'bi-cash-coin',            label: 'My Salary',     show: true, keys: ['salary'] },
-        { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: 'ID Card',   show: true, keys: ['id-card'] },
-        { href: '/profile',       icon: 'bi-person-circle',        label: 'My Profile',    show: true, keys: ['profile'] },
+        { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: t('My Leaves'),     show: true, keys: ['leaves'] },
+        { href: '/salary',        icon: 'bi-cash-coin',            label: t('My Salary'),     show: true, keys: ['salary'] },
+        { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: t('ID Card'),   show: true, keys: ['id-card'] },
+        { href: '/profile',       icon: 'bi-person-circle',        label: t('My Profile'),    show: true, keys: ['profile'] },
       ]},
-      { label: 'Expenses', items: [
-        { href: '/travel-expenses/new',       icon: 'bi-truck',          label: 'New Travel Expense',  show: can('expense_claim') },
-        { href: '/travel-expenses/my',        icon: 'bi-receipt-cutoff', label: 'My Travel Expenses',  show: can('expense_claim'), keys: ['travel-expenses'] },
-        { href: '/travel-expenses/bills',     icon: 'bi-file-earmark-text', label: 'TA Bills',          show: can('expense_claim') || can('expense_approval') },
-        { href: '/travel-expenses/queue',     icon: 'bi-check2-square',  label: 'Expense Approvals',   show: can('expense_approval') },
-        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',      label: 'Expense Rate Config', show: isMgr },
+      { label: t('Expenses'), items: [
+        { href: '/travel-expenses/new',       icon: 'bi-truck',          label: t('New Travel Expense'),  show: can('expense_claim') },
+        { href: '/travel-expenses/my',        icon: 'bi-receipt-cutoff', label: t('My Travel Expenses'),  show: can('expense_claim'), keys: ['travel-expenses'] },
+        { href: '/travel-expenses/bills',     icon: 'bi-file-earmark-text', label: t('TA Bills'),          show: can('expense_claim') || can('expense_approval') },
+        { href: '/travel-expenses/queue',     icon: 'bi-check2-square',  label: t('Expense Approvals'),   show: can('expense_approval') },
+        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',      label: t('Expense Rate Config'), show: isMgr },
       ]},
-      { label: 'HR Admin', items: [
-        { href: '/hr/dashboard',  icon: 'bi-grid-fill',            label: 'HR Dashboard',      show: can('hr_admin'), keys: ['hr'] },
-        { href: '/hr/employees',  icon: 'bi-person-lines-fill',    label: 'Employees',         show: can('hr_admin') },
-        { href: '/hr/attendance', icon: 'bi-calendar-week-fill',   label: 'Attendance Report', show: can('hr_admin') },
-        { href: '/hr/attendance/employee', icon: 'bi-person-badge',  label: 'Employee Attendance', show: isMgr },
-        { href: '/hr/leaves',     icon: 'bi-check2-square',        label: 'Leave Approvals',   show: can('hr_admin') && can('leave_approval') },
-        { href: '/hr/salary',     icon: 'bi-wallet2',              label: 'Salary Manager',    show: can('hr_admin') && can('salary_admin') },
+      { label: t('HR Admin'), items: [
+        { href: '/hr/dashboard',  icon: 'bi-grid-fill',            label: t('HR Dashboard'),      show: can('hr_admin'), keys: ['hr'] },
+        { href: '/hr/employees',  icon: 'bi-person-lines-fill',    label: t('Employees'),         show: can('hr_admin') },
+        { href: '/hr/attendance', icon: 'bi-calendar-week-fill',   label: t('Attendance Report'), show: can('hr_admin') },
+        { href: '/hr/attendance/employee', icon: 'bi-person-badge',  label: t('Employee Attendance'), show: isMgr },
+        { href: '/hr/leaves',     icon: 'bi-check2-square',        label: t('Leave Approvals'),   show: can('hr_admin') && can('leave_approval') },
+        { href: '/hr/salary',     icon: 'bi-wallet2',              label: t('Salary Manager'),    show: can('hr_admin') && can('salary_admin') },
       ]},
     ]},
-    { id: 'admin', label: 'Admin', icon: 'bi-shield-lock-fill', groups: [
+    { id: 'admin', label: t('Admin'), icon: 'bi-shield-lock-fill', groups: [
       { items: [
-        { href: '/users',    icon: 'bi-person-gear', label: 'Users',            show: isAdmin, keys: ['users'] },
-        { href: '/settings', icon: 'bi-sliders',     label: 'Settings',         show: isAdmin, keys: ['settings'] },
-        { href: '/backup',   icon: 'bi-database-down', label: 'Backup & Restore', show: isAdmin, keys: ['backup'] },
+        { href: '/users',    icon: 'bi-person-gear', label: t('Users'),            show: isAdmin, keys: ['users'] },
+        { href: '/settings', icon: 'bi-sliders',     label: t('Settings'),         show: isAdmin, keys: ['settings'] },
+        { href: '/backup',   icon: 'bi-database-down', label: t('Backup & Restore'), show: isAdmin, keys: ['backup'] },
       ]},
     ]},
   ];
@@ -142,11 +142,15 @@
 
 <!-- Mobile Top Bar -->
 <div class="mobile-topbar">
-  <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open menu">
+  <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="<%= t("Open menu") %>">
     <i class="bi bi-list"></i>
   </button>
   <a href="/" class="app-title">SUPER ALLIED</a>
-  <a href="/help" class="btn btn-sm btn-outline-light ms-auto me-2" title="Help & Updates" aria-label="Help & Updates">
+  <% const otherLang = lang === 'hi' ? 'en' : 'hi'; %>
+  <button type="button" class="btn btn-sm btn-outline-light ms-auto me-2 lang-btn" onclick="setLang('<%= otherLang %>')" title="<%= t("Language") %>" aria-label="<%= t("Language") %>: <%= LANGS[otherLang].label %>">
+    <i class="bi bi-translate me-1"></i><%= LANGS[otherLang].label %>
+  </button>
+  <a href="/help" class="btn btn-sm btn-outline-light me-2" title="<%= t("Help & Updates") %>" aria-label="<%= t("Help & Updates") %>">
     <i class="bi bi-question-circle"></i>
   </a>
   <a href="/logout" class="btn btn-sm btn-outline-light">
@@ -159,30 +163,30 @@
   const fieldUser = user && !['admin','manager','hr','accountant','accounts_manager'].includes(user.role);
   const p = (typeof currentPath !== 'undefined' && currentPath) || '';
   const bottomNav = (user && user.role === 'telecaller') ? [
-    { href: '/telecaller',         icon: 'bi-house-door-fill',     label: 'Home',       on: p === '/telecaller' },
-    { href: '/telecaller/queue',   icon: 'bi-telephone-outbound',  label: 'Call Queue', on: p.startsWith('/telecaller/call') },
-    { href: '/telecaller/new',     icon: 'bi-plus-circle-fill',    label: 'New',        center: true },
-    { href: '/telecaller/history', icon: 'bi-clock-history',       label: 'History',    on: p.startsWith('/telecaller/history') },
+    { href: '/telecaller',         icon: 'bi-house-door-fill',     label: t('Home'),       on: p === '/telecaller' },
+    { href: '/telecaller/queue',   icon: 'bi-telephone-outbound',  label: t('Call Queue'), on: p.startsWith('/telecaller/call') },
+    { href: '/telecaller/new',     icon: 'bi-plus-circle-fill',    label: t('New'),        center: true },
+    { href: '/telecaller/history', icon: 'bi-clock-history',       label: t('History'),    on: p.startsWith('/telecaller/history') },
   ] : fieldUser ? [
-    { href: '/', icon: 'bi-house-door-fill', label: 'Home', on: p === '/' },
+    { href: '/', icon: 'bi-house-door-fill', label: t('Home'), on: p === '/' },
     can('enquiries')
-      ? { href: '/my-leads', icon: 'bi-person-badge-fill', label: 'My Leads', on: p.startsWith('/my-leads') }
-      : { href: '/customers', icon: 'bi-people-fill', label: 'Customers', on: p.startsWith('/customers') },
-    { href: '/?visit=1', icon: 'bi-geo-alt-fill', label: 'Visit', center: true },
+      ? { href: '/my-leads', icon: 'bi-person-badge-fill', label: t('My Leads'), on: p.startsWith('/my-leads') }
+      : { href: '/customers', icon: 'bi-people-fill', label: t('Customers'), on: p.startsWith('/customers') },
+    { href: '/?visit=1', icon: 'bi-geo-alt-fill', label: t('Visit'), center: true },
     hasPerm('attendance')
-      ? { href: '/attendance', icon: 'bi-calendar-check-fill', label: 'Attendance', on: p.startsWith('/attendance') }
-      : { href: '/leaves', icon: 'bi-calendar-x-fill', label: 'Leaves', on: p.startsWith('/leaves') },
+      ? { href: '/attendance', icon: 'bi-calendar-check-fill', label: t('Attendance'), on: p.startsWith('/attendance') }
+      : { href: '/leaves', icon: 'bi-calendar-x-fill', label: t('Leaves'), on: p.startsWith('/leaves') },
   ] : [];
 %>
 <% if (fieldUser) { %>
-<nav class="bottom-nav" aria-label="Quick navigation">
+<nav class="bottom-nav" aria-label="<%= t("Quick navigation") %>">
   <% bottomNav.forEach(b => { %>
   <a href="<%= b.href %>" class="bn-item<%= b.center ? ' bn-center' : '' %><%= b.on ? ' active' : '' %>">
-    <span class="bn-icon"><i class="bi <%= b.icon %>"></i></span><span class="bn-label"><%= b.label %></span>
+    <span class="bn-icon"><i class="bi <%= b.icon %>"></i></span><span class="bn-label"><%= t(b.label) %></span>
   </a>
   <% }) %>
-  <button type="button" class="bn-item" onclick="toggleSidebar()" aria-label="Open menu">
-    <span class="bn-icon"><i class="bi bi-list"></i></span><span class="bn-label">Menu</span>
+  <button type="button" class="bn-item" onclick="toggleSidebar()" aria-label="<%= t("Open menu") %>">
+    <span class="bn-icon"><i class="bi bi-list"></i></span><span class="bn-label"><%= t("Menu") %></span>
   </button>
 </nav>
 <% } %>
@@ -195,7 +199,7 @@
 
   <!-- Mobile close -->
   <div class="d-flex justify-content-between align-items-center d-lg-none px-3 pt-3 pb-2 border-bottom border-secondary">
-    <span class="fw-semibold text-white-50 small text-uppercase" style="font-size:11px">Menu</span>
+    <span class="fw-semibold text-white-50 small text-uppercase" style="font-size:11px"><%= t("Menu") %></span>
     <button onclick="toggleSidebar()" class="btn btn-sm text-white border-0 p-0">
       <i class="bi bi-x-lg fs-5"></i>
     </button>
@@ -206,7 +210,7 @@
     <div class="brand-logo flex-shrink-0">SA</div>
     <div>
       <div class="fw-bold lh-1">Super Allied</div>
-      <small class="text-white-50 text-xs">Bull CE Dealer</small>
+      <small class="text-white-50 text-xs"><%= t("Bull CE Dealer") %></small>
     </div>
   </a>
   <div class="text-center pb-2">
@@ -219,7 +223,7 @@
     <div class="search-input-wrapper">
       <div class="input-group input-group-sm">
         <span class="input-group-text bg-secondary border-0"><i class="bi bi-search text-white"></i></span>
-        <input type="text" class="form-control border-0" id="universalSearch" placeholder="Search..." autocomplete="off">
+        <input type="text" class="form-control border-0" id="universalSearch" placeholder="<%= t("Search...") %>" autocomplete="off">
       </div>
       <div class="search-dropdown" id="searchDropdown"></div>
     </div>
@@ -230,22 +234,22 @@
 
     <!-- Dashboard -->
     <a href="/" class="sb-top-link nav-link text-white d-flex align-items-center gap-2 px-2 py-2 rounded mb-1 <%= active==='dashboard'?'active':'' %>" onclick="closeSidebarOnMobile()">
-      <i class="bi bi-speedometer2"></i><span class="fw-semibold">Dashboard</span>
+      <i class="bi bi-speedometer2"></i><span class="fw-semibold"><%= t("Dashboard") %></span>
     </a>
 
     <% sections.forEach(sec => { const open = sec.id === defaultOpen; %>
     <div class="sb-section" data-section="<%= sec.id %>" data-has-active="<%= sec.id === activeSection ? 1 : 0 %>">
       <button type="button" class="sb-section-hdr<%= sec.id === activeSection ? ' has-active' : '' %>" onclick="toggleSection('<%= sec.id %>')" aria-expanded="<%= open %>" aria-controls="section-<%= sec.id %>">
         <i class="bi <%= sec.icon %> sb-sec-icon"></i>
-        <span class="flex-grow-1 text-start"><%= sec.label %></span>
+        <span class="flex-grow-1 text-start"><%= t(sec.label) %></span>
         <i class="bi bi-chevron-right sb-chevron<%= open ? ' open' : '' %>"></i>
       </button>
       <div class="sb-section-body<%= open ? ' show' : '' %>" id="section-<%= sec.id %>">
         <% sec.groups.forEach(g => { %>
-          <% if (g.label) { %><div class="sb-sub-label"><%= g.label %></div><% } %>
+          <% if (g.label) { %><div class="sb-sub-label"><%= t(g.label) %></div><% } %>
           <% g.items.forEach(it => { %>
           <a href="<%= it.href %>" class="sb-link nav-link<%= it.href === activeHref ? ' active' : '' %>" onclick="closeSidebarOnMobile()">
-            <i class="bi <%= it.icon %>"></i><span class="flex-grow-1"><%= it.label %></span>
+            <i class="bi <%= it.icon %>"></i><span class="flex-grow-1"><%= t(it.label) %></span>
             <% if (it.badge > 0) { %><span class="badge bg-danger"><%= it.badge %></span><% } %>
           </a>
           <% }) %>
@@ -256,21 +260,32 @@
 
   </div><!-- /scrollable -->
 
+  <!-- Language -->
+  <hr class="border-secondary my-0">
+  <div class="px-3 py-2 d-flex align-items-center gap-2">
+    <i class="bi bi-translate text-white-50" title="<%= t("Language") %>"></i>
+    <div class="btn-group btn-group-sm flex-grow-1 lang-switch" role="group" aria-label="<%= t("Language") %>">
+      <% Object.entries(LANGS).forEach(([code, L]) => { %>
+      <button type="button" class="btn <%= lang === code ? 'btn-light' : 'btn-outline-light' %>" aria-pressed="<%= lang === code %>" onclick="setLang('<%= code %>')"><%= L.label %></button>
+      <% }) %>
+    </div>
+  </div>
+
   <!-- User strip -->
   <hr class="border-secondary my-0">
   <div class="d-flex align-items-center gap-2 px-3 py-2">
     <div class="flex-grow-1" style="min-width:0">
-      <small class="text-white-50 text-xs">Logged in as</small><br>
+      <small class="text-white-50 text-xs"><%= t("Logged in as") %></small><br>
       <span class="fw-semibold text-truncate d-block" style="max-width:140px;font-size:13px">
         <%= user ? user.full_name || user.username : '' %>
       </span>
       <% const roleBadge = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success',accountant:'bg-dark',accounts_manager:'bg-dark'}; %>
       <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>"><%= (user?.role||'').replace('_', ' ').toUpperCase() %></span>
     </div>
-    <a href="/help" class="btn btn-sm <%= active==='help'?'btn-light':'btn-outline-light' %> flex-shrink-0" title="Help & Updates" aria-label="Help & Updates">
+    <a href="/help" class="btn btn-sm <%= active==='help'?'btn-light':'btn-outline-light' %> flex-shrink-0" title="<%= t("Help & Updates") %>" aria-label="<%= t("Help & Updates") %>">
       <i class="bi bi-question-circle"></i>
     </a>
-    <a href="/logout" class="btn btn-sm btn-outline-light flex-shrink-0" title="Logout">
+    <a href="/logout" class="btn btn-sm btn-outline-light flex-shrink-0" title="<%= t("Logout") %>">
       <i class="bi bi-box-arrow-right"></i>
     </a>
   </div>
@@ -339,7 +354,7 @@ if (searchInput) {
         const results = await resp.json();
 
         if (!results.results || results.results.length === 0) {
-          searchDropdown.innerHTML = '<div class="p-2 text-muted small text-center">No results found</div>';
+          searchDropdown.innerHTML = '<div class="p-2 text-muted small text-center">' + T('No results found') + '</div>';
           searchDropdown.classList.add('show');
           return;
         }
@@ -350,7 +365,7 @@ if (searchInput) {
         results.results.forEach(item => {
           if (item.category !== currentCategory) {
             if (currentCategory) html += '</div>';
-            html += `<div class="search-result-category">${item.category}</div>`;
+            html += `<div class="search-result-category">${T(item.category)}</div>`;
             currentCategory = item.category;
           }
           html += `
@@ -364,7 +379,7 @@ if (searchInput) {
         searchDropdown.innerHTML = html;
         searchDropdown.classList.add('show');
       } catch(e) {
-        searchDropdown.innerHTML = '<div class="p-2 text-danger small">Search error</div>';
+        searchDropdown.innerHTML = '<div class="p-2 text-danger small">' + T('Search error') + '</div>';
         searchDropdown.classList.add('show');
       }
     }, 300);

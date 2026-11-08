@@ -8,13 +8,13 @@
     </div>
     <div class="d-flex gap-2">
       <a href="/spare-quotations/new?machine_no=<%= encodeURIComponent(machine.machine_no) %>" class="btn btn-success">
-        <i class="bi bi-plus-lg me-1"></i>New Spare Quotation
+        <i class="bi bi-plus-lg me-1"></i><%= t("New Spare Quotation") %>
       </a>
       <a href="/sold-machines/<%= machine.id %>/edit" class="btn btn-outline-secondary">
-        <i class="bi bi-pencil me-1"></i>Edit
+        <i class="bi bi-pencil me-1"></i><%= t("Edit") %>
       </a>
       <a href="/sold-machines" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back
+        <i class="bi bi-arrow-left me-1"></i><%= t("Back") %>
       </a>
     </div>
   </div>
@@ -25,19 +25,19 @@
     <!-- Customer Info -->
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-success text-white fw-semibold"><i class="bi bi-person me-2"></i>Customer Details</div>
+        <div class="card-header bg-success text-white fw-semibold"><i class="bi bi-person me-2"></i><%= t("Customer Details") %></div>
         <div class="card-body">
           <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Customer Name</dt><dd class="col-7 fw-semibold"><%= machine.customer_name %></dd>
-            <dt class="col-5 text-muted">Contact Person</dt><dd class="col-7"><%= machine.contact_person || '—' %></dd>
-            <dt class="col-5 text-muted">Mobile 1</dt><dd class="col-7">
+            <dt class="col-5 text-muted"><%= t("Customer Name") %></dt><dd class="col-7 fw-semibold"><%= machine.customer_name %></dd>
+            <dt class="col-5 text-muted"><%= t("Contact Person") %></dt><dd class="col-7"><%= machine.contact_person || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Mobile 1") %></dt><dd class="col-7">
               <% if (machine.mobile_1) { %><a href="tel:<%= machine.mobile_1 %>"><%= machine.mobile_1 %></a><% } else { %>—<% } %>
             </dd>
-            <dt class="col-5 text-muted">Mobile 2</dt><dd class="col-7"><%= machine.mobile_2 || '—' %></dd>
-            <dt class="col-5 text-muted">Address</dt><dd class="col-7"><%= machine.customer_address || '—' %></dd>
-            <dt class="col-5 text-muted">Place of Supply</dt><dd class="col-7"><%= machine.place_of_supply || '—' %></dd>
-            <dt class="col-5 text-muted">GST Number</dt><dd class="col-7 font-monospace"><%= machine.gst_number || '—' %></dd>
-            <dt class="col-5 text-muted">PAN Number</dt><dd class="col-7 font-monospace"><%= machine.pan_number || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Mobile 2") %></dt><dd class="col-7"><%= machine.mobile_2 || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Address") %></dt><dd class="col-7"><%= machine.customer_address || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Place of Supply") %></dt><dd class="col-7"><%= machine.place_of_supply || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("GST Number") %></dt><dd class="col-7 font-monospace"><%= machine.gst_number || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("PAN Number") %></dt><dd class="col-7 font-monospace"><%= machine.pan_number || '—' %></dd>
           </dl>
         </div>
       </div>
@@ -45,17 +45,17 @@
     <!-- Machine Info -->
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-hdd-rack me-2"></i>Machine Details</div>
+        <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-hdd-rack me-2"></i><%= t("Machine Details") %></div>
         <div class="card-body">
           <dl class="row mb-0 small">
-            <dt class="col-5 text-muted">Machine No</dt><dd class="col-7 fw-bold font-monospace"><%= machine.machine_no %></dd>
-            <dt class="col-5 text-muted">Model</dt><dd class="col-7"><%= machine.model || '—' %></dd>
-            <dt class="col-5 text-muted">Chassis No</dt><dd class="col-7 font-monospace"><%= machine.chassis_number || '—' %></dd>
-            <dt class="col-5 text-muted">Engine No</dt><dd class="col-7 font-monospace"><%= machine.engine_number || '—' %></dd>
-            <dt class="col-5 text-muted">Reg. No</dt><dd class="col-7"><%= machine.registration_no || '—' %></dd>
-            <dt class="col-5 text-muted">Finance</dt><dd class="col-7"><%= machine.finance_type %> <% if (machine.financier) { %><small class="text-muted">(<%= machine.financier %>)</small><% } %></dd>
-            <dt class="col-5 text-muted">Dealer</dt><dd class="col-7"><%= machine.dealer || '—' %></dd>
-            <dt class="col-5 text-muted">Date of Sale</dt><dd class="col-7"><%= machine.date_of_sale ? new Date(machine.date_of_sale).toLocaleDateString('en-IN') : '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Machine No") %></dt><dd class="col-7 fw-bold font-monospace"><%= machine.machine_no %></dd>
+            <dt class="col-5 text-muted"><%= t("Model") %></dt><dd class="col-7"><%= machine.model || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Chassis No") %></dt><dd class="col-7 font-monospace"><%= machine.chassis_number || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Engine No") %></dt><dd class="col-7 font-monospace"><%= machine.engine_number || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Reg. No") %></dt><dd class="col-7"><%= machine.registration_no || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Finance") %></dt><dd class="col-7"><%= machine.finance_type %> <% if (machine.financier) { %><small class="text-muted">(<%= machine.financier %>)</small><% } %></dd>
+            <dt class="col-5 text-muted"><%= t("Dealer") %></dt><dd class="col-7"><%= machine.dealer || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Date of Sale") %></dt><dd class="col-7"><%= machine.date_of_sale ? new Date(machine.date_of_sale).toLocaleDateString(locale) : '—' %></dd>
           </dl>
         </div>
       </div>
@@ -65,39 +65,39 @@
   <!-- Quotation History -->
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Spare Part Quotation History (<%= quotations.length %>)</span>
+      <span class="fw-semibold"><i class="bi bi-file-earmark-text me-2"></i><%= t("Spare Part Quotation History (") %><%= quotations.length %>)</span>
       <a href="/spare-quotations/new?machine_no=<%= encodeURIComponent(machine.machine_no) %>" class="btn btn-sm btn-success">
-        <i class="bi bi-plus-lg me-1"></i>New Quotation
+        <i class="bi bi-plus-lg me-1"></i><%= t("New Quotation") %>
       </a>
     </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th>Quotation No</th>
-            <th>Date</th>
-            <th>Items</th>
-            <th>Grand Total</th>
-            <th>Status</th>
+            <th><%= t("Quotation No") %></th>
+            <th><%= t("Date") %></th>
+            <th><%= t("Items") %></th>
+            <th><%= t("Grand Total") %></th>
+            <th><%= t("Status") %></th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% if (quotations.length === 0) { %>
-          <tr><td colspan="6" class="text-center text-muted py-4">No quotations yet.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4"><%= t("No quotations yet.") %></td></tr>
           <% } %>
           <% quotations.forEach(q => { %>
           <tr>
             <td><a href="/spare-quotations/<%= q.id %>" class="fw-semibold text-decoration-none"><%= q.quotation_no %></a></td>
-            <td><small><%= new Date(q.created_at).toLocaleDateString('en-IN') %></small></td>
-            <td><span class="badge bg-secondary"><%= q.item_count %> parts</span></td>
+            <td><small><%= new Date(q.created_at).toLocaleDateString(locale) %></small></td>
+            <td><span class="badge bg-secondary"><%= q.item_count %> <%= t("parts") %></span></td>
             <td class="fw-semibold">₹<%= formatINR(q.grand_total) %></td>
             <td>
               <% const sc = {draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %>
               <span class="badge <%= sc[q.status]||'bg-secondary' %>"><%= q.status %></span>
             </td>
             <td>
-              <a href="/spare-quotations/<%= q.id %>/pdf" class="btn btn-sm btn-outline-danger" title="PDF">
+              <a href="/spare-quotations/<%= q.id %>/pdf" class="btn btn-sm btn-outline-danger" title="<%= t("PDF") %>">
                 <i class="bi bi-file-pdf"></i>
               </a>
             </td>
@@ -113,15 +113,15 @@
   <div class="card border-0 shadow-sm mt-3">
     <div class="card-body d-flex align-items-center justify-content-between">
       <% if (machine.is_active !== 0) { %>
-      <span class="text-muted small">Deactivate this machine to hide it from active records. Data is preserved.</span>
+      <span class="text-muted small"><%= t("Deactivate this machine to hide it from active records. Data is preserved.") %></span>
       <form method="post" action="/sold-machines/<%= machine.id %>/deactivate"
             onsubmit="return confirm('Deactivate machine <%= machine.machine_no %>?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-slash-circle me-1"></i>Deactivate Machine</button>
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-slash-circle me-1"></i><%= t("Deactivate Machine") %></button>
       </form>
       <% } else { %>
-      <span class="text-muted small">This machine is currently inactive.</span>
+      <span class="text-muted small"><%= t("This machine is currently inactive.") %></span>
       <form method="post" action="/sold-machines/<%= machine.id %>/reactivate">
-        <button class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-counterclockwise me-1"></i>Reactivate Machine</button>
+        <button class="btn btn-sm btn-outline-success"><i class="bi bi-arrow-counterclockwise me-1"></i><%= t("Reactivate Machine") %></button>
       </form>
       <% } %>
     </div>

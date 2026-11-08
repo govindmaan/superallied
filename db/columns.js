@@ -43,6 +43,7 @@ const COLUMNS = {
     ["must_change_password", "INTEGER DEFAULT 0"],
     ["sessions_valid_after", "INTEGER"],
     ["old_employee_code", "TEXT DEFAULT ''"],
+    ["language", "TEXT DEFAULT ''"],
   ],
   machines: [
     ["purchase_price", "INTEGER DEFAULT 0"],

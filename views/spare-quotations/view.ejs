@@ -5,7 +5,7 @@
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
       <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-success"></i><%= q.quotation_no %></h4>
-      <small class="text-muted"><%= new Date(q.created_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) %></small>
+      <small class="text-muted"><%= new Date(q.created_at).toLocaleDateString(locale, {day:'2-digit',month:'short',year:'numeric'}) %></small>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <!-- Status badge + change -->
@@ -30,25 +30,25 @@
       <!-- Submit for Approval (non-admin, when draft/sent) -->
       <% if (!isAdm && (!q.approval_status || q.approval_status === 'draft') && q.status !== 'cancelled') { %>
       <form method="post" action="/spare-quotations/<%= q.id %>/submit-approval" style="display:inline"
-        onsubmit="return confirm('Submit this quotation for admin approval?')">
-        <button class="btn btn-sm btn-warning text-dark"><i class="bi bi-send me-1"></i>Submit for Approval</button>
+        onsubmit="return confirm('<%= tjs("Submit this quotation for admin approval?") %>')">
+        <button class="btn btn-sm btn-warning text-dark"><i class="bi bi-send me-1"></i><%= t("Submit for Approval") %></button>
       </form>
       <% } %>
       <!-- WhatsApp: shares the quotation PDF (customer copy) -->
-      <button type="button" class="btn btn-sm btn-success" id="waShareBtn" title="Send the PDF on WhatsApp">
-        <i class="bi bi-whatsapp me-1"></i>WhatsApp PDF
+      <button type="button" class="btn btn-sm btn-success" id="waShareBtn" title="<%= t("Send the PDF on WhatsApp") %>">
+        <i class="bi bi-whatsapp me-1"></i><%= t("WhatsApp PDF") %>
       </button>
       <a href="/spare-quotations/<%= q.id %>/pdf" class="btn btn-sm btn-danger" target="_blank">
-        <i class="bi bi-file-pdf me-1"></i>PDF
+        <i class="bi bi-file-pdf me-1"></i><%= t("PDF") %>
       </a>
       <a href="/spare-quotations/<%= q.id %>/edit" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-pencil me-1"></i>Edit
+        <i class="bi bi-pencil me-1"></i><%= t("Edit") %>
       </a>
       <form method="post" action="/spare-quotations/<%= q.id %>/clone" style="display:inline">
-        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-copy me-1"></i>Clone</button>
+        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-copy me-1"></i><%= t("Clone") %></button>
       </form>
       <a href="/spare-quotations" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back
+        <i class="bi bi-arrow-left me-1"></i><%= t("Back") %>
       </a>
     </div>
   </div>
@@ -61,15 +61,15 @@
   <div class="alert alert-warning d-flex align-items-start gap-3 mb-3">
     <i class="bi bi-shield-exclamation fs-4 mt-1"></i>
     <div class="flex-grow-1">
-      <div class="fw-bold mb-1">Pending Approval</div>
-      <div class="small text-muted mb-2">This quotation was submitted for your approval by <%= q.creator_name || 'salesperson' %>.</div>
+      <div class="fw-bold mb-1"><%= t("Pending Approval") %></div>
+      <div class="small text-muted mb-2"><%= t("This quotation was submitted for your approval by") %> <%= q.creator_name || 'salesperson' %>.</div>
       <form method="post" action="/spare-quotations/<%= q.id %>/approve" class="d-flex gap-2 align-items-end flex-wrap">
         <div>
-          <label class="form-label small mb-1">Notes (optional)</label>
-          <input type="text" name="notes" class="form-control form-control-sm" style="min-width:250px" placeholder="Approval notes...">
+          <label class="form-label small mb-1"><%= t("Notes (optional)") %></label>
+          <input type="text" name="notes" class="form-control form-control-sm" style="min-width:250px" placeholder="<%= t("Approval notes...") %>">
         </div>
-        <button type="submit" name="action" value="approve" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i>Approve</button>
-        <button type="submit" name="action" value="reject"  class="btn btn-sm btn-danger"><i class="bi bi-x-circle me-1"></i>Reject</button>
+        <button type="submit" name="action" value="approve" class="btn btn-sm btn-success"><i class="bi bi-check-circle me-1"></i><%= t("Approve") %></button>
+        <button type="submit" name="action" value="reject"  class="btn btn-sm btn-danger"><i class="bi bi-x-circle me-1"></i><%= t("Reject") %></button>
       </form>
     </div>
   </div>
@@ -79,43 +79,43 @@
   <% if (q.approval_status === 'approved' || q.approval_status === 'rejected') { %>
   <div class="alert <%= q.approval_status === 'approved' ? 'alert-success' : 'alert-danger' %> small mb-3 py-2">
     <i class="bi bi-shield-<%= q.approval_status === 'approved' ? 'check' : 'x' %> me-2"></i>
-    <b><%= q.approval_status === 'approved' ? 'Approved' : 'Rejected' %></b>
+    <b><%= q.approval_status === 'approved' ? t('Approved') : t('Rejected') %></b>
     <% if (q.approval_notes) { %> — <%= q.approval_notes %><% } %>
-    <% if (q.approved_at) { %><span class="text-muted ms-2"><%= new Date(q.approved_at).toLocaleDateString('en-IN') %></span><% } %>
+    <% if (q.approved_at) { %><span class="text-muted ms-2"><%= new Date(q.approved_at).toLocaleDateString(locale) %></span><% } %>
   </div>
   <% } %>
 
   <div class="row g-3 mb-3">
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white fw-semibold small">Customer & Machine</div>
+        <div class="card-header bg-white fw-semibold small"><%= t("Customer & Machine") %></div>
         <div class="card-body small">
           <dl class="row mb-0">
-            <dt class="col-5 text-muted">Machine No</dt><dd class="col-7 font-monospace fw-semibold"><%= q.machine_no || '—' %></dd>
-            <dt class="col-5 text-muted">Customer</dt><dd class="col-7 fw-semibold"><%= q.customer_name %></dd>
-            <dt class="col-5 text-muted">Contact</dt><dd class="col-7"><%= q.contact_person || '—' %></dd>
-            <dt class="col-5 text-muted">Mobile</dt><dd class="col-7">
+            <dt class="col-5 text-muted"><%= t("Machine No") %></dt><dd class="col-7 font-monospace fw-semibold"><%= q.machine_no || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Customer") %></dt><dd class="col-7 fw-semibold"><%= q.customer_name %></dd>
+            <dt class="col-5 text-muted"><%= t("Contact") %></dt><dd class="col-7"><%= q.contact_person || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Mobile") %></dt><dd class="col-7">
               <% if (q.mobile) { %><a href="tel:<%= q.mobile %>"><%= q.mobile %></a><% } else { %>—<% } %>
             </dd>
-            <dt class="col-5 text-muted">Address</dt><dd class="col-7"><%= q.customer_address || '—' %></dd>
-            <dt class="col-5 text-muted">GST</dt><dd class="col-7 font-monospace"><%= q.customer_gstin || '—' %></dd>
-            <dt class="col-5 text-muted">Place of Supply</dt><dd class="col-7"><%= q.place_of_supply || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Address") %></dt><dd class="col-7"><%= q.customer_address || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("GST") %></dt><dd class="col-7 font-monospace"><%= q.customer_gstin || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Place of Supply") %></dt><dd class="col-7"><%= q.place_of_supply || '—' %></dd>
           </dl>
         </div>
       </div>
     </div>
     <div class="col-md-6">
       <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white fw-semibold small">Quotation Info</div>
+        <div class="card-header bg-white fw-semibold small"><%= t("Quotation Info") %></div>
         <div class="card-body small">
           <dl class="row mb-0">
-            <dt class="col-5 text-muted">Quotation No</dt><dd class="col-7 fw-bold font-monospace"><%= q.quotation_no %></dd>
-            <dt class="col-5 text-muted">Date</dt><dd class="col-7"><%= new Date(q.created_at).toLocaleDateString('en-IN') %></dd>
-            <dt class="col-5 text-muted">Validity</dt><dd class="col-7"><%= q.validity_days %> days</dd>
-            <dt class="col-5 text-muted">Tax Mode</dt><dd class="col-7"><span class="badge bg-secondary"><%= q.tax_mode %></span></dd>
-            <dt class="col-5 text-muted">Salesperson</dt><dd class="col-7"><%= q.salesperson || '—' %></dd>
-            <dt class="col-5 text-muted">Created By</dt><dd class="col-7"><%= q.creator_name || '—' %></dd>
-            <% if (q.remarks) { %><dt class="col-5 text-muted">Remarks</dt><dd class="col-7"><%= q.remarks %></dd><% } %>
+            <dt class="col-5 text-muted"><%= t("Quotation No") %></dt><dd class="col-7 fw-bold font-monospace"><%= q.quotation_no %></dd>
+            <dt class="col-5 text-muted"><%= t("Date") %></dt><dd class="col-7"><%= new Date(q.created_at).toLocaleDateString(locale) %></dd>
+            <dt class="col-5 text-muted"><%= t("Validity") %></dt><dd class="col-7"><%= q.validity_days %> <%= t("days") %></dd>
+            <dt class="col-5 text-muted"><%= t("Tax Mode") %></dt><dd class="col-7"><span class="badge bg-secondary"><%= q.tax_mode %></span></dd>
+            <dt class="col-5 text-muted"><%= t("Salesperson") %></dt><dd class="col-7"><%= q.salesperson || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Created By") %></dt><dd class="col-7"><%= q.creator_name || '—' %></dd>
+            <% if (q.remarks) { %><dt class="col-5 text-muted"><%= t("Remarks") %></dt><dd class="col-7"><%= q.remarks %></dd><% } %>
           </dl>
         </div>
       </div>
@@ -124,23 +124,23 @@
 
   <!-- Items table -->
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold small"><%= items.length %> Spare Parts</div>
+    <div class="card-header bg-white fw-semibold small"><%= items.length %> <%= t("Spare Parts") %></div>
     <div class="table-responsive">
       <table class="table table-sm table-bordered mb-0 small">
         <thead class="table-light">
           <tr>
             <th>#</th>
-            <th>Part No</th>
-            <th>Description</th>
-            <th>HSN</th>
-            <th class="text-center">Qty</th>
-            <th class="text-end">Basic Rate</th>
-            <th class="text-end">Disc%</th>
-            <th class="text-end">Disc Amt</th>
-            <th class="text-center">Tax%</th>
-            <th class="text-end">Tax Amt</th>
-            <th class="text-end">Net Rate</th>
-            <th class="text-end">Line Total</th>
+            <th><%= t("Part No") %></th>
+            <th><%= t("Description") %></th>
+            <th><%= t("HSN") %></th>
+            <th class="text-center"><%= t("Qty") %></th>
+            <th class="text-end"><%= t("Basic Rate") %></th>
+            <th class="text-end"><%= t("Disc%") %></th>
+            <th class="text-end"><%= t("Disc Amt") %></th>
+            <th class="text-center"><%= t("Tax%") %></th>
+            <th class="text-end"><%= t("Tax Amt") %></th>
+            <th class="text-end"><%= t("Net Rate") %></th>
+            <th class="text-end"><%= t("Line Total") %></th>
           </tr>
         </thead>
         <tbody>
@@ -163,20 +163,20 @@
         </tbody>
         <tfoot class="table-light fw-semibold">
           <tr>
-            <td colspan="10" class="text-end text-muted">Total Basic:</td>
+            <td colspan="10" class="text-end text-muted"><%= t("Total Basic:") %></td>
             <td colspan="2" class="text-end">₹<%= formatINR(q.total_basic) %></td>
           </tr>
           <% if (q.tax_mode === 'IGST') { %>
-          <tr><td colspan="10" class="text-end text-muted">Total IGST:</td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst) %></td></tr>
+          <tr><td colspan="10" class="text-end text-muted"><%= t("Total IGST:") %></td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst) %></td></tr>
           <% } else { %>
-          <tr><td colspan="10" class="text-end text-muted">Total CGST:</td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst/2) %></td></tr>
-          <tr><td colspan="10" class="text-end text-muted">Total SGST:</td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst/2) %></td></tr>
+          <tr><td colspan="10" class="text-end text-muted"><%= t("Total CGST:") %></td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst/2) %></td></tr>
+          <tr><td colspan="10" class="text-end text-muted"><%= t("Total SGST:") %></td><td colspan="2" class="text-end">₹<%= formatINR(q.total_gst/2) %></td></tr>
           <% } %>
           <% if (q.roundoff_amount && q.roundoff_amount !== 0) { %>
-          <tr><td colspan="10" class="text-end text-muted">Round Off:</td><td colspan="2" class="text-end"><%= q.roundoff_amount > 0 ? '+' : '' %>₹<%= formatINR(q.roundoff_amount) %></td></tr>
+          <tr><td colspan="10" class="text-end text-muted"><%= t("Round Off:") %></td><td colspan="2" class="text-end"><%= q.roundoff_amount > 0 ? '+' : '' %>₹<%= formatINR(q.roundoff_amount) %></td></tr>
           <% } %>
           <tr class="table-success">
-            <td colspan="10" class="text-end fw-bold">Grand Total:</td>
+            <td colspan="10" class="text-end fw-bold"><%= t("Grand Total:") %></td>
             <td colspan="2" class="text-end fw-bold fs-6">₹<%= formatINR(q.grand_total) %></td>
           </tr>
         </tfoot>
@@ -185,23 +185,23 @@
   </div>
 
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold small">Terms &amp; Conditions</div>
+    <div class="card-header bg-white fw-semibold small"><%= t("Terms & Conditions") %></div>
     <div class="card-body">
       <ol class="small text-muted mb-0" style="padding-left:1.2rem; line-height:1.7;">
-        <li><strong>Estimate Validity:</strong> This estimate is valid for 7 days from the date of issue, unless otherwise specified. Prices are subject to change thereafter.</li>
-        <li><strong>Taxes:</strong> GST and other applicable government taxes/levies shall be charged as applicable on the date of invoicing.</li>
-        <li><strong>Payment:</strong> Payment shall be made as per the agreed payment terms. Any delay in payment may attract applicable interest/charges.</li>
-        <li><strong>Order Confirmation:</strong> An order shall be considered confirmed only upon receipt of the required advance/payment and written acceptance by the Company.</li>
-        <li><strong>Delivery:</strong> Delivery shall be subject to availability of equipment and receipt of the agreed payment. Delivery timelines are indicative and may vary due to circumstances beyond the Company's control.</li>
-        <li><strong>Transportation:</strong> Transportation, loading/unloading, insurance, registration, road tax, permits and other incidental charges shall be borne by the customer unless specifically included in the estimate.</li>
-        <li><strong>Warranty:</strong> Warranty, if applicable, shall be governed strictly by the manufacturer's warranty terms and conditions. Warranty does not cover normal wear and tear, misuse, negligence, accidents, unauthorized modifications/repairs or use contrary to manufacturer recommendations.</li>
-        <li><strong>Specifications:</strong> Product specifications, features, dimensions, colours and equipment configurations are subject to change by the manufacturer without prior notice.</li>
-        <li><strong>Cancellation &amp; Refund:</strong> Cancellation of an order shall be subject to the Company's approval. Any applicable cancellation, processing, restocking or other charges may be deducted from the amount received.</li>
-        <li><strong>Documentation:</strong> Registration, insurance, financing and statutory documentation, wherever applicable, shall be the customer's responsibility unless specifically agreed otherwise in writing.</li>
-        <li><strong>Invoice:</strong> The invoice shall be treated as the final document for the quantity, model, specifications, price, taxes and other commercial terms applicable to the transaction.</li>
-        <li><strong>Force Majeure:</strong> The Company shall not be liable for any delay or failure caused by circumstances beyond its reasonable control, including natural calamities, strikes, transport disruptions, government restrictions, shortage of materials or manufacturer-related delays.</li>
-        <li><strong>Jurisdiction:</strong> Any dispute arising out of the transaction shall be subject to the jurisdiction of the competent courts at Meerut, Uttar Pradesh.</li>
-        <li><strong>Acceptance:</strong> Placement of an order or acceptance of delivery shall constitute acceptance of these terms and conditions.</li>
+        <li><strong><%= t("Estimate Validity:") %></strong> <%= t("This estimate is valid for 7 days from the date of issue, unless otherwise specified. Prices are subject to change thereafter.") %></li>
+        <li><strong><%= t("Taxes:") %></strong> <%= t("GST and other applicable government taxes/levies shall be charged as applicable on the date of invoicing.") %></li>
+        <li><strong><%= t("Payment:") %></strong> <%= t("Payment shall be made as per the agreed payment terms. Any delay in payment may attract applicable interest/charges.") %></li>
+        <li><strong><%= t("Order Confirmation:") %></strong> <%= t("An order shall be considered confirmed only upon receipt of the required advance/payment and written acceptance by the Company.") %></li>
+        <li><strong><%= t("Delivery:") %></strong> <%= t("Delivery shall be subject to availability of equipment and receipt of the agreed payment. Delivery timelines are indicative and may vary due to circumstances beyond the Company's control.") %></li>
+        <li><strong><%= t("Transportation:") %></strong> <%= t("Transportation, loading/unloading, insurance, registration, road tax, permits and other incidental charges shall be borne by the customer unless specifically included in the estimate.") %></li>
+        <li><strong><%= t("Warranty:") %></strong> <%= t("Warranty, if applicable, shall be governed strictly by the manufacturer's warranty terms and conditions. Warranty does not cover normal wear and tear, misuse, negligence, accidents, unauthorized modifications/repairs or use contrary to manufacturer recommendations.") %></li>
+        <li><strong><%= t("Specifications:") %></strong> <%= t("Product specifications, features, dimensions, colours and equipment configurations are subject to change by the manufacturer without prior notice.") %></li>
+        <li><strong><%= t("Cancellation & Refund:") %></strong> <%= t("Cancellation of an order shall be subject to the Company's approval. Any applicable cancellation, processing, restocking or other charges may be deducted from the amount received.") %></li>
+        <li><strong><%= t("Documentation:") %></strong> <%= t("Registration, insurance, financing and statutory documentation, wherever applicable, shall be the customer's responsibility unless specifically agreed otherwise in writing.") %></li>
+        <li><strong><%= t("Invoice:") %></strong> <%= t("The invoice shall be treated as the final document for the quantity, model, specifications, price, taxes and other commercial terms applicable to the transaction.") %></li>
+        <li><strong><%= t("Force Majeure:") %></strong> <%= t("The Company shall not be liable for any delay or failure caused by circumstances beyond its reasonable control, including natural calamities, strikes, transport disruptions, government restrictions, shortage of materials or manufacturer-related delays.") %></li>
+        <li><strong><%= t("Jurisdiction:") %></strong> <%= t("Any dispute arising out of the transaction shall be subject to the jurisdiction of the competent courts at Meerut, Uttar Pradesh.") %></li>
+        <li><strong><%= t("Acceptance:") %></strong> <%= t("Placement of an order or acceptance of delivery shall constitute acceptance of these terms and conditions.") %></li>
       </ol>
     </div>
   </div>
@@ -209,9 +209,9 @@
   <!-- Delete -->
   <div class="card border-0 shadow-sm">
     <div class="card-body d-flex justify-content-between align-items-center">
-      <span class="text-muted small">Delete this quotation permanently.</span>
+      <span class="text-muted small"><%= t("Delete this quotation permanently.") %></span>
       <form method="post" action="/spare-quotations/<%= q.id %>/delete" onsubmit="return confirm('Delete quotation <%= q.quotation_no %>?')">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Delete</button>
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i><%= t("Delete") %></button>
       </form>
     </div>
   </div>

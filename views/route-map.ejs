@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <div class="main-content route-page">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-map me-2 text-danger"></i><%= canViewAll ? 'DSE Route Map' : 'My Route' %></h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-map me-2 text-danger"></i><%= canViewAll ? t('DSE Route Map') : t('My Route') %></h4>
   </div>
 
   <!-- Filters -->
@@ -12,32 +12,32 @@
       <form id="filters" class="row g-2 align-items-end">
         <% if (canViewAll) { %>
         <div class="col-12 col-md-4">
-          <label class="form-label small mb-1" for="f_user">DSE / Employee</label>
+          <label class="form-label small mb-1" for="f_user"><%= t("DSE / Employee") %></label>
           <select id="f_user" class="form-select">
             <% employees.forEach(e => { %><option value="<%= e.id %>" <%= e.id === selUser ? 'selected' : '' %>><%= e.full_name || e.username %><%= e.visits ? '' : ' (no visits)' %></option><% }) %>
           </select>
         </div>
         <% } %>
         <div class="col-6 col-md-3" id="dayField">
-          <label class="form-label small mb-1" for="f_date">Visit date</label>
+          <label class="form-label small mb-1" for="f_date"><%= t("Visit date") %></label>
           <input type="date" id="f_date" class="form-control" value="<%= selDate %>" max="<%= today %>">
         </div>
         <div class="col-6 col-md-2 d-none rangeField">
-          <label class="form-label small mb-1" for="f_from">From</label>
+          <label class="form-label small mb-1" for="f_from"><%= t("From") %></label>
           <input type="date" id="f_from" class="form-control" value="<%= from %>" max="<%= today %>">
         </div>
         <div class="col-6 col-md-2 d-none rangeField">
-          <label class="form-label small mb-1" for="f_to">To</label>
+          <label class="form-label small mb-1" for="f_to"><%= t("To") %></label>
           <input type="date" id="f_to" class="form-control" value="<%= to %>" max="<%= today %>">
         </div>
         <div class="col-6 col-md-auto">
           <div class="form-check form-switch mb-2">
             <input class="form-check-input" type="checkbox" id="f_range" <%= from && to ? 'checked' : '' %>>
-            <label class="form-check-label small" for="f_range">Date range</label>
+            <label class="form-check-label small" for="f_range"><%= t("Date range") %></label>
           </div>
         </div>
         <div class="col-12 col-md-auto">
-          <button class="btn btn-danger w-100"><i class="bi bi-search me-1"></i>Show</button>
+          <button class="btn btn-danger w-100"><i class="bi bi-search me-1"></i><%= t("Show") %></button>
         </div>
       </form>
     </div>
@@ -45,24 +45,24 @@
 
   <!-- Range: one row per day -->
   <div class="card border-0 shadow-sm mb-3 d-none" id="rangeCard">
-    <div class="card-header bg-white fw-semibold" id="rangeTitle">Days</div>
+    <div class="card-header bg-white fw-semibold" id="rangeTitle"><%= t("Days") %></div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0 align-middle">
-        <thead class="table-light"><tr><th>Date</th><th class="text-end">Visits <span class="fw-normal text-muted">(enquiry)</span></th><th class="text-end">With GPS</th><th>First</th><th>Last</th><th class="text-end">Road km</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Date") %></th><th class="text-end"><%= t("Visits") %> <span class="fw-normal text-muted"><%= t("(enquiry)") %></span></th><th class="text-end"><%= t("With GPS") %></th><th><%= t("First") %></th><th><%= t("Last") %></th><th class="text-end"><%= t("Road km") %></th><th></th></tr></thead>
         <tbody id="rangeBody"></tbody>
       </table>
     </div>
-    <div class="card-footer bg-white small text-muted">Road km appears once a day's route has been opened. Days are never joined to each other.</div>
+    <div class="card-footer bg-white small text-muted"><%= t("Road km appears once a day's route has been opened. Days are never joined to each other.") %></div>
   </div>
 
   <!-- Summary -->
   <div class="row g-2 mb-3" id="summary">
-    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">DSE</div><div class="sum-value" id="s_name">—</div></div></div>
-    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">Date</div><div class="sum-value" id="s_date">—</div></div></div>
-    <div class="col-4 col-lg-2"><div class="sum-tile"><div class="sum-label">Visits</div><div class="sum-value" id="s_total">—</div></div></div>
-    <div class="col-8 col-lg-2"><div class="sum-tile"><div class="sum-label">Road distance <i class="bi bi-info-circle" title="Calculated along roads between recorded visit points. Not a GPS track of the path actually driven."></i></div><div class="sum-value text-danger" id="s_km">—</div></div></div>
-    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">First visit</div><div class="sum-value" id="s_first">—</div></div></div>
-    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label">Last visit</div><div class="sum-value" id="s_last">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("DSE") %></div><div class="sum-value" id="s_name">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("Date") %></div><div class="sum-value" id="s_date">—</div></div></div>
+    <div class="col-4 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("Visits") %></div><div class="sum-value" id="s_total">—</div></div></div>
+    <div class="col-8 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("Road distance") %> <i class="bi bi-info-circle" title="<%= t("Calculated along roads between recorded visit points. Not a GPS track of the path actually driven.") %>"></i></div><div class="sum-value text-danger" id="s_km">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("First visit") %></div><div class="sum-value" id="s_first">—</div></div></div>
+    <div class="col-6 col-lg-2"><div class="sum-tile"><div class="sum-label"><%= t("Last visit") %></div><div class="sum-value" id="s_last">—</div></div></div>
   </div>
 
   <div class="row g-3">
@@ -73,23 +73,23 @@
           <div class="map-state" id="mapState"></div>
         </div>
         <div class="card-footer bg-white small text-muted d-flex flex-wrap gap-3 align-items-center">
-          <span><span class="lg-dot" style="background:#cc0000"></span>Site visit</span>
-          <span><span class="lg-dot" style="background:#0d6efd"></span>Enquiry visit</span>
-          <span><span class="lg-dot" style="background:#198754;border-radius:3px"></span>Check-in</span>
-          <span><span class="lg-dot" style="background:#212529;border-radius:3px"></span>Check-out</span>
-          <span><span class="lg-line"></span> Road route between visits (calculated)</span>
-          <span><span class="lg-line lg-fail"></span> Road route unavailable — not counted</span>
+          <span><span class="lg-dot" style="background:#cc0000"></span><%= t("Site visit") %></span>
+          <span><span class="lg-dot" style="background:#0d6efd"></span><%= t("Enquiry visit") %></span>
+          <span><span class="lg-dot" style="background:#198754;border-radius:3px"></span><%= t("Check-in") %></span>
+          <span><span class="lg-dot" style="background:#212529;border-radius:3px"></span><%= t("Check-out") %></span>
+          <span><span class="lg-line"></span> <%= t("Road route between visits (calculated)") %></span>
+          <span><span class="lg-line lg-fail"></span> <%= t("Road route unavailable — not counted") %></span>
           <span id="mapNote"></span>
         </div>
       </div>
     </div>
     <div class="col-lg-4">
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold d-flex justify-content-between"><span>Visits in order</span><span class="small text-muted" id="listCount"></span></div>
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between"><span><%= t("Visits in order") %></span><span class="small text-muted" id="listCount"></span></div>
         <div class="list-group list-group-flush" id="visitList"></div>
       </div>
       <div class="small text-muted mt-2 px-1">
-        Site punch-ins and enquiry visits are shown together in the order they were recorded (never re-ordered); an enquiry visit is placed by when it was saved. The road distance is the routed distance between consecutive visit points<%= osrmPublic ? ', calculated with the free OpenStreetMap (OSRM) routing service' : '' %>; it is not a GPS track of the exact path driven.
+        <%= t("Site punch-ins and enquiry visits are shown together in the order they were recorded (never re-ordered); an enquiry visit is placed by when it was saved. The road distance is the routed distance between consecutive visit points") %><%= osrmPublic ? ', calculated with the free OpenStreetMap (OSRM) routing service' : '' %><%= t("; it is not a GPS track of the exact path driven.") %>
       </div>
     </div>
   </div>
@@ -131,8 +131,8 @@
   const SELF = <%= user.id %>, CAN_ALL = <%= canViewAll ? 'true' : 'false' %>;
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const tm = iso => iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
-  const dLong = d => new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const tm = iso => iso ? new Date(iso).toLocaleTimeString((window.LOCALE||'en-IN'), { hour: '2-digit', minute: '2-digit' }) : '—';
+  const dLong = d => new Date(d + 'T00:00:00').toLocaleDateString((window.LOCALE||'en-IN'), { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   const km = n => n == null ? '—' : (n < 10 ? n.toFixed(2) : n.toFixed(1)) + ' km';
   const stopName = k => k === 'start' ? 'Check-in' : k === 'end' ? 'Check-out' : '#' + k;
 
@@ -181,7 +181,7 @@
       ${v.contact ? `<div><span class="text-muted">Met:</span> ${esc(v.contact)}</div>` : ''}
       <div><span class="text-muted">Phone:</span> ${phone}</div>
       <div><span class="text-muted">Purpose:</span> ${esc(v.purpose || '—')}</div>
-      <div><span class="text-muted">Time:</span> ${new Date(v.time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+      <div><span class="text-muted">Time:</span> ${new Date(v.time).toLocaleString((window.LOCALE||'en-IN'), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
       <div><span class="text-muted">Location:</span> ${v.address ? esc(v.address) + '<br>' : ''}${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}${acc}
         <a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank" rel="noopener">map</a></div>
       ${v.remarks ? `<div class="mt-1 small text-muted">${esc(v.remarks)}</div>` : ''}

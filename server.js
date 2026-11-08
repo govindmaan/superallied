@@ -7,6 +7,7 @@ const path     = require('path');
 const { db, getSettings, getUserPermissions, checkFollowupNotifications } = require('./db');
 const { UPLOADS_DIR, BULL_LOGO_B64 } = require('./lib/assets');
 const { requireLogin, requireAdmin, requirePerm, requireManagerOrAdmin, requireAccountsRole } = require('./lib/auth');
+const i18n = require('./lib/i18n');
 
 // ── Route modules ─────────────────────────────────────────────────────────────
 const authRoutes       = require('./routes/auth');
@@ -46,6 +47,8 @@ const PORT = process.env.PORT || 3000;
 // Make UPLOADS_DIR accessible to route modules via app.locals
 app.locals.UPLOADS_DIR = UPLOADS_DIR;
 app.locals.bullLogoB64 = BULL_LOGO_B64;
+// Templates rendered outside a request (PDFs) stay English
+Object.assign(app.locals, i18n.defaultLocals);
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.set('trust proxy', 1); // behind Railway's proxy: req.ip is the real client address
@@ -54,6 +57,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '20mb' }));  // 20mb covers large Excel imports (~1MB file = ~1.4MB base64)
+
+// Client-side strings (alerts, text set by page scripts) for the chosen language
+app.get('/i18n/:lang.js', (req, res) => {
+  const lang = i18n.LANGS[req.params.lang] ? req.params.lang : 'en';
+  res.type('application/javascript').set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.send(i18n.clientScript(lang));
+});
 app.use(session({
   secret: process.env.SESSION_SECRET || 'superallied-secret-2026',
   resave: false,
@@ -72,7 +82,7 @@ app.use((req, res, next) => {
 // Inject user, settings, permissions, notification count into all views
 app.use((req, res, next) => {
   let u = req.session.userId
-    ? db.prepare('SELECT id, username, full_name, role, databank_access, must_change_password, sessions_valid_after FROM users WHERE id = ?').get(req.session.userId)
+    ? db.prepare('SELECT id, username, full_name, role, databank_access, must_change_password, sessions_valid_after, language FROM users WHERE id = ?').get(req.session.userId)
     : null;
   // Password was reset after this session began: end it
   if (u?.sessions_valid_after && (req.session.authAt || 0) < u.sessions_valid_after) {
@@ -85,6 +95,20 @@ app.use((req, res, next) => {
   if (u?.must_change_password && !['/change-password', '/logout'].includes(req.path)) {
     if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.redirect('/change-password');
     return res.status(403).json({ error: 'Please choose a new password first.' });
+  }
+  // Language: interface text, flash messages and JSON messages (see lib/i18n.js)
+  const lang = i18n.pickLang(req, u);
+  const t = i18n.translator(lang);
+  req.lang = lang; req.t = t;
+  Object.assign(res.locals, { lang, t, tjs: i18n.jsEscape, locale: i18n.LANGS[lang].locale, LANGS: i18n.LANGS, i18nVersion: i18n.VERSION });
+  for (const k of ['success', 'error', 'info', 'warning']) if (typeof res.locals.flash[k] === 'string') res.locals.flash[k] = t(res.locals.flash[k]);
+  if (lang !== 'en') {
+    const json = res.json.bind(res);
+    res.json = (body) => {
+      if (body && typeof body === 'object' && !Array.isArray(body))
+        for (const k of ['error', 'message', 'msg', 'warning']) if (typeof body[k] === 'string') body = { ...body, [k]: t(body[k]) };
+      return json(body);
+    };
   }
   res.locals.user     = u;
   res.locals.currentPath = req.originalUrl.split('?')[0]; // sidebar highlights the matching link
@@ -109,6 +133,15 @@ app.use((req, res, next) => {
     res.locals._perms  = [];
   }
   next();
+});
+
+// Language switch: remembered on this device (cookie) and on the user's profile
+app.post('/lang', (req, res) => {
+  const lang = i18n.LANGS[req.body.lang] ? req.body.lang : i18n.DEFAULT_LANG;
+  res.cookie('lang', lang, { maxAge: 365 * 24 * 3600 * 1000, sameSite: 'lax', httpOnly: false });
+  if (req.session.userId) db.prepare('UPDATE users SET language=? WHERE id=?').run(lang, req.session.userId);
+  if (req.accepts(['html', 'json']) === 'json' || req.xhr || req.is('json')) return res.json({ ok: true, lang });
+  res.redirect(req.get('Referer') || '/');
 });
 
 // ── Core pages (each module keeps its full paths) ─────────────────────────────
@@ -151,7 +184,7 @@ app.get('/my-route', requireLogin, (req, res) => res.redirect('/route-map'));
 
 // Help: datewise list of app improvements (see changelog.js)
 app.get('/help', requireLogin, (req, res) => {
-  res.render('help', { title: 'Help & Updates', changelog: require('./changelog') });
+  res.render('help', { title: 'Help & Updates', changelog: require('./changelog'), changelogHi: require('./i18n/changelog-hi') });
 });
 
 // ── HR redirect ────────────────────────────────────────────────────────────────

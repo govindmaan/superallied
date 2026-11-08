@@ -2,11 +2,11 @@
 <%- include('../partials/sidebar', { active: 'enquiries', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-kanban text-danger me-2"></i>Enquiry Pipeline</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-kanban text-danger me-2"></i><%= t("Enquiry Pipeline") %></h4>
     <div class="d-flex gap-2">
-      <a href="/enquiries" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list me-1"></i>List View</a>
-      <a href="/enquiries/dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bar-chart me-1"></i>Dashboard</a>
-      <a href="/enquiries/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i>New Enquiry</a>
+      <a href="/enquiries" class="btn btn-outline-secondary btn-sm"><i class="bi bi-list me-1"></i><%= t("List View") %></a>
+      <a href="/enquiries/dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bar-chart me-1"></i><%= t("Dashboard") %></a>
+      <a href="/enquiries/new" class="btn btn-danger btn-sm"><i class="bi bi-plus-lg me-1"></i><%= t("New Enquiry") %></a>
     </div>
   </div>
 
@@ -18,12 +18,12 @@
       <div class="card border-0 shadow-sm h-100">
         <div class="card-header py-2 d-flex align-items-center gap-2" style="background:<%= stageBg[sk] %>">
           <span class="badge bg-<%= STAGES[sk].color %>"><%= STAGES[sk].order %></span>
-          <span class="fw-semibold small"><%= STAGES[sk].label %></span>
+          <span class="fw-semibold small"><%= t(STAGES[sk].label) %></span>
           <span class="badge bg-secondary ms-auto"><%= pipeline[sk].length %></span>
         </div>
         <div class="card-body p-2" style="overflow-y:auto;max-height:calc(100vh - 220px)">
           <% if (!pipeline[sk].length) { %>
-          <div class="text-center text-muted small py-3">No enquiries</div>
+          <div class="text-center text-muted small py-3"><%= t("No enquiries") %></div>
           <% } %>
           <% pipeline[sk].forEach(e => { %>
           <div class="card mb-2 border-0 shadow-sm" style="cursor:pointer" onclick="location.href='/enquiries/<%= e.id %>'">
@@ -46,7 +46,7 @@
     <div class="flex-shrink-0" style="width:240px">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-header py-2 d-flex align-items-center gap-2 bg-success-subtle">
-          <i class="bi bi-trophy text-success"></i><span class="fw-semibold small text-success">Won</span>
+          <i class="bi bi-trophy text-success"></i><span class="fw-semibold small text-success"><%= t("Won") %></span>
           <span class="badge bg-success ms-auto"><%= pipeline.won.length %></span>
         </div>
         <div class="card-body p-2" style="overflow-y:auto;max-height:calc(100vh - 220px)">
@@ -66,7 +66,7 @@
     <div class="flex-shrink-0" style="width:240px">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-header py-2 d-flex align-items-center gap-2 bg-danger-subtle">
-          <i class="bi bi-x-circle text-danger"></i><span class="fw-semibold small text-danger">Lost</span>
+          <i class="bi bi-x-circle text-danger"></i><span class="fw-semibold small text-danger"><%= t("Lost") %></span>
           <span class="badge bg-danger ms-auto"><%= pipeline.lost.length %></span>
         </div>
         <div class="card-body p-2" style="overflow-y:auto;max-height:calc(100vh - 220px)">

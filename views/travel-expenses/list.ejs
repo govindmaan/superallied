@@ -2,10 +2,10 @@
 <%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-truck me-2 text-danger"></i>My Travel Expenses</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-truck me-2 text-danger"></i><%= t("My Travel Expenses") %></h4>
     <div class="d-flex gap-2">
-      <a href="/travel-expenses/bills" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-text me-1"></i>TA Bills</a>
-      <a href="/travel-expenses/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>New Expense</a>
+      <a href="/travel-expenses/bills" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-text me-1"></i><%= t("TA Bills") %></a>
+      <a href="/travel-expenses/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("New Expense") %></a>
     </div>
   </div>
 
@@ -16,29 +16,29 @@
   <div class="card border-0 shadow-sm mb-3 week-card">
     <div class="card-body d-flex flex-wrap align-items-center gap-3">
       <div class="flex-grow-1">
-        <div class="fw-semibold">This week · <%= week.start %> – <%= week.end %></div>
-        <div class="small text-muted">Add, edit and submit until <strong>Saturday 8:00 pm</strong> · <span id="weekLeft"></span></div>
-        <% if (week.drafts) { %><div class="small text-warning-emphasis mt-1"><i class="bi bi-info-circle me-1"></i><%= week.drafts %> unsubmitted trip<%= week.drafts === 1 ? '' : 's' %> — submitted automatically at the deadline.</div><% } %>
+        <div class="fw-semibold"><%= t("This week ·") %> <%= week.start %> – <%= week.end %></div>
+        <div class="small text-muted"><%= t("Add, edit and submit until") %> <strong><%= t("Saturday 8:00 pm") %></strong> · <span id="weekLeft"></span></div>
+        <% if (week.drafts) { %><div class="small text-warning-emphasis mt-1"><i class="bi bi-info-circle me-1"></i><%= week.drafts %> <%= t("unsubmitted trip") %><%= week.drafts === 1 ? '' : 's' %> <%= t("— submitted automatically at the deadline.") %></div><% } %>
       </div>
-      <div class="text-center"><div class="small text-muted">Trips</div><div class="fw-bold fs-5"><%= week.trips %></div></div>
-      <div class="text-center"><div class="small text-muted">Distance</div><div class="fw-bold fs-5"><%= week.km.toFixed(0) %> km</div></div>
-      <div class="text-center"><div class="small text-muted">Claim</div><div class="fw-bold fs-5 text-danger">₹<%= week.amount.toFixed(0) %></div></div>
+      <div class="text-center"><div class="small text-muted"><%= t("Trips") %></div><div class="fw-bold fs-5"><%= week.trips %></div></div>
+      <div class="text-center"><div class="small text-muted"><%= t("Distance") %></div><div class="fw-bold fs-5"><%= week.km.toFixed(0) %> <%= t("km") %></div></div>
+      <div class="text-center"><div class="small text-muted"><%= t("Claim") %></div><div class="fw-bold fs-5 text-danger">₹<%= week.amount.toFixed(0) %></div></div>
     </div>
   </div>
 
   <!-- This Month summary -->
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold">This Month</div>
+    <div class="card-header bg-white fw-semibold"><%= t("This Month") %></div>
     <div class="card-body">
       <div class="row g-3 text-center">
-        <div class="col-4"><div class="text-muted small">Travel Distance</div><div class="fw-bold fs-5"><%= monthSummary.km.toFixed(0) %> km</div></div>
-        <div class="col-4"><div class="text-muted small">Travel Claim</div><div class="fw-bold fs-5">₹<%= monthSummary.travel.toFixed(0) %></div></div>
-        <div class="col-4"><div class="text-muted small">Pending Approval</div><div class="fw-bold text-warning">₹<%= monthSummary.pending.toFixed(0) %></div></div>
+        <div class="col-4"><div class="text-muted small"><%= t("Travel Distance") %></div><div class="fw-bold fs-5"><%= monthSummary.km.toFixed(0) %> <%= t("km") %></div></div>
+        <div class="col-4"><div class="text-muted small"><%= t("Travel Claim") %></div><div class="fw-bold fs-5">₹<%= monthSummary.travel.toFixed(0) %></div></div>
+        <div class="col-4"><div class="text-muted small"><%= t("Pending Approval") %></div><div class="fw-bold text-warning">₹<%= monthSummary.pending.toFixed(0) %></div></div>
       </div>
       <hr>
       <div class="row g-3 text-center">
-        <div class="col-6"><div class="text-muted small">Total Claim</div><div class="fw-bold text-danger">₹<%= monthSummary.total.toFixed(0) %></div></div>
-        <div class="col-6"><div class="text-muted small">Approved</div><div class="fw-bold text-success">₹<%= monthSummary.approved.toFixed(0) %></div></div>
+        <div class="col-6"><div class="text-muted small"><%= t("Total Claim") %></div><div class="fw-bold text-danger">₹<%= monthSummary.total.toFixed(0) %></div></div>
+        <div class="col-6"><div class="text-muted small"><%= t("Approved") %></div><div class="fw-bold text-success">₹<%= monthSummary.approved.toFixed(0) %></div></div>
       </div>
     </div>
   </div>
@@ -58,19 +58,19 @@
   <div class="card border-0 shadow-sm">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Expense #</th><th>Date</th><th>Type</th><th>Distance</th><th>Total Claim</th><th>Status</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Expense #") %></th><th><%= t("Date") %></th><th><%= t("Type") %></th><th><%= t("Distance") %></th><th><%= t("Total Claim") %></th><th><%= t("Status") %></th><th></th></tr></thead>
         <tbody>
           <% expenses.forEach(x => { %>
           <tr>
             <td class="font-monospace small"><%= x.expense_number %></td>
             <td class="small"><%= x.date %></td>
             <td class="small"><%= x.travel_type %></td>
-            <td class="small"><%= x.distance_km.toFixed(1) %> km</td>
+            <td class="small"><%= x.distance_km.toFixed(1) %> <%= t("km") %></td>
             <td class="fw-semibold">₹<%= x.total_claim.toFixed(0) %></td>
             <td>
               <% const badge = { draft:'bg-secondary', submitted:'bg-warning text-dark', approved:'bg-success', rejected:'bg-danger' }; %>
               <span class="badge <%= badge[x.status] %>"><%= x.status %></span>
-              <% if (x.locked) { %><span class="badge bg-light text-muted border ms-1" title="Week closed"><i class="bi bi-lock-fill"></i></span><% } %>
+              <% if (x.locked) { %><span class="badge bg-light text-muted border ms-1" title="<%= t("Week closed") %>"><i class="bi bi-lock-fill"></i></span><% } %>
             </td>
             <td class="text-end">
               <a href="/travel-expenses/<%= x.id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
@@ -80,7 +80,7 @@
             </td>
           </tr>
           <% }) %>
-          <% if (!expenses.length) { %><tr><td colspan="7" class="text-center text-muted py-4">No expenses found.</td></tr><% } %>
+          <% if (!expenses.length) { %><tr><td colspan="7" class="text-center text-muted py-4"><%= t("No expenses found.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>

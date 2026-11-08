@@ -15,6 +15,7 @@ const sessions = {};
 const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+Object.assign(app.locals, require('../lib/i18n').defaultLocals);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '20mb' }));
 app.use((req, res, next) => {

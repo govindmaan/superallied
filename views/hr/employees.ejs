@@ -2,29 +2,29 @@
 <%- include('../partials/sidebar', { active: 'hr', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-danger"></i>Employees</h4>
-    <a href="/hr/employees/new" class="btn btn-danger"><i class="bi bi-person-plus me-1"></i>Add Employee</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-danger"></i><%= t("Employees") %></h4>
+    <a href="/hr/employees/new" class="btn btn-danger"><i class="bi bi-person-plus me-1"></i><%= t("Add Employee") %></a>
   </div>
 
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body py-2">
       <form method="GET" class="d-flex flex-wrap gap-2">
-        <input type="text" name="q" value="<%= q %>" class="form-control" style="max-width:220px" placeholder="Search name / code / phone…">
+        <input type="text" name="q" value="<%= q %>" class="form-control" style="max-width:220px" placeholder="<%= t("Search name / code / phone…") %>">
         <select name="dept" class="form-select" style="max-width:160px">
-          <option value="">All Departments</option>
+          <option value=""><%= t("All Departments") %></option>
           <% departments.forEach(d => { %><option value="<%= d %>" <%=dept===d?'selected':''%>><%= d %></option><% }) %>
         </select>
         <select name="role" class="form-select" style="max-width:150px">
-          <option value="">All Roles</option>
+          <option value=""><%= t("All Roles") %></option>
           <% allRoles.forEach(r => { %><option value="<%= r %>" <%=role===r?'selected':''%>><%= r %></option><% }) %>
         </select>
         <select name="status" class="form-select" style="max-width:140px">
-          <option value="">All Statuses</option>
-          <option value="active"   <%=status==='active'?'selected':''%>>Active</option>
-          <option value="inactive" <%=status==='inactive'?'selected':''%>>Inactive</option>
+          <option value=""><%= t("All Statuses") %></option>
+          <option value="active"   <%=status==='active'?'selected':''%>><%= t("Active") %></option>
+          <option value="inactive" <%=status==='inactive'?'selected':''%>><%= t("Inactive") %></option>
         </select>
         <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
-        <% if (q || dept || role || status) { %><a href="/hr/employees" class="btn btn-outline-danger">Clear</a><% } %>
+        <% if (q || dept || role || status) { %><a href="/hr/employees" class="btn btn-outline-danger"><%= t("Clear") %></a><% } %>
       </form>
     </div>
   </div>
@@ -33,7 +33,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Employee</th><th>Code</th><th>Department</th><th>Role</th><th>Mobile</th><th>Status</th><th></th></tr>
+          <tr><th><%= t("Employee") %></th><th><%= t("Code") %></th><th><%= t("Department") %></th><th><%= t("Role") %></th><th><%= t("Mobile") %></th><th><%= t("Status") %></th><th></th></tr>
         </thead>
         <tbody>
           <% employees.forEach(e => { %>
@@ -57,23 +57,23 @@
             <td class="small"><%= e.department || '—' %></td>
             <td><span class="badge <%= e.role==='admin'?'bg-danger':e.role==='manager'?'bg-warning text-dark':'bg-primary' %>"><%= e.role %></span></td>
             <td class="small"><%= e.mobile || '—' %></td>
-            <td><span class="badge <%= e.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= e.is_hr_active===0?'Inactive':'Active' %></span></td>
+            <td><span class="badge <%= e.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= e.is_hr_active===0?t('Inactive'):t('Active') %></span></td>
             <td class="text-end text-nowrap">
-              <a href="/hr/employees/<%= e.id %>" class="btn btn-sm btn-outline-secondary me-1" title="View"><i class="bi bi-eye"></i></a>
-              <a href="/hr/employees/<%= e.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+              <a href="/hr/employees/<%= e.id %>" class="btn btn-sm btn-outline-secondary me-1" title="<%= t("View") %>"><i class="bi bi-eye"></i></a>
+              <a href="/hr/employees/<%= e.id %>/edit" class="btn btn-sm btn-outline-secondary me-1" title="<%= t("Edit") %>"><i class="bi bi-pencil"></i></a>
               <% if (e.is_hr_active === 0) { %>
               <form method="POST" action="/hr/employees/<%= e.id %>/activate" class="d-inline" data-confirm-activate="<%= e.full_name || e.username %>">
-                <button class="btn btn-sm btn-outline-success" title="Activate"><i class="bi bi-check-circle"></i></button>
+                <button class="btn btn-sm btn-outline-success" title="<%= t("Activate") %>"><i class="bi bi-check-circle"></i></button>
               </form>
               <% } else { %>
               <form method="POST" action="/hr/employees/<%= e.id %>/deactivate" class="d-inline" data-confirm-deactivate="<%= e.full_name || e.username %>">
-                <button class="btn btn-sm btn-outline-warning" title="Deactivate"><i class="bi bi-slash-circle"></i></button>
+                <button class="btn btn-sm btn-outline-warning" title="<%= t("Deactivate") %>"><i class="bi bi-slash-circle"></i></button>
               </form>
               <% } %>
             </td>
           </tr>
           <% }) %>
-          <% if (!employees.length) { %><tr><td colspan="7" class="text-center text-muted py-4">No employees found.</td></tr><% } %>
+          <% if (!employees.length) { %><tr><td colspan="7" class="text-center text-muted py-4"><%= t("No employees found.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>

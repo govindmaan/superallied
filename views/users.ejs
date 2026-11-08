@@ -2,8 +2,8 @@
 <%- include('partials/sidebar', { active: 'users', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-danger"></i>Users</h4>
-    <a href="/users/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i>Add Staff</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-danger"></i><%= t("Users") %></h4>
+    <a href="/users/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("Add Staff") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -14,11 +14,11 @@
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
-            <th>Username</th>
-            <th>Full Name</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Created</th>
+            <th><%= t("Username") %></th>
+            <th><%= t("Full Name") %></th>
+            <th><%= t("Role") %></th>
+            <th><%= t("Status") %></th>
+            <th><%= t("Created") %></th>
             <th></th>
           </tr>
         </thead>
@@ -33,32 +33,32 @@
               <span class="badge <%= rb[u.role]||'bg-secondary' %>"><%= rl[u.role]||u.role %></span>
             </td>
             <td>
-              <span class="badge <%= u.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= u.is_hr_active===0?'Inactive':'Active' %></span>
-              <% if (u.locked) { %><span class="badge bg-danger" title="Too many wrong login attempts">Locked</span><% } %>
-              <% if (u.must_change_password) { %><span class="badge bg-warning text-dark" title="Will choose a new password at next login">Reset pending</span><% } %>
+              <span class="badge <%= u.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= u.is_hr_active===0?t('Inactive'):t('Active') %></span>
+              <% if (u.locked) { %><span class="badge bg-danger" title="<%= t("Too many wrong login attempts") %>"><%= t("Locked") %></span><% } %>
+              <% if (u.must_change_password) { %><span class="badge bg-warning text-dark" title="<%= t("Will choose a new password at next login") %>"><%= t("Reset pending") %></span><% } %>
             </td>
-            <td class="text-muted small"><%= new Date(u.created_at).toLocaleDateString('en-IN') %></td>
+            <td class="text-muted small"><%= new Date(u.created_at).toLocaleDateString(locale) %></td>
             <td class="text-end">
               <% if (u.id !== user.id) { %>
                 <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-reset-id="<%= u.id %>" data-reset-name="<%= u.full_name || u.username %>"
-                        data-reset-pin="<%= u.has_pin ? 1 : 0 %>"><i class="bi bi-key"></i> Reset password</button>
+                        data-reset-pin="<%= u.has_pin ? 1 : 0 %>"><i class="bi bi-key"></i> <%= t("Reset password") %></button>
                 <% if (u.is_hr_active === 0) { %>
                 <form method="POST" action="/users/<%= u.id %>/activate" class="d-inline" data-confirm-activate="<%= u.full_name || u.username %>">
-                  <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> Activate</button>
+                  <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> <%= t("Activate") %></button>
                 </form>
                 <% } else { %>
                 <form method="POST" action="/users/<%= u.id %>/deactivate" class="d-inline" data-confirm-deactivate="<%= u.full_name || u.username %>">
-                  <button class="btn btn-sm btn-outline-warning"><i class="bi bi-slash-circle"></i> Deactivate</button>
+                  <button class="btn btn-sm btn-outline-warning"><i class="bi bi-slash-circle"></i> <%= t("Deactivate") %></button>
                 </form>
                 <% } %>
               <% } else { %>
-              <span class="text-muted small">(you)</span>
+              <span class="text-muted small"><%= t("(you)") %></span>
               <% } %>
             </td>
           </tr>
           <% }) %>
           <% if (!users.length) { %>
-          <tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-4"><%= t("No users found.") %></td></tr>
           <% } %>
         </tbody>
       </table>
@@ -66,16 +66,16 @@
   </div>
 
   <div class="card border-0 shadow-sm mt-4">
-    <div class="card-header bg-white fw-semibold small">Role Access Summary</div>
+    <div class="card-header bg-white fw-semibold small"><%= t("Role Access Summary") %></div>
     <div class="card-body small">
       <table class="table table-sm table-bordered mb-0" style="font-size:12px">
-        <thead class="table-light"><tr><th>Role</th><th>Access</th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Role") %></th><th><%= t("Access") %></th></tr></thead>
         <tbody>
-          <tr><td><span class="badge bg-danger">Admin</span></td><td>Full access — all modules, approvals, settings, user management</td></tr>
-          <tr><td><span class="badge bg-info text-dark">Sales</span></td><td>Machine Quotations, Lead Management, Field Visits, Attendance, Leaves, Salary, Expenses, ID Card</td></tr>
-          <tr><td><span class="badge bg-primary">Office</span></td><td>Machine + Spare Quotations, Sold Machines, Parts Master, Parts Reports, Lead Management, Attendance, Leaves, Salary, Expenses, ID Card</td></tr>
-          <tr><td><span class="badge bg-warning text-dark">Manager</span></td><td>All Sales + Spares access, HR dashboard, attendance/leave/salary admin</td></tr>
-          <tr><td><span class="badge bg-secondary">HR</span></td><td>HR Dashboard, employee management, attendance, leave approvals</td></tr>
+          <tr><td><span class="badge bg-danger"><%= t("Admin") %></span></td><td><%= t("Full access — all modules, approvals, settings, user management") %></td></tr>
+          <tr><td><span class="badge bg-info text-dark"><%= t("Sales") %></span></td><td><%= t("Machine Quotations, Lead Management, Field Visits, Attendance, Leaves, Salary, Expenses, ID Card") %></td></tr>
+          <tr><td><span class="badge bg-primary"><%= t("Office") %></span></td><td><%= t("Machine + Spare Quotations, Sold Machines, Parts Master, Parts Reports, Lead Management, Attendance, Leaves, Salary, Expenses, ID Card") %></td></tr>
+          <tr><td><span class="badge bg-warning text-dark"><%= t("Manager") %></span></td><td><%= t("All Sales + Spares access, HR dashboard, attendance/leave/salary admin") %></td></tr>
+          <tr><td><span class="badge bg-secondary"><%= t("HR") %></span></td><td><%= t("HR Dashboard, employee management, attendance, leave approvals") %></td></tr>
         </tbody>
       </table>
     </div>
@@ -86,30 +86,30 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <form method="POST" id="resetForm" autocomplete="off">
-        <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-key me-1 text-danger"></i>Reset password — <span id="resetName"></span></h5>
+        <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-key me-1 text-danger"></i><%= t("Reset password —") %> <span id="resetName"></span></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <label class="form-label fw-semibold small" for="resetPwd">New password</label>
+          <label class="form-label fw-semibold small" for="resetPwd"><%= t("New password") %></label>
           <div class="input-group mb-1">
             <input type="text" name="password" id="resetPwd" class="form-control font-monospace" minlength="6" required autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" id="genPwd"><i class="bi bi-shuffle me-1"></i>Generate</button>
-            <button type="button" class="btn btn-outline-secondary" id="copyPwd" title="Copy"><i class="bi bi-clipboard"></i></button>
+            <button type="button" class="btn btn-outline-secondary" id="genPwd"><i class="bi bi-shuffle me-1"></i><%= t("Generate") %></button>
+            <button type="button" class="btn btn-outline-secondary" id="copyPwd" title="<%= t("Copy") %>"><i class="bi bi-clipboard"></i></button>
           </div>
-          <div class="form-text mb-3">At least 6 characters. Share it with the user directly (call or in person), not in a group.</div>
+          <div class="form-text mb-3"><%= t("At least 6 characters. Share it with the user directly (call or in person), not in a group.") %></div>
           <input type="hidden" name="confirm" id="resetConfirm">
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" name="must_change" value="1" id="mustChange" checked>
-            <label class="form-check-label small" for="mustChange">Ask them to choose their own password at next login</label>
+            <label class="form-check-label small" for="mustChange"><%= t("Ask them to choose their own password at next login") %></label>
           </div>
           <div class="form-check" id="pinRow">
             <input class="form-check-input" type="checkbox" name="remove_pin" value="1" id="removePin">
-            <label class="form-check-label small" for="removePin">Also remove their 6-digit login PIN</label>
+            <label class="form-check-label small" for="removePin"><%= t("Also remove their 6-digit login PIN") %></label>
           </div>
-          <div class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i>This also clears any lockout and signs them out on all devices.</div>
+          <div class="small text-muted mt-3"><i class="bi bi-info-circle me-1"></i><%= t("This also clears any lockout and signs them out on all devices.") %></div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-danger"><i class="bi bi-check-lg me-1"></i>Reset password</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
+          <button class="btn btn-danger"><i class="bi bi-check-lg me-1"></i><%= t("Reset password") %></button>
         </div>
       </form>
     </div>

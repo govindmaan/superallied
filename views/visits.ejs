@@ -2,29 +2,29 @@
 <%- include('partials/sidebar', { active: 'visits', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-geo-alt me-2 text-danger"></i>My Field Visits</h4>
-    <span class="badge bg-primary"><%= todayCount %> today</span>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-geo-alt me-2 text-danger"></i><%= t("My Field Visits") %></h4>
+    <span class="badge bg-primary"><%= todayCount %> <%= t("today") %></span>
   </div>
 
   <div class="card border-0 shadow-sm">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Visit ID</th><th>Date & Time</th><th>Customer / Site</th><th>Contact</th><th>Purpose</th><th>Location</th><th>Remarks</th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Visit ID") %></th><th><%= t("Date & Time") %></th><th><%= t("Customer / Site") %></th><th><%= t("Contact") %></th><th><%= t("Purpose") %></th><th><%= t("Location") %></th><th><%= t("Remarks") %></th></tr></thead>
         <tbody>
           <% visits.forEach(v => { %>
           <tr>
-            <td class="font-monospace small text-muted">VIS-<%= String(v.id).padStart(5,'0') %></td>
-            <td class="small"><%= dbTime(v.visit_time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></td>
+            <td class="font-monospace small text-muted"><%= t("VIS-") %><%= String(v.id).padStart(5,'0') %></td>
+            <td class="small"><%= dbTime(v.visit_time).toLocaleString(locale,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></td>
             <td class="fw-semibold"><%= v.customer_name %></td>
             <td class="small"><%= v.contact_person || '—' %><% if (v.phone) { %><div><a href="tel:<%= v.phone %>"><%= v.phone %></a></div><% } %></td>
             <td class="small"><%= v.purpose || '—' %></td>
             <td class="small">
-              <% if (v.lat) { %><a href="https://maps.google.com/?q=<%= v.lat %>,<%= v.lng %>" target="_blank" class="text-decoration-none"><i class="bi bi-geo-alt-fill text-danger"></i> Map</a><% } else if (v.address) { %><span class="text-warning-emphasis" title="No GPS — typed address"><%= v.address %></span><% } else { %>—<% } %>
+              <% if (v.lat) { %><a href="https://maps.google.com/?q=<%= v.lat %>,<%= v.lng %>" target="_blank" class="text-decoration-none"><i class="bi bi-geo-alt-fill text-danger"></i> <%= t("Map") %></a><% } else if (v.address) { %><span class="text-warning-emphasis" title="<%= t("No GPS — typed address") %>"><%= v.address %></span><% } else { %>—<% } %>
             </td>
             <td class="small text-muted"><%= v.remarks || '—' %></td>
           </tr>
           <% }) %>
-          <% if (!visits.length) { %><tr><td colspan="7" class="text-center text-muted py-4">No field visits yet.</td></tr><% } %>
+          <% if (!visits.length) { %><tr><td colspan="7" class="text-center text-muted py-4"><%= t("No field visits yet.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>

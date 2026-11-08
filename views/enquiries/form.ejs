@@ -2,59 +2,59 @@
 <%- include('../partials/sidebar', { active: 'enquiries', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-funnel-fill text-danger me-2"></i><%= enquiry && enquiry.id ? `Edit ${enquiry.enquiry_number}` : 'New Enquiry' %></h4>
-    <a href="/enquiries<%= enquiry && enquiry.id ? `/${enquiry.id}` : '' %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-funnel-fill text-danger me-2"></i><%= enquiry && enquiry.id ? `Edit ${enquiry.enquiry_number}` : t('New Enquiry') %></h4>
+    <a href="/enquiries<%= enquiry && enquiry.id ? `/${enquiry.id}` : '' %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash && flash.error) { %><div class="alert alert-danger alert-dismissible py-2"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
   <form method="post" action="<%= enquiry && enquiry.id ? `/enquiries/${enquiry.id}` : '/enquiries' %>">
     <div class="card border-0 shadow-sm">
-      <div class="card-header bg-light py-2"><span class="fw-semibold small">Customer Details</span></div>
+      <div class="card-header bg-light py-2"><span class="fw-semibold small"><%= t("Customer Details") %></span></div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-5">
-            <label class="form-label small fw-semibold">Customer Name <span class="text-danger">*</span></label>
+            <label class="form-label small fw-semibold"><%= t("Customer Name") %> <span class="text-danger">*</span></label>
             <input type="text" class="form-control <%= errors.customer_name?'is-invalid':'' %>" name="customer_name" id="customerName" value="<%= enquiry?.customer_name||'' %>" required>
             <% if (errors.customer_name) { %><div class="invalid-feedback"><%= errors.customer_name %></div><% } %>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Phone Number</label>
-            <input type="text" class="form-control" name="phone" id="phoneInput" value="<%= enquiry?.phone||'' %>" placeholder="10-digit mobile" autocomplete="off">
+            <label class="form-label small fw-semibold"><%= t("Phone Number") %></label>
+            <input type="text" class="form-control" name="phone" id="phoneInput" value="<%= enquiry?.phone||'' %>" placeholder="<%= t("10-digit mobile") %>" autocomplete="off">
             <div id="dupWarning" class="form-text text-danger d-none"></div>
           </div>
           <div class="col-md-3">
-            <label class="form-label small fw-semibold">Lead Source</label>
+            <label class="form-label small fw-semibold"><%= t("Lead Source") %></label>
             <select class="form-select" name="lead_source">
-              <option value="">— Select —</option>
+              <option value=""><%= t("— Select —") %></option>
               <% LEAD_SOURCES.forEach(s => { %><option value="<%= s %>" <%= enquiry?.lead_source===s?'selected':'' %>><%= s %></option><% }) %>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Location</label>
-            <input type="text" class="form-control" name="location" value="<%= enquiry?.location||'' %>" placeholder="Area / landmark">
+            <label class="form-label small fw-semibold"><%= t("Location") %></label>
+            <input type="text" class="form-control" name="location" value="<%= enquiry?.location||'' %>" placeholder="<%= t("Area / landmark") %>">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">District</label>
+            <label class="form-label small fw-semibold"><%= t("District") %></label>
             <input type="text" class="form-control" name="district" value="<%= enquiry?.district||'' %>">
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-semibold">Village / City</label>
+            <label class="form-label small fw-semibold"><%= t("Village / City") %></label>
             <input type="text" class="form-control" name="village_city" value="<%= enquiry?.village_city||'' %>">
           </div>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Machine Interested</label>
+            <label class="form-label small fw-semibold"><%= t("Machine Interested") %></label>
             <select class="form-select" name="machine_interested">
-              <option value="">— Select Model —</option>
+              <option value=""><%= t("— Select Model —") %></option>
               <% machines.forEach(m => { %><option value="<%= m.display_name %>" <%= enquiry?.machine_interested===m.display_name?'selected':'' %>><%= m.display_name %></option><% }) %>
-              <option value="Other" <%= enquiry?.machine_interested==='Other'?'selected':'' %>>Other</option>
+              <option value="Other" <%= enquiry?.machine_interested==='Other'?'selected':'' %>><%= t("Other") %></option>
             </select>
           </div>
           <% if (user.role === 'admin' || user.role === 'manager') { %>
           <div class="col-md-6">
-            <label class="form-label small fw-semibold">Assign To</label>
+            <label class="form-label small fw-semibold"><%= t("Assign To") %></label>
             <select class="form-select" name="assigned_to">
-              <option value="">— Self —</option>
+              <option value=""><%= t("— Self —") %></option>
               <% staff.forEach(s => { %><option value="<%= s.id %>" <%= enquiry?.assigned_to==s.id?'selected':'' %>><%= s.full_name %></option><% }) %>
             </select>
           </div>
@@ -64,8 +64,8 @@
     </div>
 
     <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i><%= enquiry && enquiry.id ? 'Save Changes' : 'Create Enquiry' %></button>
-      <a href="/enquiries<%= enquiry && enquiry.id ? `/${enquiry.id}` : '' %>" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-danger"><i class="bi bi-check-lg me-1"></i><%= enquiry && enquiry.id ? t('Save Changes') : t('Create Enquiry') %></button>
+      <a href="/enquiries<%= enquiry && enquiry.id ? `/${enquiry.id}` : '' %>" class="btn btn-outline-secondary"><%= t("Cancel") %></a>
     </div>
   </form>
 </div>

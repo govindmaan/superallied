@@ -2,11 +2,11 @@
 <%- include('../partials/sidebar', { active: 'stock', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-boxes me-2 text-success"></i>Stock Availability</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-boxes me-2 text-success"></i><%= t("Stock Availability") %></h4>
     <div class="d-flex gap-2">
-      <a href="/stock/template" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Template</a>
-      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload me-1"></i>Import</button>
-      <a href="/stock/export" class="btn btn-sm btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Export</a>
+      <a href="/stock/template" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i><%= t("Template") %></a>
+      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
+      <a href="/stock/export" class="btn btn-sm btn-success"><i class="bi bi-file-earmark-excel me-1"></i><%= t("Export") %></a>
     </div>
   </div>
 
@@ -14,7 +14,7 @@
   <div class="alert alert-success alert-dismissible d-flex align-items-center gap-2">
     <%= flash.success %>
     <% if (flash.failedCount) { %>
-    <a href="/stock/import/failed" class="btn btn-sm btn-outline-danger ms-2">Download Failed (<%= flash.failedCount %>)</a>
+    <a href="/stock/import/failed" class="btn btn-sm btn-outline-danger ms-2"><%= t("Download Failed (") %><%= flash.failedCount %>)</a>
     <% } %>
     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
   </div>
@@ -27,17 +27,17 @@
   <form method="GET" action="/stock" class="card border-0 shadow-sm mb-3 p-3">
     <div class="row g-2 align-items-end">
       <div class="col-md-3">
-        <label class="form-label small mb-1">Part Number</label>
-        <input type="text" name="part_number" class="form-control form-control-sm" value="<%= filters.part_number %>" placeholder="Search...">
+        <label class="form-label small mb-1"><%= t("Part Number") %></label>
+        <input type="text" name="part_number" class="form-control form-control-sm" value="<%= filters.part_number %>" placeholder="<%= t("Search...") %>">
       </div>
       <div class="col-md-3">
-        <label class="form-label small mb-1">Part Name / Description</label>
-        <input type="text" name="part_name" class="form-control form-control-sm" value="<%= filters.part_name %>" placeholder="Search...">
+        <label class="form-label small mb-1"><%= t("Part Name / Description") %></label>
+        <input type="text" name="part_name" class="form-control form-control-sm" value="<%= filters.part_name %>" placeholder="<%= t("Search...") %>">
       </div>
       <div class="col-md-2">
-        <label class="form-label small mb-1">Category</label>
+        <label class="form-label small mb-1"><%= t("Category") %></label>
         <select name="category" class="form-select form-select-sm">
-          <option value="">All Categories</option>
+          <option value=""><%= t("All Categories") %></option>
           <% categories.forEach(c => { %>
           <option value="<%= c %>" <%= filters.category===c?'selected':'' %>><%= c %></option>
           <% }) %>
@@ -46,12 +46,12 @@
       <div class="col-md-2 d-flex align-items-end">
         <div class="form-check mb-1">
           <input class="form-check-input" type="checkbox" name="out_of_stock" value="1" id="oos" <%= filters.out_of_stock==='1'?'checked':'' %>>
-          <label class="form-check-label small" for="oos">Out of Stock Only</label>
+          <label class="form-check-label small" for="oos"><%= t("Out of Stock Only") %></label>
         </div>
       </div>
       <div class="col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="bi bi-search me-1"></i>Filter</button>
-        <a href="/stock" class="btn btn-sm btn-outline-secondary">Clear</a>
+        <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="bi bi-search me-1"></i><%= t("Filter") %></button>
+        <a href="/stock" class="btn btn-sm btn-outline-secondary"><%= t("Clear") %></a>
       </div>
     </div>
   </form>
@@ -59,20 +59,20 @@
   <!-- Stock Grid -->
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-      <span class="small fw-semibold"><%= total %> parts</span>
+      <span class="small fw-semibold"><%= total %> <%= t("parts") %></span>
     </div>
     <div class="table-responsive">
       <table class="table table-hover table-sm mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th style="width:120px">SAP Part No.</th>
-            <th style="width:110px">RND Part No.</th>
-            <th>Description</th>
-            <th>Category</th>
-            <th class="text-center" style="width:110px">Stock</th>
-            <th>Remarks</th>
-            <th>Last Updated</th>
-            <th>Updated By</th>
+            <th style="width:120px"><%= t("SAP Part No.") %></th>
+            <th style="width:110px"><%= t("RND Part No.") %></th>
+            <th><%= t("Description") %></th>
+            <th><%= t("Category") %></th>
+            <th class="text-center" style="width:110px"><%= t("Stock") %></th>
+            <th><%= t("Remarks") %></th>
+            <th><%= t("Last Updated") %></th>
+            <th><%= t("Updated By") %></th>
             <th style="width:60px"></th>
           </tr>
         </thead>
@@ -85,15 +85,15 @@
             <td class="small"><%= r.category || '—' %></td>
             <td class="text-center">
               <% if (r.stock_quantity <= 0) { %>
-              <span class="badge bg-danger">Out of Stock</span>
+              <span class="badge bg-danger"><%= t("Out of Stock") %></span>
               <% } else if (r.stock_quantity <= 5) { %>
-              <span class="badge bg-warning text-dark"><%= r.stock_quantity %> (Low)</span>
+              <span class="badge bg-warning text-dark"><%= r.stock_quantity %> <%= t("(Low)") %></span>
               <% } else { %>
               <span class="badge bg-success"><%= r.stock_quantity %></span>
               <% } %>
             </td>
             <td class="small text-muted"><%= r.remarks || '—' %></td>
-            <td class="small text-muted"><%= r.updated_at ? new Date(r.updated_at).toLocaleDateString('en-IN') : '—' %></td>
+            <td class="small text-muted"><%= r.updated_at ? new Date(r.updated_at).toLocaleDateString(locale) : '—' %></td>
             <td class="small text-muted"><%= r.updated_by_name || '—' %></td>
             <td>
               <button class="btn btn-sm btn-outline-primary py-0 px-2"
@@ -104,7 +104,7 @@
           </tr>
           <% }) %>
           <% if (!rows.length) { %>
-          <tr><td colspan="8" class="text-center text-muted py-4">No parts found.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4"><%= t("No parts found.") %></td></tr>
           <% } %>
         </tbody>
       </table>
@@ -130,7 +130,7 @@
   <div class="modal-dialog modal-sm">
     <div class="modal-content">
       <div class="modal-header py-2">
-        <h6 class="modal-title fw-bold">Update Stock</h6>
+        <h6 class="modal-title fw-bold"><%= t("Update Stock") %></h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form id="editForm" method="POST">
@@ -138,21 +138,21 @@
           <p class="mb-1 small fw-semibold" id="editPartLabel"></p>
           <p class="mb-3 small text-muted" id="editPartDesc"></p>
           <div class="mb-2">
-            <label class="form-label small mb-1">Category</label>
-            <input type="text" name="category" id="editCategory" class="form-control form-control-sm" placeholder="e.g. Bearings">
+            <label class="form-label small mb-1"><%= t("Category") %></label>
+            <input type="text" name="category" id="editCategory" class="form-control form-control-sm" placeholder="<%= t("e.g. Bearings") %>">
           </div>
           <div class="mb-2">
-            <label class="form-label small mb-1">New Quantity</label>
+            <label class="form-label small mb-1"><%= t("New Quantity") %></label>
             <input type="number" name="stock_quantity" id="editQty" class="form-control form-control-sm" min="0" required>
           </div>
           <div class="mb-2">
-            <label class="form-label small mb-1">Remarks</label>
+            <label class="form-label small mb-1"><%= t("Remarks") %></label>
             <textarea name="remarks" id="editRemarks" class="form-control form-control-sm" rows="2"></textarea>
           </div>
         </div>
         <div class="modal-footer py-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-primary">Save</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
+          <button type="submit" class="btn btn-sm btn-primary"><%= t("Save") %></button>
         </div>
       </form>
     </div>
@@ -164,22 +164,22 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header py-2">
-        <h6 class="modal-title fw-bold">Bulk Import Stock</h6>
+        <h6 class="modal-title fw-bold"><%= t("Bulk Import Stock") %></h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="/stock/import/excel" enctype="multipart/form-data">
         <div class="modal-body">
           <div class="alert alert-info small mb-3">
-            <strong>Required:</strong> <code>SAP Part No</code> or <code>RND Part No</code>, <code>Stock Quantity</code><br>
-            <strong>Optional:</strong> <code>Remarks</code>, <code>Category</code><br>
-            Part number must match an existing part in the system.
-            <a href="/stock/template" class="d-block mt-1">Download template</a>
+            <strong><%= t("Required:") %></strong> <code><%= t("SAP Part No") %></code> <%= t("or") %> <code><%= t("RND Part No") %></code>, <code><%= t("Stock Quantity") %></code><br>
+            <strong><%= t("Optional:") %></strong> <code><%= t("Remarks") %></code>, <code><%= t("Category") %></code><br>
+            <%= t("Part number must match an existing part in the system.") %>
+            <a href="/stock/template" class="d-block mt-1"><%= t("Download template") %></a>
           </div>
           <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
         </div>
         <div class="modal-footer py-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i>Import</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
+          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i><%= t("Import") %></button>
         </div>
       </form>
     </div>

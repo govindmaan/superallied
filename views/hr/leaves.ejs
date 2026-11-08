@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'hr', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-calendar-x me-2 text-danger"></i>Leave Requests
-      <% if (pending > 0) { %><span class="badge bg-danger ms-2"><%= pending %> pending</span><% } %>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-calendar-x me-2 text-danger"></i><%= t("Leave Requests") %>
+      <% if (pending > 0) { %><span class="badge bg-danger ms-2"><%= pending %> <%= t("pending") %></span><% } %>
     </h4>
   </div>
 
@@ -14,17 +14,17 @@
     <div class="card-body py-2">
       <form method="GET" class="d-flex flex-wrap gap-2">
         <select name="status" class="form-select" style="max-width:140px">
-          <option value="" <%=stFilter===''?'selected':''%>>All Status</option>
-          <option value="pending"  <%=stFilter==='pending'?'selected':''%>>Pending</option>
-          <option value="approved" <%=stFilter==='approved'?'selected':''%>>Approved</option>
-          <option value="rejected" <%=stFilter==='rejected'?'selected':''%>>Rejected</option>
+          <option value="" <%=stFilter===''?'selected':''%>><%= t("All Status") %></option>
+          <option value="pending"  <%=stFilter==='pending'?'selected':''%>><%= t("Pending") %></option>
+          <option value="approved" <%=stFilter==='approved'?'selected':''%>><%= t("Approved") %></option>
+          <option value="rejected" <%=stFilter==='rejected'?'selected':''%>><%= t("Rejected") %></option>
         </select>
         <select name="emp" class="form-select" style="max-width:200px">
-          <option value="">All Employees</option>
+          <option value=""><%= t("All Employees") %></option>
           <% employees.forEach(e => { %><option value="<%= e.id %>" <%=empFilter==e.id?'selected':''%>><%= e.full_name %></option><% }) %>
         </select>
-        <button class="btn btn-outline-secondary"><i class="bi bi-filter"></i> Filter</button>
-        <% if (stFilter||empFilter) { %><a href="/hr/leaves" class="btn btn-outline-danger">Clear</a><% } %>
+        <button class="btn btn-outline-secondary"><i class="bi bi-filter"></i> <%= t("Filter") %></button>
+        <% if (stFilter||empFilter) { %><a href="/hr/leaves" class="btn btn-outline-danger"><%= t("Clear") %></a><% } %>
       </form>
     </div>
   </div>
@@ -33,7 +33,7 @@
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
-          <tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Applied</th><th>Status</th><th></th></tr>
+          <tr><th><%= t("Employee") %></th><th><%= t("Type") %></th><th><%= t("From") %></th><th><%= t("To") %></th><th><%= t("Days") %></th><th><%= t("Reason") %></th><th><%= t("Applied") %></th><th><%= t("Status") %></th><th></th></tr>
         </thead>
         <tbody>
           <% leaves.forEach(l => { %>
@@ -47,7 +47,7 @@
             <td class="small"><%= l.end_date %></td>
             <td class="fw-bold"><%= l.days %></td>
             <td class="small text-muted" style="max-width:120px"><%= l.reason || '—' %></td>
-            <td class="small text-muted"><%= new Date(l.created_at).toLocaleDateString('en-IN') %></td>
+            <td class="small text-muted"><%= new Date(l.created_at).toLocaleDateString(locale) %></td>
             <td>
               <span class="badge <%= l.status==='approved'?'bg-success':l.status==='rejected'?'bg-danger':'bg-warning text-dark' %>">
                 <%= l.status %>
@@ -56,7 +56,7 @@
             <td>
               <% if (l.status === 'pending') { %>
               <button class="btn btn-sm btn-outline-secondary" onclick="reviewLeave(<%= l.id %>, '<%= l.full_name %>', '<%= l.days %>')">
-                Review
+                <%= t("Review") %>
               </button>
               <% } else { %>
               <small class="text-muted"><%= l.reviewer_comment ? l.reviewer_comment.slice(0,30)+'…' : '' %></small>
@@ -64,7 +64,7 @@
             </td>
           </tr>
           <% }) %>
-          <% if (!leaves.length) { %><tr><td colspan="9" class="text-center text-muted py-4">No leave requests found.</td></tr><% } %>
+          <% if (!leaves.length) { %><tr><td colspan="9" class="text-center text-muted py-4"><%= t("No leave requests found.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>
@@ -75,20 +75,20 @@
 <div class="modal fade" id="reviewModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title fw-bold">Review Leave Request</h5>
+      <div class="modal-header"><h5 class="modal-title fw-bold"><%= t("Review Leave Request") %></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <form id="reviewForm" method="POST">
         <div class="modal-body">
           <p id="reviewDesc" class="text-muted small mb-3"></p>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Comment (optional)</label>
-            <textarea name="comment" class="form-control" rows="2" placeholder="Add a note…"></textarea>
+            <label class="form-label fw-semibold"><%= t("Comment (optional)") %></label>
+            <textarea name="comment" class="form-control" rows="2" placeholder="<%= t("Add a note…") %>"></textarea>
           </div>
         </div>
         <div class="modal-footer gap-2">
-          <button type="submit" name="status" value="approved" class="btn btn-success fw-bold px-4">✅ Approve</button>
-          <button type="submit" name="status" value="rejected" class="btn btn-danger fw-bold px-4">❌ Reject</button>
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" name="status" value="approved" class="btn btn-success fw-bold px-4"><%= t("✅ Approve") %></button>
+          <button type="submit" name="status" value="rejected" class="btn btn-danger fw-bold px-4"><%= t("❌ Reject") %></button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
         </div>
       </form>
     </div>

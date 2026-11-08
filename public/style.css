@@ -42,6 +42,10 @@
 
 /* ── Base ───────────────────────────────────────────────────── */
 body { background: var(--sa-page-bg); color: var(--sa-text); min-height: 100vh; }
+/* Hindi: Devanagari from Noto Sans Devanagari (loaded by the head partial), Latin from the system font */
+:root:lang(hi) { --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", "Nirmala UI", "Mangal", sans-serif; }
+:lang(hi) body { line-height: 1.6; }
+.lang-switch .btn { min-width: 64px; }
 
 /* ── Mobile Top Bar ─────────────────────────────────────────── */
 .mobile-topbar {

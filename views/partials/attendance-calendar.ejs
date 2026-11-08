@@ -65,12 +65,12 @@ button.cal-day:active { transform: scale(.96); }
 <script>
 function openDay(date) {
   const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('dayModal'));
-  document.getElementById('dayTitle').textContent = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('dayTitle').textContent = new Date(date + 'T00:00:00').toLocaleDateString((window.LOCALE||'en-IN'), { weekday: 'long', day: 'numeric', month: 'long' });
   const body = document.getElementById('dayBody');
   body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-danger"></div></div>';
   modal.show();
   fetch(<%- JSON.stringify(dayUrl) %> + date).then(r => r.json()).then(d => {
-    const t = v => v ? new Date(v).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const t = v => v ? new Date(v).toLocaleTimeString((window.LOCALE||'en-IN'), { hour: '2-digit', minute: '2-digit' }) : '—';
     const map = (lat, lng) => lat ? `<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener" class="small"><i class="bi bi-geo-alt-fill text-danger"></i> Location</a>` : '';
     const photo = (src, alt) => src ? `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" class="day-photo" alt="${alt}" loading="lazy"></a>`
                                     : '<div class="day-photo d-flex align-items-center justify-content-center small text-muted">No photo</div>';

@@ -2,45 +2,45 @@
 <%- include('partials/sidebar', { active: 'form22', user }) %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-patch-check-fill me-2 text-danger"></i>Form 22 — Pollution Compliance Certificate</h4>
-    <p class="text-muted small mb-0 mt-1">Generates a single-page road-worthiness / pollution compliance certificate PDF. Not saved to any record.</p>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-patch-check-fill me-2 text-danger"></i><%= t("Form 22 — Pollution Compliance Certificate") %></h4>
+    <p class="text-muted small mb-0 mt-1"><%= t("Generates a single-page road-worthiness / pollution compliance certificate PDF. Not saved to any record.") %></p>
   </div>
 
   <div class="row">
     <div class="col-lg-7">
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">Vehicle Details</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Vehicle Details") %></div>
         <div class="card-body">
           <form method="POST" action="/form-22/pdf">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label small fw-semibold">Date</label>
+                <label class="form-label small fw-semibold"><%= t("Date") %></label>
                 <input type="date" name="date" class="form-control" value="<%= new Date().toISOString().slice(0,10) %>" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-semibold">Applicable Emission Norms</label>
-                <input type="text" name="norms" class="form-control" value="BS V CEV" placeholder="e.g. BS V CEV" required>
+                <label class="form-label small fw-semibold"><%= t("Applicable Emission Norms") %></label>
+                <input type="text" name="norms" class="form-control" value="BS V CEV" placeholder="<%= t("e.g. BS V CEV") %>" required>
               </div>
               <div class="col-md-12">
-                <label class="form-label small fw-semibold">Model / Commercial Name</label>
-                <input type="text" name="model" class="form-control" placeholder="e.g. BULL SD76 2WD BACKHOE LOADER" required>
+                <label class="form-label small fw-semibold"><%= t("Model / Commercial Name") %></label>
+                <input type="text" name="model" class="form-control" placeholder="<%= t("e.g. BULL SD76 2WD BACKHOE LOADER") %>" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-semibold">Chassis Number</label>
-                <input type="text" name="chassis_number" class="form-control text-uppercase" placeholder="e.g. BCEHD11BEK2303149">
+                <label class="form-label small fw-semibold"><%= t("Chassis Number") %></label>
+                <input type="text" name="chassis_number" class="form-control text-uppercase" placeholder="<%= t("e.g. BCEHD11BEK2303149") %>">
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-semibold">Serial Number</label>
-                <input type="text" name="serial_number" class="form-control text-uppercase" placeholder="e.g. HDSS3149" required>
+                <label class="form-label small fw-semibold"><%= t("Serial Number") %></label>
+                <input type="text" name="serial_number" class="form-control text-uppercase" placeholder="<%= t("e.g. HDSS3149") %>" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label small fw-semibold">Engine Number</label>
+                <label class="form-label small fw-semibold"><%= t("Engine Number") %></label>
                 <input type="text" name="engine_number" class="form-control text-uppercase" placeholder="e.g. 5H.4102/2320494" required>
               </div>
             </div>
             <div class="mt-4">
               <button type="submit" class="btn btn-danger">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i>Generate Form 22 PDF
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i><%= t("Generate Form 22 PDF") %>
               </button>
             </div>
           </form>

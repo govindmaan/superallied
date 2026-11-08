@@ -3,7 +3,7 @@
 <% const isAdmin = user && user.role === 'admin'; %>
 <div class="main-content">
   <div class="page-header mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i>Settings</h4>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-sliders me-2 text-danger"></i><%= t("Settings") %></h4>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -15,59 +15,59 @@
       <!-- Company / Bank — editable ONLY for admin -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">Company / Dealer Details</span>
-          <% if (!isAdmin) { %><span class="badge bg-secondary"><i class="bi bi-lock-fill me-1"></i>View Only</span><% } %>
+          <span class="fw-semibold"><%= t("Company / Dealer Details") %></span>
+          <% if (!isAdmin) { %><span class="badge bg-secondary"><i class="bi bi-lock-fill me-1"></i><%= t("View Only") %></span><% } %>
         </div>
         <div class="card-body">
           <% if (isAdmin) { %>
           <form method="POST" action="/settings">
             <div class="row g-3">
-              <div class="col-md-6"><label class="form-label">Company Name</label><input type="text" name="company_name" class="form-control" value="<%= s.company_name %>"></div>
-              <div class="col-md-6"><label class="form-label">GSTIN</label><input type="text" name="company_gstin" class="form-control font-monospace" value="<%= s.company_gstin %>"></div>
-              <div class="col-12"><label class="form-label">Address</label><input type="text" name="company_address" class="form-control" value="<%= s.company_address %>"></div>
-              <div class="col-12"><label class="form-label">Authorized Dealer Of</label><input type="text" name="dealer_of" class="form-control" value="<%= s.dealer_of %>"></div>
-              <div class="col-md-6"><label class="form-label">Contact Name</label><input type="text" name="contact_name" class="form-control" value="<%= s.contact_name %>"></div>
-              <div class="col-md-6"><label class="form-label">Contact Phone</label><input type="text" name="contact_phone" class="form-control" value="<%= s.contact_phone %>"></div>
-              <div class="col-md-6"><label class="form-label">Sales Phone</label><input type="text" name="company_phone_sales" class="form-control" value="<%= s.company_phone_sales || '' %>"></div>
-              <div class="col-md-6"><label class="form-label">Service Phone</label><input type="text" name="company_phone_service" class="form-control" value="<%= s.company_phone_service || '' %>"></div>
-              <div class="col-md-6"><label class="form-label">Email</label><input type="text" name="company_email" class="form-control" value="<%= s.company_email || '' %>"></div>
-              <div class="col-md-6"><label class="form-label">UDYAM No.</label><input type="text" name="company_udyam" class="form-control font-monospace" value="<%= s.company_udyam || '' %>" placeholder="UDYAM-UP-XX-XXXXXXX"></div>
-              <div class="col-md-6"><label class="form-label">State</label><input type="text" name="company_state" class="form-control" value="<%= s.company_state || 'Uttar Pradesh' %>"></div>
-              <div class="col-md-6"><label class="form-label">State Code</label><input type="text" name="company_state_code" class="form-control" value="<%= s.company_state_code || '09' %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Company Name") %></label><input type="text" name="company_name" class="form-control" value="<%= s.company_name %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("GSTIN") %></label><input type="text" name="company_gstin" class="form-control font-monospace" value="<%= s.company_gstin %>"></div>
+              <div class="col-12"><label class="form-label"><%= t("Address") %></label><input type="text" name="company_address" class="form-control" value="<%= s.company_address %>"></div>
+              <div class="col-12"><label class="form-label"><%= t("Authorized Dealer Of") %></label><input type="text" name="dealer_of" class="form-control" value="<%= s.dealer_of %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Contact Name") %></label><input type="text" name="contact_name" class="form-control" value="<%= s.contact_name %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Contact Phone") %></label><input type="text" name="contact_phone" class="form-control" value="<%= s.contact_phone %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Sales Phone") %></label><input type="text" name="company_phone_sales" class="form-control" value="<%= s.company_phone_sales || '' %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Service Phone") %></label><input type="text" name="company_phone_service" class="form-control" value="<%= s.company_phone_service || '' %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Email") %></label><input type="text" name="company_email" class="form-control" value="<%= s.company_email || '' %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("UDYAM No.") %></label><input type="text" name="company_udyam" class="form-control font-monospace" value="<%= s.company_udyam || '' %>" placeholder="<%= t("UDYAM-UP-XX-XXXXXXX") %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("State") %></label><input type="text" name="company_state" class="form-control" value="<%= s.company_state || 'Uttar Pradesh' %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("State Code") %></label><input type="text" name="company_state_code" class="form-control" value="<%= s.company_state_code || '09' %>"></div>
               <hr>
-              <div class="col-md-6"><label class="form-label">Bank Beneficiary</label><input type="text" name="bank_beneficiary" class="form-control" value="<%= s.bank_beneficiary %>"></div>
-              <div class="col-md-6"><label class="form-label">Bank Account No.</label><input type="text" name="bank_account" class="form-control font-monospace" value="<%= s.bank_account %>"></div>
-              <div class="col-md-6"><label class="form-label">IFSC Code</label><input type="text" name="bank_ifsc" class="form-control font-monospace" value="<%= s.bank_ifsc %>"></div>
-              <div class="col-md-6"><label class="form-label">Bank Name</label><input type="text" name="bank_name" class="form-control" value="<%= s.bank_name || '' %>" placeholder="e.g. Union Bank of India"></div>
-              <div class="col-md-6"><label class="form-label">Branch</label><input type="text" name="bank_branch" class="form-control" value="<%= s.bank_branch %>"></div>
-              <div class="col-md-6"><label class="form-label">UPI ID <span class="text-muted small">(payment QR on quotations — if blank, the QR pays the bank account above)</span></label><input type="text" name="company_upi" class="form-control font-monospace" value="<%= s.company_upi || '' %>" placeholder="name@upi"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Bank Beneficiary") %></label><input type="text" name="bank_beneficiary" class="form-control" value="<%= s.bank_beneficiary %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Bank Account No.") %></label><input type="text" name="bank_account" class="form-control font-monospace" value="<%= s.bank_account %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("IFSC Code") %></label><input type="text" name="bank_ifsc" class="form-control font-monospace" value="<%= s.bank_ifsc %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Bank Name") %></label><input type="text" name="bank_name" class="form-control" value="<%= s.bank_name || '' %>" placeholder="<%= t("e.g. Union Bank of India") %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Branch") %></label><input type="text" name="bank_branch" class="form-control" value="<%= s.bank_branch %>"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("UPI ID") %> <span class="text-muted small"><%= t("(payment QR on quotations — if blank, the QR pays the bank account above)") %></span></label><input type="text" name="company_upi" class="form-control font-monospace" value="<%= s.company_upi || '' %>" placeholder="<%= t("name@upi") %>"></div>
               <hr>
-              <div class="col-md-6"><label class="form-label">RTO Default Percentage (%)</label><input type="number" name="rto_default_rate" class="form-control" value="<%= s.rto_default_rate || 6 %>" min="0" max="100" step="0.1"></div>
-              <div class="col-md-6"><label class="form-label">Price Lock Enabled</label><select name="price_lock_enabled" class="form-select"><option value="1" <%=s.price_lock_enabled==='1'?'selected':''%>>Yes (MRP only)</option><option value="0" <%=s.price_lock_enabled==='0'?'selected':''%>>No (Allow override)</option></select></div>
-              <div class="col-12 alert alert-info small py-2 mb-0"><i class="bi bi-info-circle me-1"></i><strong>Price Lock:</strong> When enabled, sales staff can only quote at MRP. Admin users can always override prices.</div>
+              <div class="col-md-6"><label class="form-label"><%= t("RTO Default Percentage (%)") %></label><input type="number" name="rto_default_rate" class="form-control" value="<%= s.rto_default_rate || 6 %>" min="0" max="100" step="0.1"></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Price Lock Enabled") %></label><select name="price_lock_enabled" class="form-select"><option value="1" <%=s.price_lock_enabled==='1'?'selected':''%>><%= t("Yes (MRP only)") %></option><option value="0" <%=s.price_lock_enabled==='0'?'selected':''%>><%= t("No (Allow override)") %></option></select></div>
+              <div class="col-12 alert alert-info small py-2 mb-0"><i class="bi bi-info-circle me-1"></i><strong><%= t("Price Lock:") %></strong> <%= t("When enabled, sales staff can only quote at MRP. Admin users can always override prices.") %></div>
               <hr>
-              <div class="col-md-6"><label class="form-label">Roundoff Enabled</label><select name="roundoff_enabled" class="form-select"><option value="1" <%=s.roundoff_enabled==='1'?'selected':''%>>Yes (Round up to nearest)</option><option value="0" <%=s.roundoff_enabled==='0'?'selected':''%>>No (Exact amount)</option></select></div>
-              <div class="col-md-6"><label class="form-label">Roundoff Amount (₹)</label><input type="number" name="roundoff_amount" class="form-control" value="<%= s.roundoff_amount || 500 %>" min="1" step="1"></div>
-              <div class="col-12 alert alert-primary small py-2 mb-0"><i class="bi bi-info-circle me-1"></i><strong>Roundoff:</strong> Quotation total will be rounded UP to the nearest amount (e.g., 500, 1000). Example: ₹45,230 → ₹45,500 (with roundoff 500).</div>
-              <div class="col-12"><button class="btn btn-danger px-4">Save Settings</button></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Roundoff Enabled") %></label><select name="roundoff_enabled" class="form-select"><option value="1" <%=s.roundoff_enabled==='1'?'selected':''%>><%= t("Yes (Round up to nearest)") %></option><option value="0" <%=s.roundoff_enabled==='0'?'selected':''%>><%= t("No (Exact amount)") %></option></select></div>
+              <div class="col-md-6"><label class="form-label"><%= t("Roundoff Amount (₹)") %></label><input type="number" name="roundoff_amount" class="form-control" value="<%= s.roundoff_amount || 500 %>" min="1" step="1"></div>
+              <div class="col-12 alert alert-primary small py-2 mb-0"><i class="bi bi-info-circle me-1"></i><strong><%= t("Roundoff:") %></strong> <%= t("Quotation total will be rounded UP to the nearest amount (e.g., 500, 1000). Example: ₹45,230 → ₹45,500 (with roundoff 500).") %></div>
+              <div class="col-12"><button class="btn btn-danger px-4"><%= t("Save Settings") %></button></div>
             </div>
           </form>
           <% } else { %>
           <!-- View-only for non-admin -->
           <dl class="row mb-0">
-            <dt class="col-5 text-muted">Company Name</dt><dd class="col-7"><%= s.company_name %></dd>
-            <dt class="col-5 text-muted">GSTIN</dt><dd class="col-7 font-monospace small"><%= s.company_gstin %></dd>
-            <dt class="col-5 text-muted">Address</dt><dd class="col-7 small"><%= s.company_address %></dd>
-            <dt class="col-5 text-muted">Dealer Of</dt><dd class="col-7 small"><%= s.dealer_of %></dd>
-            <dt class="col-5 text-muted">Contact</dt><dd class="col-7"><%= s.contact_name %> — <%= s.contact_phone %></dd>
+            <dt class="col-5 text-muted"><%= t("Company Name") %></dt><dd class="col-7"><%= s.company_name %></dd>
+            <dt class="col-5 text-muted"><%= t("GSTIN") %></dt><dd class="col-7 font-monospace small"><%= s.company_gstin %></dd>
+            <dt class="col-5 text-muted"><%= t("Address") %></dt><dd class="col-7 small"><%= s.company_address %></dd>
+            <dt class="col-5 text-muted"><%= t("Dealer Of") %></dt><dd class="col-7 small"><%= s.dealer_of %></dd>
+            <dt class="col-5 text-muted"><%= t("Contact") %></dt><dd class="col-7"><%= s.contact_name %> — <%= s.contact_phone %></dd>
             <hr>
-            <dt class="col-5 text-muted">Bank Beneficiary</dt><dd class="col-7"><%= s.bank_beneficiary %></dd>
-            <dt class="col-5 text-muted">Account No.</dt><dd class="col-7 font-monospace small"><%= s.bank_account %></dd>
-            <dt class="col-5 text-muted">IFSC</dt><dd class="col-7 font-monospace small"><%= s.bank_ifsc %></dd>
-            <dt class="col-5 text-muted">Bank</dt><dd class="col-7 small"><%= s.bank_name || '—' %></dd>
-            <dt class="col-5 text-muted">Branch</dt><dd class="col-7 small"><%= s.bank_branch %></dd>
+            <dt class="col-5 text-muted"><%= t("Bank Beneficiary") %></dt><dd class="col-7"><%= s.bank_beneficiary %></dd>
+            <dt class="col-5 text-muted"><%= t("Account No.") %></dt><dd class="col-7 font-monospace small"><%= s.bank_account %></dd>
+            <dt class="col-5 text-muted"><%= t("IFSC") %></dt><dd class="col-7 font-monospace small"><%= s.bank_ifsc %></dd>
+            <dt class="col-5 text-muted"><%= t("Bank") %></dt><dd class="col-7 small"><%= s.bank_name || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Branch") %></dt><dd class="col-7 small"><%= s.bank_branch %></dd>
           </dl>
-          <div class="alert alert-info small mt-3 mb-0 py-2"><i class="bi bi-info-circle me-1"></i>Contact Admin to update company or bank details.</div>
+          <div class="alert alert-info small mt-3 mb-0 py-2"><i class="bi bi-info-circle me-1"></i><%= t("Contact Admin to update company or bank details.") %></div>
           <% } %>
         </div>
       </div>
@@ -76,13 +76,13 @@
     <div class="col-lg-5">
       <!-- Change Password — available to all -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white fw-semibold">Change Password</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Change Password") %></div>
         <div class="card-body">
           <form method="POST" action="/settings/password">
-            <div class="mb-3"><label class="form-label">Current Password</label><input type="password" name="current" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label">New Password</label><input type="password" name="newpwd" class="form-control" required minlength="6"></div>
-            <div class="mb-3"><label class="form-label">Confirm New Password</label><input type="password" name="confirm" class="form-control" required></div>
-            <button class="btn btn-outline-danger">Change Password</button>
+            <div class="mb-3"><label class="form-label"><%= t("Current Password") %></label><input type="password" name="current" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label"><%= t("New Password") %></label><input type="password" name="newpwd" class="form-control" required minlength="6"></div>
+            <div class="mb-3"><label class="form-label"><%= t("Confirm New Password") %></label><input type="password" name="confirm" class="form-control" required></div>
+            <button class="btn btn-outline-danger"><%= t("Change Password") %></button>
           </form>
         </div>
       </div>
@@ -90,14 +90,14 @@
       <!-- Admin-only: role permissions overview -->
       <% if (isAdmin) { %>
       <div class="card border-0 shadow-sm mt-3">
-        <div class="card-header bg-white fw-semibold">Role Permissions</div>
+        <div class="card-header bg-white fw-semibold"><%= t("Role Permissions") %></div>
         <div class="card-body small">
-          <p class="text-muted mb-2">Current permission grants per role (configurable in DB).</p>
+          <p class="text-muted mb-2"><%= t("Current permission grants per role (configurable in DB).") %></p>
           <% const allRoles = ['sales','service','hr','office','staff','employee','manager']; %>
           <% allRoles.forEach(r => { %>
             <div class="mb-1">
               <span class="badge bg-secondary me-1"><%= r %></span>
-              <span class="text-muted">— edit in role_permissions table</span>
+              <span class="text-muted"><%= t("— edit in role_permissions table") %></span>
             </div>
           <% }) %>
         </div>

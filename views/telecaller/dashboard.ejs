@@ -6,10 +6,10 @@
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h4 class="fw-bold mb-0"><i class="bi bi-telephone-inbound-fill text-primary me-2"></i>Telecaller</h4>
-      <div class="text-muted small"><%= user.full_name || user.username %> · <%= new Date(Date.now()+330*60000).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}) %></div>
+      <h4 class="fw-bold mb-0"><i class="bi bi-telephone-inbound-fill text-primary me-2"></i><%= t("Telecaller") %></h4>
+      <div class="text-muted small"><%= user.full_name || user.username %> · <%= new Date(Date.now()+330*60000).toLocaleDateString(locale,{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}) %></div>
     </div>
-    <a href="/telecaller/new" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Enquiry</a>
+    <a href="/telecaller/new" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i><%= t("New Enquiry") %></a>
   </div>
 
   <% const cards = [
@@ -27,7 +27,7 @@
         <div class="card-body p-2">
           <i class="bi <%= icon %> text-<%= color %> fs-4"></i>
           <div class="fw-bold fs-4 lh-1 mt-1"><%= val %></div>
-          <div class="text-muted" style="font-size:11px"><%= label %></div>
+          <div class="text-muted" style="font-size:11px"><%= t(label) %></div>
         </div>
       </div>
     </div>
@@ -35,17 +35,17 @@
   </div>
 
   <a href="/telecaller/queue" class="btn btn-primary btn-lg w-100 py-3 shadow-sm mb-3">
-    <i class="bi bi-telephone-outbound-fill me-2"></i>START CALLING
+    <i class="bi bi-telephone-outbound-fill me-2"></i><%= t("START CALLING") %>
   </a>
 
   <div class="d-flex gap-2">
-    <a href="/telecaller/new" class="btn btn-outline-secondary flex-fill"><i class="bi bi-plus-circle me-1"></i>New Enquiry</a>
-    <a href="/telecaller/history" class="btn btn-outline-secondary flex-fill"><i class="bi bi-clock-history me-1"></i>My History</a>
+    <a href="/telecaller/new" class="btn btn-outline-secondary flex-fill"><i class="bi bi-plus-circle me-1"></i><%= t("New Enquiry") %></a>
+    <a href="/telecaller/history" class="btn btn-outline-secondary flex-fill"><i class="bi bi-clock-history me-1"></i><%= t("My History") %></a>
   </div>
   <% if (isAdminMgr) { %>
   <div class="d-flex gap-2 mt-2">
-    <a href="/telecaller/territories" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-geo-alt me-1"></i>Territories</a>
-    <a href="/telecaller/config" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-sliders me-1"></i>Scripts & Pitches</a>
+    <a href="/telecaller/territories" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-geo-alt me-1"></i><%= t("Territories") %></a>
+    <a href="/telecaller/config" class="btn btn-outline-dark flex-fill btn-sm"><i class="bi bi-sliders me-1"></i><%= t("Scripts & Pitches") %></a>
   </div>
   <% } %>
 </div>

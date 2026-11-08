@@ -1,19 +1,19 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'databank-access', user }) %>
 <div class="main-content" style="max-width:760px">
-  <a href="/databank" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Back to Databank</a>
-  <h4 class="fw-bold mt-2 mb-1"><i class="bi bi-shield-lock me-2 text-primary"></i>Databank Access</h4>
-  <p class="text-muted small mb-3">Only ticked users can open the Databank. Admins always have access. Only the admin can import or export.</p>
+  <a href="/databank" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Back to Databank") %></a>
+  <h4 class="fw-bold mt-2 mb-1"><i class="bi bi-shield-lock me-2 text-primary"></i><%= t("Databank Access") %></h4>
+  <p class="text-muted small mb-3"><%= t("Only ticked users can open the Databank. Admins always have access. Only the admin can import or export.") %></p>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
   <form method="post" action="/databank/access">
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <span class="fw-semibold"><span id="cnt"><%= users.filter(u => u.databank_access).length %></span> of <%= users.length %> users allowed</span>
+        <span class="fw-semibold"><span id="cnt"><%= users.filter(u => u.databank_access).length %></span> <%= t("of") %> <%= users.length %> <%= t("users allowed") %></span>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAll(true)">Allow all</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAll(false)">Remove all</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAll(true)"><%= t("Allow all") %></button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setAll(false)"><%= t("Remove all") %></button>
         </div>
       </div>
       <ul class="list-group list-group-flush">
@@ -24,7 +24,7 @@
             <span class="flex-grow-1">
               <span class="fw-semibold"><%= u.full_name || u.username %></span>
               <span class="text-muted small ms-1">@<%= u.username %></span>
-              <% if (u.is_hr_active === 0) { %><span class="badge bg-secondary ms-1">Inactive</span><% } %>
+              <% if (u.is_hr_active === 0) { %><span class="badge bg-secondary ms-1"><%= t("Inactive") %></span><% } %>
             </span>
             <span class="badge bg-light text-dark border text-capitalize"><%= u.role %></span>
           </label>
@@ -32,7 +32,7 @@
         <% }) %>
       </ul>
     </div>
-    <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save access</button>
+    <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i><%= t("Save access") %></button>
   </form>
 </div>
 <script>

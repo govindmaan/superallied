@@ -2,8 +2,8 @@
 <%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-check2-square me-2 text-danger"></i>Expense Approvals</h4>
-    <span class="badge bg-warning text-dark fs-6"><%= rows.length %> pending</span>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-check2-square me-2 text-danger"></i><%= t("Expense Approvals") %></h4>
+    <span class="badge bg-warning text-dark fs-6"><%= rows.length %> <%= t("pending") %></span>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -12,7 +12,7 @@
   <div class="card border-0 shadow-sm">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th>Expense #</th><th>Employee</th><th>Date</th><th>Type</th><th>Distance</th><th>Total Claim</th><th>Submitted</th><th></th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Expense #") %></th><th><%= t("Employee") %></th><th><%= t("Date") %></th><th><%= t("Type") %></th><th><%= t("Distance") %></th><th><%= t("Total Claim") %></th><th><%= t("Submitted") %></th><th></th></tr></thead>
         <tbody>
           <% rows.forEach(x => { %>
           <tr>
@@ -20,13 +20,13 @@
             <td class="fw-semibold small"><%= x.full_name %> <span class="text-muted"><%= x.employee_code||'' %></span></td>
             <td class="small"><%= x.date %></td>
             <td class="small"><%= x.travel_type %></td>
-            <td class="small"><%= x.distance_km.toFixed(1) %> km</td>
+            <td class="small"><%= x.distance_km.toFixed(1) %> <%= t("km") %></td>
             <td class="fw-semibold">₹<%= x.total_claim.toFixed(0) %></td>
-            <td class="small text-muted"><%= x.submitted_at ? new Date(x.submitted_at).toLocaleDateString('en-IN') : '—' %></td>
-            <td class="text-end"><a href="/travel-expenses/<%= x.id %>" class="btn btn-sm btn-danger">Review</a></td>
+            <td class="small text-muted"><%= x.submitted_at ? new Date(x.submitted_at).toLocaleDateString(locale) : '—' %></td>
+            <td class="text-end"><a href="/travel-expenses/<%= x.id %>" class="btn btn-sm btn-danger"><%= t("Review") %></a></td>
           </tr>
           <% }) %>
-          <% if (!rows.length) { %><tr><td colspan="8" class="text-center text-muted py-4">Nothing pending approval.</td></tr><% } %>
+          <% if (!rows.length) { %><tr><td colspan="8" class="text-center text-muted py-4"><%= t("Nothing pending approval.") %></td></tr><% } %>
         </tbody>
       </table>
     </div>

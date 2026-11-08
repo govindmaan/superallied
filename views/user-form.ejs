@@ -2,8 +2,8 @@
 <%- include('partials/sidebar', { active: 'users', user }) %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2 text-danger"></i>Add Staff Account</h4>
-    <a href="/users" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+    <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus me-2 text-danger"></i><%= t("Add Staff Account") %></h4>
+    <a href="/users" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
   </div>
 
   <% if (flash.error) { %><div class="alert alert-danger"><%= flash.error %></div><% } %>
@@ -14,44 +14,44 @@
         <div class="card-body p-4">
           <form method="POST" action="/users">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold"><%= t("Username") %> <span class="text-danger">*</span></label>
               <input type="text" name="username" class="form-control" required
-                     placeholder="e.g. rahul.sales" autocomplete="off">
-              <small class="text-muted">Used to log in. No spaces, lowercase preferred.</small>
+                     placeholder="<%= t("e.g. rahul.sales") %>" autocomplete="off">
+              <small class="text-muted"><%= t("Used to log in. No spaces, lowercase preferred.") %></small>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Full Name</label>
+              <label class="form-label fw-semibold"><%= t("Full Name") %></label>
               <input type="text" name="full_name" class="form-control"
-                     placeholder="e.g. Rahul Sharma">
+                     placeholder="<%= t("e.g. Rahul Sharma") %>">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Role / Department</label>
+              <label class="form-label fw-semibold"><%= t("Role / Department") %></label>
               <select name="role" class="form-select">
-                <option value="sales" selected>Sales — Quotations, Customers, Visits</option>
-                <option value="service">Service — Field Visits, Expenses</option>
-                <option value="hr">HR — Employee Management, Leaves</option>
-                <option value="office">Office — Quotations, Admin Tasks</option>
-                <option value="employee">Employee — Attendance Only</option>
-                <option value="accountant">Accountant — Tally Invoices, Receipts, Allocation</option>
-                <option value="accounts_manager">Accounts Manager — Accountant + Approvals</option>
-                <option value="manager">Manager — Team Approvals + HR</option>
-                <option value="staff">Staff (Legacy) — Sales Access</option>
-                <option value="admin">Admin — Full Access</option>
+                <option value="sales" selected><%= t("Sales — Quotations, Customers, Visits") %></option>
+                <option value="service"><%= t("Service — Field Visits, Expenses") %></option>
+                <option value="hr"><%= t("HR — Employee Management, Leaves") %></option>
+                <option value="office"><%= t("Office — Quotations, Admin Tasks") %></option>
+                <option value="employee"><%= t("Employee — Attendance Only") %></option>
+                <option value="accountant"><%= t("Accountant — Tally Invoices, Receipts, Allocation") %></option>
+                <option value="accounts_manager"><%= t("Accounts Manager — Accountant + Approvals") %></option>
+                <option value="manager"><%= t("Manager — Team Approvals + HR") %></option>
+                <option value="staff"><%= t("Staff (Legacy) — Sales Access") %></option>
+                <option value="admin"><%= t("Admin — Full Access") %></option>
               </select>
-              <small class="text-muted">Determines which modules this user can access.</small>
+              <small class="text-muted"><%= t("Determines which modules this user can access.") %></small>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold"><%= t("Password") %> <span class="text-danger">*</span></label>
               <input type="password" name="password" class="form-control" required
-                     autocomplete="new-password" minlength="6" placeholder="Min. 6 characters">
+                     autocomplete="new-password" minlength="6" placeholder="<%= t("Min. 6 characters") %>">
             </div>
             <div class="mb-4">
-              <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+              <label class="form-label fw-semibold"><%= t("Confirm Password") %> <span class="text-danger">*</span></label>
               <input type="password" name="confirm" class="form-control" required
-                     autocomplete="new-password" placeholder="Repeat password">
+                     autocomplete="new-password" placeholder="<%= t("Repeat password") %>">
             </div>
             <button type="submit" class="btn btn-danger w-100 fw-bold">
-              <i class="bi bi-person-plus me-1"></i>Create Account
+              <i class="bi bi-person-plus me-1"></i><%= t("Create Account") %>
             </button>
           </form>
         </div>

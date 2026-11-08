@@ -4,15 +4,15 @@
   const digits = (lead.phone || '').replace(/\D/g,'').slice(-10);
   const altDigits = (lead.alt_phone || '').replace(/\D/g,'').slice(-10);
   const waHref = digits.length === 10 ? ('https://wa.me/91' + digits + '?text=' + encodeURIComponent(waText)) : '';
-  const enqDate = lead.created_at ? new Date(lead.created_at.replace(' ','T')+'Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}) : '';
+  const enqDate = lead.created_at ? new Date(lead.created_at.replace(' ','T')+'Z').toLocaleDateString(locale,{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}) : '';
 %>
 <div class="main-content" style="max-width:620px">
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i>Home</a>
-    <a href="/telecaller/queue" class="btn btn-outline-secondary btn-sm">Skip / Next <i class="bi bi-arrow-right ms-1"></i></a>
+    <a href="/telecaller" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Home") %></a>
+    <a href="/telecaller/queue" class="btn btn-outline-secondary btn-sm"><%= t("Skip / Next") %> <i class="bi bi-arrow-right ms-1"></i></a>
   </div>
 
   <!-- Customer card -->
@@ -26,29 +26,29 @@
         <% if (lead.interest_class) { %><span class="badge bg-<%= lead.interest_class==='HOT'?'danger':lead.interest_class==='WARM'?'warning text-dark':'secondary' %>"><%= lead.interest_class %></span><% } %>
       </div>
       <div class="row g-2 small mt-1">
-        <div class="col-6"><span class="text-muted">Enquiry No</span><br><span class="fw-semibold"><%= lead.enquiry_number %></span></div>
-        <div class="col-6"><span class="text-muted">Enquiry Date</span><br><%= enqDate %></div>
-        <div class="col-6"><span class="text-muted">Source</span><br><%= lead.lead_source || '—' %></div>
-        <div class="col-6"><span class="text-muted">Machine</span><br><%= lead.machine_interested || '—' %></div>
-        <% if (altDigits) { %><div class="col-12"><span class="text-muted">Alternate</span> <%= altDigits %></div><% } %>
+        <div class="col-6"><span class="text-muted"><%= t("Enquiry No") %></span><br><span class="fw-semibold"><%= lead.enquiry_number %></span></div>
+        <div class="col-6"><span class="text-muted"><%= t("Enquiry Date") %></span><br><%= enqDate %></div>
+        <div class="col-6"><span class="text-muted"><%= t("Source") %></span><br><%= lead.lead_source || '—' %></div>
+        <div class="col-6"><span class="text-muted"><%= t("Machine") %></span><br><%= lead.machine_interested || '—' %></div>
+        <% if (altDigits) { %><div class="col-12"><span class="text-muted"><%= t("Alternate") %></span> <%= altDigits %></div><% } %>
       </div>
-      <% if (lead.assignee_name) { %><div class="alert alert-info small mt-2 mb-0 py-1"><i class="bi bi-person-check me-1"></i>Forwarded to <%= lead.assignee_name %></div><% } %>
+      <% if (lead.assignee_name) { %><div class="alert alert-info small mt-2 mb-0 py-1"><i class="bi bi-person-check me-1"></i><%= t("Forwarded to") %> <%= lead.assignee_name %></div><% } %>
     </div>
 
     <!-- Primary actions -->
     <div class="card-body border-top pt-3">
       <div class="row g-2">
         <div class="col-6">
-          <button id="callBtn" class="btn btn-success btn-lg w-100 py-3" data-tel="<%= digits %>"><i class="bi bi-telephone-fill d-block fs-4"></i>CALL</button>
+          <button id="callBtn" class="btn btn-success btn-lg w-100 py-3" data-tel="<%= digits %>"><i class="bi bi-telephone-fill d-block fs-4"></i><%= t("CALL") %></button>
         </div>
         <div class="col-6">
-          <% if (waHref) { %><a href="<%= waHref %>" target="_blank" rel="noopener" class="btn btn-outline-success btn-lg w-100 py-3"><i class="bi bi-whatsapp d-block fs-4"></i>WHATSAPP</a>
-          <% } else { %><button class="btn btn-outline-secondary btn-lg w-100 py-3" disabled><i class="bi bi-whatsapp d-block fs-4"></i>No mobile</button><% } %>
+          <% if (waHref) { %><a href="<%= waHref %>" target="_blank" rel="noopener" class="btn btn-outline-success btn-lg w-100 py-3"><i class="bi bi-whatsapp d-block fs-4"></i><%= t("WHATSAPP") %></a>
+          <% } else { %><button class="btn btn-outline-secondary btn-lg w-100 py-3" disabled><i class="bi bi-whatsapp d-block fs-4"></i><%= t("No mobile") %></button><% } %>
         </div>
       </div>
       <div class="row g-2 mt-1">
-        <div class="col-6"><a href="#history" class="btn btn-outline-secondary w-100"><i class="bi bi-clock-history me-1"></i>History</a></div>
-        <div class="col-6"><button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#shareModal"><i class="bi bi-people-fill me-1"></i>Share to Group</button></div>
+        <div class="col-6"><a href="#history" class="btn btn-outline-secondary w-100"><i class="bi bi-clock-history me-1"></i><%= t("History") %></a></div>
+        <div class="col-6"><button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#shareModal"><i class="bi bi-people-fill me-1"></i><%= t("Share to Group") %></button></div>
       </div>
     </div>
   </div>
@@ -56,14 +56,14 @@
   <!-- Script + pitch buttons -->
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-header bg-white d-flex justify-content-between align-items-center" role="button" data-bs-toggle="collapse" data-bs-target="#scriptBody">
-      <span class="fw-semibold"><i class="bi bi-chat-left-quote me-1"></i>Calling Script</span><i class="bi bi-chevron-down"></i>
+      <span class="fw-semibold"><i class="bi bi-chat-left-quote me-1"></i><%= t("Calling Script") %></span><i class="bi bi-chevron-down"></i>
     </div>
     <div id="scriptBody" class="collapse show">
       <div class="card-body">
         <div class="d-flex gap-2 flex-wrap mb-3">
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchFiltering">Filtering Pitch</button>
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchClosing">Closing Pitch</button>
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchBull">Bull Promise</button>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchFiltering"><%= t("Filtering Pitch") %></button>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchClosing"><%= t("Closing Pitch") %></button>
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#pitchBull"><%= t("Bull Promise") %></button>
         </div>
         <ol class="small mb-0 ps-3">
           <% script.forEach(q => { %>
@@ -76,10 +76,10 @@
 
   <!-- Disposition -->
   <div class="card border-0 shadow-sm mb-3">
-    <div class="card-header bg-white fw-semibold"><i class="bi bi-clipboard-check me-1"></i>Call Outcome</div>
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-clipboard-check me-1"></i><%= t("Call Outcome") %></div>
     <div class="card-body">
       <form method="post" action="/telecaller/call/<%= lead.id %>/dispose" id="dispForm">
-        <label class="form-label small fw-semibold">Interest Classification *</label>
+        <label class="form-label small fw-semibold"><%= t("Interest Classification *") %></label>
         <div class="d-flex flex-wrap gap-1 mb-2" role="group">
           <% INTEREST.forEach((v,i) => { %>
           <input type="radio" class="btn-check" name="interest_class" id="ic<%=i%>" value="<%= v %>" required>
@@ -88,57 +88,57 @@
         </div>
 
         <div class="row g-2">
-          <div class="col-12"><label class="form-label small fw-semibold">Interested Model</label>
+          <div class="col-12"><label class="form-label small fw-semibold"><%= t("Interested Model") %></label>
             <input name="machine_interested" class="form-control form-control-sm" value="<%= lead.machine_interested || '' %>" list="m2"></div>
-          <datalist id="m2"><option>SD76 AC Cabin</option><option>SD76 Supersmart</option><option>Challenger 55</option><option>Challenger Turbo</option></datalist>
-          <div class="col-6"><label class="form-label small fw-semibold">Purchase Timeline</label>
+          <datalist id="m2"><option value="SD76 AC Cabin"><%= t("SD76 AC Cabin") %></option><option value="SD76 Supersmart"><%= t("SD76 Supersmart") %></option><option value="Challenger 55"><%= t("Challenger 55") %></option><option value="Challenger Turbo"><%= t("Challenger Turbo") %></option></datalist>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Purchase Timeline") %></label>
             <select name="purchase_timeline" class="form-select form-select-sm">
-              <option value="">—</option><option>Immediately</option><option>Within 7 days</option><option>Within 15 days</option>
-              <option>Within 30 days</option><option>Within 3 months</option><option>Later / Not decided</option>
+              <option value="">—</option><option value="Immediately"><%= t("Immediately") %></option><option value="Within 7 days"><%= t("Within 7 days") %></option><option value="Within 15 days"><%= t("Within 15 days") %></option>
+              <option value="Within 30 days"><%= t("Within 30 days") %></option><option value="Within 3 months"><%= t("Within 3 months") %></option><option value="Later / Not decided"><%= t("Later / Not decided") %></option>
             </select></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Finance</label>
-            <select name="finance_mode" class="form-select form-select-sm"><option value="">—</option><option>Cash purchase</option><option>Finance required</option><option>Not decided</option></select></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Village / Town</label><input name="village_city" class="form-control form-control-sm" value="<%= lead.village_city || '' %>"></div>
-          <div class="col-6"><label class="form-label small fw-semibold">District</label><input name="district" class="form-control form-control-sm" value="<%= lead.district || '' %>" list="districts2"></div>
-          <datalist id="districts2"><option>Meerut</option><option>Baghpat</option><option>Muzaffarnagar</option><option>Shamli</option><option>Saharanpur</option><option>Hapur</option><option>Bijnor</option><option>Bulandshahar</option></datalist>
-          <div class="col-6"><label class="form-label small fw-semibold">Existing Machine</label>
-            <select name="existing_machine" class="form-select form-select-sm"><option value="">—</option><option>First machine</option><option>Replacement</option><option>Additional machine</option><option>Owns another brand</option></select></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Meeting</label>
-            <select name="meeting_requirement" class="form-select form-select-sm"><option value="">—</option><option>Showroom visit</option><option>Site visit</option><option>Machine demonstration</option><option>Salesperson to call</option><option>Not required</option></select></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Preferred Time</label><input name="preferred_contact_time" class="form-control form-control-sm" placeholder="e.g. after 6 PM"></div>
-          <div class="col-6"><label class="form-label small fw-semibold">Next Follow-up</label><input type="date" name="next_followup_date" class="form-control form-control-sm"></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Finance") %></label>
+            <select name="finance_mode" class="form-select form-select-sm"><option value="">—</option><option value="Cash purchase"><%= t("Cash purchase") %></option><option value="Finance required"><%= t("Finance required") %></option><option value="Not decided"><%= t("Not decided") %></option></select></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Village / Town") %></label><input name="village_city" class="form-control form-control-sm" value="<%= lead.village_city || '' %>"></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("District") %></label><input name="district" class="form-control form-control-sm" value="<%= lead.district || '' %>" list="districts2"></div>
+          <datalist id="districts2"><option value="Meerut"><%= t("Meerut") %></option><option value="Baghpat"><%= t("Baghpat") %></option><option value="Muzaffarnagar"><%= t("Muzaffarnagar") %></option><option value="Shamli"><%= t("Shamli") %></option><option value="Saharanpur"><%= t("Saharanpur") %></option><option value="Hapur"><%= t("Hapur") %></option><option value="Bijnor"><%= t("Bijnor") %></option><option value="Bulandshahar"><%= t("Bulandshahar") %></option></datalist>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Existing Machine") %></label>
+            <select name="existing_machine" class="form-select form-select-sm"><option value="">—</option><option value="First machine"><%= t("First machine") %></option><option value="Replacement"><%= t("Replacement") %></option><option value="Additional machine"><%= t("Additional machine") %></option><option value="Owns another brand"><%= t("Owns another brand") %></option></select></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Meeting") %></label>
+            <select name="meeting_requirement" class="form-select form-select-sm"><option value="">—</option><option value="Showroom visit"><%= t("Showroom visit") %></option><option value="Site visit"><%= t("Site visit") %></option><option value="Machine demonstration"><%= t("Machine demonstration") %></option><option value="Salesperson to call"><%= t("Salesperson to call") %></option><option value="Not required"><%= t("Not required") %></option></select></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Preferred Time") %></label><input name="preferred_contact_time" class="form-control form-control-sm" placeholder="<%= t("e.g. after 6 PM") %>"></div>
+          <div class="col-6"><label class="form-label small fw-semibold"><%= t("Next Follow-up") %></label><input type="date" name="next_followup_date" class="form-control form-control-sm"></div>
         </div>
 
-        <label class="form-label small fw-semibold mt-2">Customer Remarks *</label>
-        <textarea name="remarks" class="form-control" rows="2" maxlength="1000" required placeholder="What did the customer say?"></textarea>
+        <label class="form-label small fw-semibold mt-2"><%= t("Customer Remarks *") %></label>
+        <textarea name="remarks" class="form-control" rows="2" maxlength="1000" required placeholder="<%= t("What did the customer say?") %>"></textarea>
 
         <div class="form-check mt-2" id="forwardWrap">
           <input class="form-check-input" type="checkbox" name="forward" value="1" id="forwardChk">
-          <label class="form-check-label small" for="forwardChk">Forward to area salesperson now</label>
+          <label class="form-check-label small" for="forwardChk"><%= t("Forward to area salesperson now") %></label>
         </div>
-        <div class="small text-muted mt-1">HOT leads are forwarded automatically to the salesperson for the district.</div>
+        <div class="small text-muted mt-1"><%= t("HOT leads are forwarded automatically to the salesperson for the district.") %></div>
 
-        <button class="btn btn-primary btn-lg w-100 mt-3"><i class="bi bi-check-lg me-1"></i>Save Outcome</button>
+        <button class="btn btn-primary btn-lg w-100 mt-3"><i class="bi bi-check-lg me-1"></i><%= t("Save Outcome") %></button>
       </form>
     </div>
   </div>
 
   <!-- Call history -->
   <div class="card border-0 shadow-sm" id="history">
-    <div class="card-header bg-white fw-semibold">Previous Call History</div>
-    <% if (!calls.length && !followups.length) { %><div class="card-body text-muted small">No calls logged yet.</div><% } %>
+    <div class="card-header bg-white fw-semibold"><%= t("Previous Call History") %></div>
+    <% if (!calls.length && !followups.length) { %><div class="card-body text-muted small"><%= t("No calls logged yet.") %></div><% } %>
     <ul class="list-group list-group-flush">
       <% calls.forEach(c => { %>
       <li class="list-group-item py-2 small">
         <span class="badge bg-light text-dark border"><%= c.outcome %></span>
         <%= c.notes || '' %>
-        <div class="text-muted" style="font-size:11px"><%= c.full_name || 'User' %> · <%= new Date((c.called_at||'').replace(' ','T')+'Z').toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Kolkata'}) %></div>
+        <div class="text-muted" style="font-size:11px"><%= c.full_name || t('User') %> · <%= new Date((c.called_at||'').replace(' ','T')+'Z').toLocaleString(locale,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Kolkata'}) %></div>
       </li>
       <% }) %>
       <% followups.forEach(f => { %>
       <li class="list-group-item py-2 small">
         <span class="badge bg-info text-dark"><%= f.call_status %></span> <%= f.notes || '' %>
-        <% if (f.next_followup_date) { %><span class="text-muted">· next <%= f.next_followup_date %></span><% } %>
+        <% if (f.next_followup_date) { %><span class="text-muted"><%= t("· next") %> <%= f.next_followup_date %></span><% } %>
       </li>
       <% }) %>
     </ul>
@@ -147,10 +147,10 @@
   <% if (isAdminMgr) { %>
   <form method="post" action="/telecaller/call/<%= lead.id %>/reassign" class="card border-0 shadow-sm mt-3">
     <div class="card-body">
-      <label class="form-label small fw-semibold">Admin: reassign to salesperson</label>
+      <label class="form-label small fw-semibold"><%= t("Admin: reassign to salesperson") %></label>
       <div class="input-group input-group-sm">
-        <input type="number" name="salesperson_id" class="form-control" placeholder="Salesperson user ID">
-        <button class="btn btn-outline-dark">Reassign</button>
+        <input type="number" name="salesperson_id" class="form-control" placeholder="<%= t("Salesperson user ID") %>">
+        <button class="btn btn-outline-dark"><%= t("Reassign") %></button>
       </div>
     </div>
   </form>
@@ -163,19 +163,19 @@
 <div class="modal fade" id="<%= id %>" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable">
   <div class="modal-content"><div class="modal-header"><h6 class="modal-title fw-bold"><%= label %></h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body"><% if (text && text.trim()) { %><div style="white-space:pre-wrap"><%= text %></div>
-    <% } else { %><div class="text-muted small">No content yet. An admin can add it in <strong>Telecaller → Scripts &amp; Pitches</strong>.</div><% } %></div></div>
+    <% } else { %><div class="text-muted small"><%= t("No content yet. An admin can add it in") %> <strong><%= t("Telecaller → Scripts & Pitches") %></strong>.</div><% } %></div></div>
 </div></div>
 <% }) %>
 
 <!-- Share to group modal -->
 <div class="modal fade" id="shareModal" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable">
-  <div class="modal-content"><div class="modal-header"><h6 class="modal-title fw-bold">Share to Sales WhatsApp Group</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-content"><div class="modal-header"><h6 class="modal-title fw-bold"><%= t("Share to Sales WhatsApp Group") %></h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
   <div class="modal-body">
-    <p class="small text-muted">Review the message, then copy it and paste into your sales group. (Click-to-chat can't post to a group automatically.)</p>
+    <p class="small text-muted"><%= t("Review the message, then copy it and paste into your sales group. (Click-to-chat can't post to a group automatically.)") %></p>
     <textarea id="shareText" class="form-control small" rows="12" readonly></textarea>
     <div class="d-flex gap-2 mt-2">
-      <button class="btn btn-primary btn-sm" id="copyShare"><i class="bi bi-clipboard me-1"></i>Copy message</button>
-      <a id="groupLink" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener" style="display:none"><i class="bi bi-whatsapp me-1"></i>Open group</a>
+      <button class="btn btn-primary btn-sm" id="copyShare"><i class="bi bi-clipboard me-1"></i><%= t("Copy message") %></button>
+      <a id="groupLink" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener" style="display:none"><i class="bi bi-whatsapp me-1"></i><%= t("Open group") %></a>
     </div>
   </div></div>
 </div></div>
