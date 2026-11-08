@@ -2,8 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { db, createNotification, auditLog } = require('../db');
 
-const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
-const nowIST   = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 19).replace('T', ' ');
+const { todayIST, nowIST } = require('../lib/dates');
 const canSeeAll = (res) => ['admin', 'manager'].includes(res.locals.user?.role);
 
 // Scope: a salesperson sees only their own assigned leads; admin/manager see all.

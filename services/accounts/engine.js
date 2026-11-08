@@ -32,7 +32,7 @@ const DOC_TYPES = { tax_invoice: 'Tax Invoice', credit_note: 'Credit Note', debi
 const RECEIVABLE = ['tax_invoice', 'debit_note', 'other'];
 const REF_REQUIRED = ['upi', 'neft', 'rtgs', 'imps', 'cheque', 'bank_transfer'];
 
-const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+const { todayIST } = require('../../lib/dates');
 const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && !isNaN(Date.parse(s + 'T00:00:00Z'));
 
 // Financial year (Apr–Mar) of a YYYY-MM-DD date, in the app's "26-27" style

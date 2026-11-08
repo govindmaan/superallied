@@ -25,7 +25,7 @@ function cleanPhone(v) {
 const villageOf  = (loc) => String(loc || '').split(',')[0].trim().replace(/\s+/g, ' ')
   .toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 const searchText = (r) => [r.phone, r.name, r.location, r.district, r.last_remark].join(' ').toLowerCase();
-const todayIST   = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+const { todayIST } = require('../lib/dates');
 
 // Builds the WHERE clause shared by the list, counts and export
 function filters(qs) {

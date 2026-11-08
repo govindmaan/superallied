@@ -6,8 +6,7 @@ const {
 } = require('../db');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const todayIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
-const nowIST   = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 19).replace('T', ' ');
+const { todayIST, nowIST } = require('../lib/dates');
 const isAdminMgr = (res) => ['admin', 'manager'].includes(res.locals.user?.role);
 
 const INTEREST = ['HOT', 'WARM', 'COLD', 'NOT_INTERESTED', 'NOT_REACHABLE', 'WRONG_NUMBER', 'ALREADY_PURCHASED'];
