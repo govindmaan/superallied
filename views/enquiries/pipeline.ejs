@@ -33,7 +33,7 @@
               <% if (e.phone) { %><div class="text-muted" style="font-size:11px"><i class="bi bi-telephone me-1"></i><%= e.phone %></div><% } %>
               <% if (e.machine_interested || e.machine_model) { %><div class="text-muted" style="font-size:11px"><i class="bi bi-gear me-1"></i><%= e.machine_model || e.machine_interested %></div><% } %>
               <% if (e.village_city || e.district) { %><div class="text-muted" style="font-size:11px"><i class="bi bi-geo-alt me-1"></i><%= [e.village_city, e.district].filter(Boolean).join(', ') %></div><% } %>
-              <% if (allAccess && e.assignee_name) { %><div class="text-muted mt-1" style="font-size:10px"><i class="bi bi-person me-1"></i><%= e.assignee_name %></div><% } %>
+              <% if (allAccess && e.assignee_name) { %><div class="text-muted mt-1 text-xs"><i class="bi bi-person me-1"></i><%= e.assignee_name %></div><% } %>
             </div>
           </div>
           <% }) %>

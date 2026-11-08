@@ -82,7 +82,7 @@
             <td class="font-monospace"><%= sq.machine_no || '—' %></td>
             <td><%= sq.customer_name %></td>
             <td class="text-end fw-semibold">₹<%= formatINR(sq.grand_total) %></td>
-            <td><% const sc={draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %><span class="badge <%= sc[sq.status]||'bg-secondary' %>" style="font-size:9px"><%= sq.status %></span></td>
+            <td><% const sc={draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %><span class="badge <%= sc[sq.status]||'bg-secondary' %>"><%= sq.status %></span></td>
             <td class="text-muted"><%= new Date(sq.created_at).toLocaleDateString('en-IN') %></td>
           </tr>
           <% }) %>

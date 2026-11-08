@@ -105,7 +105,7 @@
                 <td class="small font-monospace"><%= q.machine_no || '—' %></td>
                 <td class="small"><%= new Date(q.created_at).toLocaleDateString('en-IN') %></td>
                 <td class="text-end small fw-semibold">₹<%= formatINR(q.grand_total) %></td>
-                <td><% const sc={draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %><span class="badge <%= sc[q.status]||'bg-secondary' %>" style="font-size:9px"><%= q.status %></span></td>
+                <td><% const sc={draft:'bg-secondary',sent:'bg-primary',approved:'bg-success',rejected:'bg-danger',converted:'bg-info'}; %><span class="badge <%= sc[q.status]||'bg-secondary' %>"><%= q.status %></span></td>
               </tr>
               <% }) %>
             </tbody>

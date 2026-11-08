@@ -64,7 +64,7 @@
           <tr class="<%= isActive ? '' : 'table-secondary text-muted' %>">
             <td>
               <a href="/sold-machines/<%= m.id %>" class="fw-semibold text-decoration-none <%= isActive?'':'text-muted' %>"><%= m.machine_no %></a>
-              <% if (!isActive) { %><span class="badge bg-secondary ms-1" style="font-size:10px">Inactive</span><% } %>
+              <% if (!isActive) { %><span class="badge bg-secondary ms-1">Inactive</span><% } %>
             </td>
             <td>
               <div class="fw-semibold"><%= m.customer_name %></div>

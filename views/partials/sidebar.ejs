@@ -206,7 +206,7 @@
     <div class="brand-logo flex-shrink-0">SA</div>
     <div>
       <div class="fw-bold lh-1">Super Allied</div>
-      <small class="text-white-50" style="font-size:10px">Bull CE Dealer</small>
+      <small class="text-white-50 text-xs">Bull CE Dealer</small>
     </div>
   </a>
   <div class="text-center pb-2">
@@ -246,7 +246,7 @@
           <% g.items.forEach(it => { %>
           <a href="<%= it.href %>" class="sb-link nav-link<%= it.href === activeHref ? ' active' : '' %>" onclick="closeSidebarOnMobile()">
             <i class="bi <%= it.icon %>"></i><span class="flex-grow-1"><%= it.label %></span>
-            <% if (it.badge > 0) { %><span class="badge bg-danger" style="font-size:9px"><%= it.badge %></span><% } %>
+            <% if (it.badge > 0) { %><span class="badge bg-danger"><%= it.badge %></span><% } %>
           </a>
           <% }) %>
         <% }) %>
@@ -260,12 +260,12 @@
   <hr class="border-secondary my-0">
   <div class="d-flex align-items-center gap-2 px-3 py-2">
     <div class="flex-grow-1" style="min-width:0">
-      <small class="text-white-50" style="font-size:9px">Logged in as</small><br>
+      <small class="text-white-50 text-xs">Logged in as</small><br>
       <span class="fw-semibold text-truncate d-block" style="max-width:140px;font-size:13px">
         <%= user ? user.full_name || user.username : '' %>
       </span>
       <% const roleBadge = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success',accountant:'bg-dark',accounts_manager:'bg-dark'}; %>
-      <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>" style="font-size:9px"><%= (user?.role||'').replace('_', ' ').toUpperCase() %></span>
+      <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>"><%= (user?.role||'').replace('_', ' ').toUpperCase() %></span>
     </div>
     <a href="/help" class="btn btn-sm <%= active==='help'?'btn-light':'btn-outline-light' %> flex-shrink-0" title="Help & Updates" aria-label="Help & Updates">
       <i class="bi bi-question-circle"></i>
@@ -276,76 +276,6 @@
   </div>
 </nav>
 
-<style>
-/* Bottom navigation (phones, field staff) */
-.bottom-nav { display: none; }
-@media (max-width: 991.98px) {
-  .bottom-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
-    background: #fff; border-top: 1px solid #e5e7eb; box-shadow: 0 -2px 12px rgba(0,0,0,.06);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-  }
-  body:has(.bottom-nav) .main-content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
-  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: none;
-             color: #6b7280; text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 0; min-height: 52px; justify-content: flex-end; }
-  .bn-item .bn-icon { font-size: 1.35rem; line-height: 1; }
-  .bn-item.active { color: #cc0000; }
-  .bn-center .bn-icon { width: 54px; height: 54px; margin-top: -26px; border-radius: 50%; background: #cc0000; color: #fff;
-                        display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
-                        box-shadow: 0 6px 16px rgba(204,0,0,.35); border: 4px solid #fff; }
-  .bn-center { color: #cc0000; }
-}
-
-/* Section headers */
-.sb-section { margin-top: 2px; }
-.sb-section-hdr {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 8px 8px; background: none; border: 0;
-  font-size: 11px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
-  cursor: pointer; border-radius: 6px;
-  user-select: none; transition: background .15s, color .15s;
-}
-.sb-section-hdr:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
-.sb-section-hdr .sb-sec-icon { font-size: 14px; width: 16px; text-align: center; }
-.sb-section-hdr.has-active { color: #fff; }
-.sb-section-hdr .sb-chevron { font-size: 11px; }
-
-/* Chevron animation */
-.sb-chevron { transition: transform .2s; }
-.sb-chevron.open { transform: rotate(90deg); }
-
-/* Section body */
-.sb-section-body { display: none; padding-left: 10px; margin: 0 0 4px 8px; border-left: 1px solid rgba(255,255,255,0.1); }
-.sb-section-body.show { display: block; }
-
-/* Nav links inside sections */
-#sidebar .sb-link {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 8px; border-radius: 6px; margin-bottom: 1px;
-  font-size: 13px; color: rgba(255,255,255,0.72) !important;
-  text-decoration: none; transition: background .12s, color .12s;
-}
-.sb-link i { font-size: 13px; width: 15px; text-align: center; flex-shrink: 0; }
-.sb-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
-.sb-link.active { background: rgba(255,255,255,0.15) !important; color: #fff !important; font-weight: 600; }
-
-/* Top-level dashboard link */
-.sb-top-link { font-size: 14px !important; }
-.sb-top-link i { font-size: 16px; width: 18px; }
-.sb-top-link:hover { background: rgba(255,255,255,0.1); }
-.sb-top-link.active { background: rgba(255,255,255,0.16) !important; font-weight: 700 !important; }
-
-/* Sub-labels inside sections */
-.sb-sub-label {
-  font-size: 9px; font-weight: 700; letter-spacing: 1px;
-  color: rgba(255,255,255,0.35); text-transform: uppercase;
-  padding: 6px 8px 3px 8px;
-}
-
-.sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
-</style>
 
 <script>
 // Collapsible sections. Each user's open/closed choice is remembered on this device;

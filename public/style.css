@@ -1,5 +1,47 @@
+/* ══ Super Allied design tokens ═══════════════════════════════════════════════
+   One place for brand colour, surfaces, text, borders, radius and type scale.
+   Change a value here and every screen follows. PDF/print templates keep their
+   own inline styles on purpose (fixed paper layout). */
+:root {
+  /* Brand (Bull red) */
+  --sa-brand:        #cc0000;
+  --sa-brand-hover:  #aa0000;
+  --sa-brand-shadow: rgba(204, 0, 0, .35);
+
+  /* Sidebar / dark chrome */
+  --sa-chrome:       #1a1d2e;
+  --sa-chrome-2:     #2d3250;
+
+  /* Surfaces and lines */
+  --sa-page-bg:      #f5f6fa;
+  --sa-surface:      #ffffff;
+  --sa-surface-hover:#f8f9fa;
+  --sa-border:       #e5e7eb;
+  --sa-border-soft:  #f0f0f0;
+
+  /* Text */
+  --sa-text:         #111827;
+  --sa-text-muted:   #6b7280;
+  --sa-text-faint:   #8a8f98;
+
+  /* Shape */
+  --sa-radius-sm: 6px;
+  --sa-radius:    8px;
+  --sa-radius-lg: 12px;
+
+  /* Type scale (screen). 11px is the smallest size used on screen. */
+  --sa-text-xs:   11px;
+  --sa-text-sm:   12px;
+  --sa-text-md:   14px;
+
+  /* Bootstrap hooks so its components use the same palette */
+  --bs-body-bg: var(--sa-page-bg);
+  --bs-border-color: var(--sa-border);
+  --bs-secondary-color: var(--sa-text-muted);
+}
+
 /* ── Base ───────────────────────────────────────────────────── */
-body { background: #f5f6fa; min-height: 100vh; }
+body { background: var(--sa-page-bg); color: var(--sa-text); min-height: 100vh; }
 
 /* ── Mobile Top Bar ─────────────────────────────────────────── */
 .mobile-topbar {
@@ -7,7 +49,7 @@ body { background: #f5f6fa; min-height: 100vh; }
   position: fixed;
   top: 0; left: 0; right: 0;
   height: 56px;
-  background: #1a1d2e;
+  background: var(--sa-chrome);
   z-index: 1045;
   padding: 0 16px;
   align-items: center;
@@ -51,7 +93,7 @@ body { background: #f5f6fa; min-height: 100vh; }
 #sidebar {
   width: 240px;
   min-height: 100vh;
-  background: #1a1d2e;
+  background: var(--sa-chrome);
   position: fixed;
   top: 0; left: 0; bottom: 0;
   overflow-y: auto;
@@ -60,7 +102,7 @@ body { background: #f5f6fa; min-height: 100vh; }
 }
 .brand-logo {
   width: 40px; height: 40px;
-  background: #cc0000; color: #fff;
+  background: var(--sa-brand); color: #fff;
   border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 900; font-size: 14px; flex-shrink: 0;
@@ -84,7 +126,7 @@ body { background: #f5f6fa; min-height: 100vh; }
 /* ── Page Header ─────────────────────────────────────────────── */
 .page-header {
   padding-bottom: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--sa-border);
   margin-bottom: 24px;
 }
 
@@ -99,32 +141,32 @@ body { background: #f5f6fa; min-height: 100vh; }
 
 /* ── Login Page ──────────────────────────────────────────────── */
 .login-page {
-  background: linear-gradient(135deg, #1a1d2e 0%, #2d3250 100%);
+  background: linear-gradient(135deg, var(--sa-chrome) 0%, var(--sa-chrome-2) 100%);
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
 }
 
 /* ── Tables ──────────────────────────────────────────────────── */
 .table th {
-  font-size: 12px; font-weight: 600;
-  color: #6b7280; text-transform: uppercase;
+  font-size: var(--sa-text-sm); font-weight: 600;
+  color: var(--sa-text-muted); text-transform: uppercase;
   letter-spacing: 0.5px; white-space: nowrap;
 }
 .table td { vertical-align: middle; }
 
 /* ── Cards ───────────────────────────────────────────────────── */
-.card { border-radius: 12px; }
+.card { border-radius: var(--sa-radius-lg); }
 .card-header {
-  border-radius: 12px 12px 0 0 !important;
+  border-radius: var(--sa-radius-lg) var(--sa-radius-lg) 0 0 !important;
   font-size: 14px; padding: 14px 18px;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
-.btn-danger { background-color: #cc0000; border-color: #cc0000; }
-.btn-danger:hover { background-color: #aa0000; border-color: #aa0000; }
+.btn-danger { background-color: var(--sa-brand); border-color: var(--sa-brand); }
+.btn-danger:hover { background-color: var(--sa-brand-hover); border-color: var(--sa-brand-hover); }
 
 /* ── Badges ──────────────────────────────────────────────────── */
-.badge { font-size: 11px; font-weight: 500; }
+.badge { font-size: var(--sa-text-xs); font-weight: 500; }
 
 /* ── Monospace ───────────────────────────────────────────────── */
 .font-monospace { font-family: 'Courier New', monospace; font-size: 12px; }
@@ -164,4 +206,148 @@ body { background: #f5f6fa; min-height: 100vh; }
   .card-body .d-flex.gap-2 { flex-direction: column; }
   .card-body .d-flex.gap-2 .form-control,
   .card-body .d-flex.gap-2 .form-select { max-width: 100% !important; }
+}
+
+/* ── Universal search (top bar) ──────────────────────────────── */
+.universal-search-bar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: var(--sa-surface);
+  border-bottom: 1px solid var(--sa-border);
+  padding: 8px 16px;
+}
+.search-input-wrapper {
+  position: relative;
+  max-width: 400px;
+}
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-top: none;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  display: none;
+}
+.search-dropdown.show {
+  display: block;
+}
+.search-result-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sa-border-soft);
+  cursor: pointer;
+  transition: background 0.2s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.search-result-item:hover {
+  background: var(--sa-surface-hover);
+  color: inherit;
+}
+.search-result-category {
+  font-size: var(--sa-text-xs);
+  color: var(--sa-text-faint);
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 6px 12px 3px;
+  margin-top: 4px;
+}
+.search-result-title {
+  font-weight: 500;
+  color: var(--sa-text);
+  font-size: 14px;
+}
+.search-result-meta {
+  font-size: 12px;
+  color: var(--sa-text-muted);
+}
+
+/* ── Sidebar sections and phone bottom navigation ────────────── */
+/* Bottom navigation (phones, field staff) */
+.bottom-nav { display: none; }
+@media (max-width: 991.98px) {
+  .bottom-nav {
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
+    background: var(--sa-surface); border-top: 1px solid var(--sa-border); box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  body:has(.bottom-nav) .main-content { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: none;
+             color: var(--sa-text-muted); text-decoration: none; font-size: 11px; font-weight: 600; padding: 4px 0; min-height: 52px; justify-content: flex-end; }
+  .bn-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+  .bn-item.active { color: var(--sa-brand); }
+  .bn-center .bn-icon { width: 54px; height: 54px; margin-top: -26px; border-radius: 50%; background: var(--sa-brand); color: #fff;
+                        display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+                        box-shadow: 0 6px 16px var(--sa-brand-shadow); border: 4px solid var(--sa-surface); }
+  .bn-center { color: var(--sa-brand); }
+}
+
+/* Section headers */
+.sb-section { margin-top: 2px; }
+.sb-section-hdr {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 8px; background: none; border: 0;
+  font-size: 11px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer; border-radius: 6px;
+  user-select: none; transition: background .15s, color .15s;
+}
+.sb-section-hdr:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+.sb-section-hdr .sb-sec-icon { font-size: 14px; width: 16px; text-align: center; }
+.sb-section-hdr.has-active { color: #fff; }
+.sb-section-hdr .sb-chevron { font-size: 11px; }
+
+/* Chevron animation */
+.sb-chevron { transition: transform .2s; }
+.sb-chevron.open { transform: rotate(90deg); }
+
+/* Section body */
+.sb-section-body { display: none; padding-left: 10px; margin: 0 0 4px 8px; border-left: 1px solid rgba(255,255,255,0.1); }
+.sb-section-body.show { display: block; }
+
+/* Nav links inside sections */
+#sidebar .sb-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 6px; margin-bottom: 1px;
+  font-size: 13px; color: rgba(255,255,255,0.72) !important;
+  text-decoration: none; transition: background .12s, color .12s;
+}
+.sb-link i { font-size: 13px; width: 15px; text-align: center; flex-shrink: 0; }
+.sb-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
+.sb-link.active { background: rgba(255,255,255,0.15) !important; color: #fff !important; font-weight: 600; }
+
+/* Top-level dashboard link */
+.sb-top-link { font-size: 14px !important; }
+.sb-top-link i { font-size: 16px; width: 18px; }
+.sb-top-link:hover { background: rgba(255,255,255,0.1); }
+.sb-top-link.active { background: rgba(255,255,255,0.16) !important; font-weight: 700 !important; }
+
+/* Sub-labels inside sections */
+.sb-sub-label {
+  font-size: var(--sa-text-xs); font-weight: 700; letter-spacing: 1px;
+  color: rgba(255,255,255,0.35); text-transform: uppercase;
+  padding: 6px 8px 3px 8px;
+}
+
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+
+/* ── Utilities ───────────────────────────────────────────────── */
+.text-xs   { font-size: var(--sa-text-xs) !important; }
+.clickable { cursor: pointer; }
+.num       { font-variant-numeric: tabular-nums; white-space: nowrap; }   /* money and counts line up */
+
+/* ── Accessibility ───────────────────────────────────────────── */
+/* Visible keyboard focus everywhere (mouse clicks don't show it) */
+:focus-visible { outline: 2px solid var(--sa-brand); outline-offset: 2px; }
+.btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible { box-shadow: 0 0 0 .2rem var(--sa-brand-shadow); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
