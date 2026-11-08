@@ -1,0 +1,63 @@
+// One-time and corrective data migrations, run after seeding on every start.
+// Each one is guarded (by a settings flag or by being idempotent) so it only
+// changes data once.
+const db = require('./connection');
+const { EMP_CODE_START } = require('./helpers');
+
+function migrate() {
+  // One-time correction for DBs (including production) seeded before this rate
+  // policy existed — guarded so it never overwrites a rate an admin sets later
+  // via /travel-expenses/rates. Also retires "Other" as a travel type.
+  const ratesMigrationDone = db.prepare("SELECT value FROM settings WHERE key='rates_migration_2026_09'").get();
+  if (!ratesMigrationDone) {
+    db.prepare("UPDATE expense_rates SET rate_per_km=3 WHERE vehicle_type='Own Two Wheeler'").run();
+    db.prepare("UPDATE expense_rates SET rate_per_km=5 WHERE vehicle_type='Own Four Wheeler'").run();
+    db.prepare("DELETE FROM expense_rates WHERE vehicle_type='Other'").run();
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('rates_migration_2026_09', '1')").run();
+  }
+
+  // Ensure EL and HD stay inactive even on existing DBs
+  // Sick leave is not offered by company policy. Deactivated rather than deleted
+  // because existing leave records reference it.
+  db.prepare("UPDATE leave_types SET is_active=0 WHERE code IN ('EL','HD','SL')").run();
+
+  // Sales (and its legacy alias "staff") no longer get Machine Quotations/Form 22 —
+  // remove the row on existing DBs too, not just skip seeding it on fresh ones.
+  db.prepare("DELETE FROM role_permissions WHERE role IN ('sales','staff') AND permission='quotations'").run();
+
+  // One-time: attendance / odometer days used to be the UTC date, so a punch-in
+  // before 5:30 am India time was filed under the previous day. Re-file them under
+  // the India date (skipped if that user already has a row for that date).
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_ist_dates_v1'").get()) {
+    try {
+      db.exec('BEGIN');
+      const att = db.prepare(`UPDATE attendance SET date = date(check_in_time,'+330 minutes')
+        WHERE check_in_time IS NOT NULL AND date <> date(check_in_time,'+330 minutes')
+          AND NOT EXISTS (SELECT 1 FROM attendance a2 WHERE a2.user_id = attendance.user_id AND a2.date = date(attendance.check_in_time,'+330 minutes'))`).run();
+      const jr = db.prepare(`UPDATE expense_journeys SET date = date(start_time,'+330 minutes')
+        WHERE start_time IS NOT NULL AND date <> date(start_time,'+330 minutes')
+          AND NOT EXISTS (SELECT 1 FROM expense_journeys j2 WHERE j2.user_id = expense_journeys.user_id AND j2.date = date(expense_journeys.start_time,'+330 minutes'))`).run();
+      db.prepare("INSERT INTO settings (key, value) VALUES ('migr_ist_dates_v1', ?)").run(`attendance ${att.changes}, journeys ${jr.changes}`);
+      db.exec('COMMIT');
+      if (att.changes || jr.changes) console.log(`India-time date fix: ${att.changes} attendance, ${jr.changes} journey rows re-dated.`);
+    } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('India-time date fix failed:', e.message); }
+  }
+
+  // ── Employee IDs: 10001, 10002, … ───────────────────────────────────────────
+  // Every user gets the next number when created. One-time: renumber everyone in
+  // joining order (date of joining, then account creation); old codes are kept.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_empcode_v1'").get()) {
+    try {
+      db.exec('BEGIN');
+      const users = db.prepare(`SELECT id, employee_code FROM users
+        ORDER BY (date_of_joining IS NULL OR date_of_joining = ''), date_of_joining, created_at, id`).all();
+      const upd = db.prepare("UPDATE users SET old_employee_code = ?, employee_code = ? WHERE id = ?");
+      users.forEach((u, i) => upd.run(u.employee_code || '', String(EMP_CODE_START + i), u.id));
+      db.prepare("INSERT INTO settings (key, value) VALUES ('migr_empcode_v1', ?)").run(`${users.length} users renumbered`);
+      db.exec('COMMIT');
+      if (users.length) console.log(`Employee IDs renumbered from ${EMP_CODE_START} for ${users.length} users.`);
+    } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Employee ID renumbering failed:', e.message); }
+  }
+}
+
+module.exports = { migrate };
