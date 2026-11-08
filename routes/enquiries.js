@@ -67,14 +67,24 @@ router.get('/', (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const perPage = 50;
 
+  // Sort — available to every user. "enquiry date" uses created_at; "period"
+  // (how long the enquiry has been open) surfaces the oldest first.
+  const SORTS = {
+    updated:     'e.updated_at DESC',
+    enquiry_new: 'e.created_at DESC',
+    enquiry_old: 'e.created_at ASC',
+    period:      'e.created_at ASC',
+  };
+  const sort = SORTS[req.query.sort] ? req.query.sort : 'updated';
+
   const { sql, params } = getEnquiries(user, { q, stage, status: status || undefined, assigned_to, district, machine, lead_source, from, to });
   const total = db.prepare(`SELECT COUNT(*) as c FROM (${sql})`).get(...params).c;
-  const enquiries = db.prepare(`${sql} ORDER BY e.updated_at DESC LIMIT ? OFFSET ?`).all(...params, perPage, (page - 1) * perPage);
+  const enquiries = db.prepare(`${sql} ORDER BY ${SORTS[sort]}, e.id DESC LIMIT ? OFFSET ?`).all(...params, perPage, (page - 1) * perPage);
 
   const staff = db.prepare("SELECT id, full_name FROM users WHERE role NOT IN ('admin') ORDER BY full_name").all();
   res.render('enquiries/list', {
     title: 'Enquiries', enquiries, STAGES, staff, LEAD_SOURCES,
-    q, stage, status, assigned_to, district, machine, lead_source, from, to,
+    q, stage, status, assigned_to, district, machine, lead_source, from, to, sort,
     allAccess: canSeeAll(user), page, perPage, total, totalPages: Math.ceil(total / perPage) || 1,
   });
 });
@@ -271,6 +281,7 @@ router.get('/:id', (req, res) => {
 
 // ── Edit basic fields ──────────────────────────────────────────────────────────
 router.get('/:id/edit', (req, res) => {
+  if (res.locals.user.role !== 'admin') { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
   const enquiry = loadEnquiryOrDeny(req, res);
   if (!enquiry) return;
   const machines = db.prepare('SELECT model_code, display_name FROM machines WHERE active=1 ORDER BY display_name').all();
@@ -279,6 +290,7 @@ router.get('/:id/edit', (req, res) => {
 });
 
 router.post('/:id', (req, res) => {
+  if (res.locals.user.role !== 'admin') { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
   const enquiry = loadEnquiryOrDeny(req, res);
   if (!enquiry) return;
   const b = req.body;
