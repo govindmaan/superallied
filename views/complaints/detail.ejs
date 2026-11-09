@@ -1,0 +1,104 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'complaints', user }) %>
+<%
+  const col = {open:'danger',assigned:'warning text-dark',visited:'info text-dark',closed:'secondary'}[c.status];
+  const mobile = (c.customer_mobile || '').replace(/\D/g,'').slice(-10);
+  const isEngineer = c.assigned_to === me;
+%>
+<div class="main-content" style="max-width:620px">
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <a href="/complaints" class="text-decoration-none small"><i class="bi bi-arrow-left me-1"></i><%= t("Complaints") %></a>
+
+  <div class="card border-0 shadow-sm mt-2 mb-3"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4 class="fw-bold mb-1"><%= c.customer_name || t('Unknown') %></h4>
+        <div class="text-muted small"><i class="bi bi-hdd-rack me-1"></i><%= c.machine_no %><% if (c.model) { %> · <%= c.model %><% } %></div>
+      </div>
+      <span class="badge bg-<%= col %>"><%= t(c.status) %></span>
+    </div>
+    <div class="row g-2 small mt-1">
+      <div class="col-6"><span class="text-muted"><%= t("Complaint No") %></span><br><span class="fw-semibold"><%= c.complaint_number %></span></div>
+      <div class="col-6"><span class="text-muted"><%= t("Location") %></span><br><%= [c.location, c.district].filter(Boolean).join(', ') || '—' %></div>
+      <div class="col-6"><span class="text-muted"><%= t("Engineer") %></span><br><%= c.engineer_name || t('Unassigned') %></div>
+      <div class="col-6"><span class="text-muted"><%= t("Opened by") %></span><br><%= c.reporter_name || '—' %></div>
+    </div>
+    <% if (c.problem) { %><hr><div class="small"><span class="text-muted"><%= t("Problem:") %></span> <%= c.problem %></div><% } %>
+    <div class="d-flex gap-2 mt-2">
+      <% if (mobile) { %><a href="tel:+91<%= mobile %>" class="btn btn-success btn-sm"><i class="bi bi-telephone-fill me-1"></i><%= mobile %></a><% } %>
+    </div>
+  </div></div>
+
+  <!-- Assign (coordinator/manager) -->
+  <% if (engineers.length && c.status !== 'closed') { %>
+  <form method="post" action="/complaints/<%= c.id %>/assign" class="card border-0 shadow-sm mb-3"><div class="card-body">
+    <label class="form-label small fw-semibold"><%= t("Assign service engineer") %></label>
+    <div class="input-group input-group-sm">
+      <select name="assigned_to" class="form-select"><option value=""><%= t("— pick —") %></option>
+        <% engineers.forEach(e => { %><option value="<%= e.id %>" <%= c.assigned_to===e.id?'selected':'' %>><%= e.full_name || e.username %></option><% }) %>
+      </select>
+      <button class="btn btn-outline-primary"><%= t("Assign") %></button>
+    </div>
+  </div></form>
+  <% } %>
+
+  <!-- Record visit (assigned engineer) -->
+  <% if ((isEngineer || isManager) && c.status !== 'closed') { %>
+  <form method="post" action="/complaints/<%= c.id %>/visit" class="card border-0 shadow-sm mb-3" id="visitForm"><div class="card-body">
+    <div class="fw-semibold mb-2"><i class="bi bi-camera-fill me-1"></i><%= t("Record site visit") %></div>
+    <p class="small text-muted mb-2"><%= t("Take a photo of the machine plate at the site. Travel allowance for today unlocks once a visit is recorded.") %></p>
+    <input type="file" accept="image/*" capture="environment" id="plateFile" class="form-control mb-2">
+    <img id="platePreview" style="display:none;max-width:160px;border-radius:8px;border:1px solid #ddd" class="mb-2">
+    <input type="hidden" name="plate_photo" id="platePhoto">
+    <input type="hidden" name="lat" id="lat"><input type="hidden" name="lng" id="lng">
+    <input name="outcome" class="form-control form-control-sm mb-2" placeholder="<%= t("Outcome / work done (optional)") %>">
+    <button class="btn btn-primary w-100" id="visitBtn" disabled><i class="bi bi-check-lg me-1"></i><%= t("Save Visit") %></button>
+  </div></form>
+  <% } %>
+
+  <!-- Visits history -->
+  <% if (visits.length) { %>
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold"><%= t("Site Visits") %></div>
+    <ul class="list-group list-group-flush">
+      <% visits.forEach(v => { %>
+      <li class="list-group-item py-2 small d-flex gap-2">
+        <% if (v.plate_photo) { %><a href="<%= v.plate_photo %>" target="_blank"><img src="<%= v.plate_photo %>" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #ddd"></a><% } %>
+        <div><div><%= v.full_name || '' %> · <%= v.visit_date %></div><% if (v.outcome) { %><div class="text-muted"><%= v.outcome %></div><% } %></div>
+      </li>
+      <% }) %>
+    </ul>
+  </div>
+  <% } %>
+
+  <!-- Close -->
+  <% if ((isEngineer || isManager) && c.status !== 'closed') { %>
+  <form method="post" action="/complaints/<%= c.id %>/close" class="card border-0 shadow-sm"><div class="card-body">
+    <label class="form-label small fw-semibold"><%= t("Close complaint") %></label>
+    <div class="input-group input-group-sm">
+      <input name="close_notes" class="form-control" placeholder="<%= t("Closing note (optional)") %>">
+      <button class="btn btn-outline-dark"><i class="bi bi-check2-all me-1"></i><%= t("Close") %></button>
+    </div>
+    <% if (!visits.length) { %><div class="small text-warning mt-1"><%= t("Tip: record the site visit (plate photo) before closing.") %></div><% } %>
+  </div></form>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const f = document.getElementById('plateFile');
+  if (f) {
+    navigator.geolocation?.getCurrentPosition(p => { document.getElementById('lat').value = p.coords.latitude; document.getElementById('lng').value = p.coords.longitude; }, () => {});
+    f.addEventListener('change', () => {
+      const file = f.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        document.getElementById('platePhoto').value = r.result;
+        const img = document.getElementById('platePreview'); img.src = r.result; img.style.display = 'block';
+        document.getElementById('visitBtn').disabled = false;
+      };
+      r.readAsDataURL(file);
+    });
+  }
+</script>
+</body></html>

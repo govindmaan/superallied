@@ -253,18 +253,26 @@ router.post('/:id/submit', requireClaimAccess, (req, res) => {
   }
   if (isLocked(expense.date)) { req.session.flash = { error: lockedMsg(expense.date) }; return res.redirect('/travel-expenses/' + expense.id); }
 
-  // Sales expenses are the priority and are mandatory-gated: the day must be
-  // complete (check-in/out selfies + start/end odometer photos) with a purpose.
+  // Sales & Service are mandatory-gated: the day must be complete (check-in/out
+  // selfies + start/end odometer photos) with a purpose. Service additionally
+  // needs a visited complaint that day — no site visit, no travel allowance.
   const dept = expense.department || sectionOf(uid);
-  if (dept === 'Sales') {
+  if (dept === 'Sales' || dept === 'Service') {
     if (!(expense.purpose || '').trim()) {
-      req.session.flash = { error: 'A purpose is required on sales expenses.' };
+      req.session.flash = { error: 'A purpose is required on this expense.' };
       return res.redirect('/travel-expenses/' + expense.id + '/edit');
     }
     const proof = dayProof(uid, expense.date);
     if (!proof.complete) {
       req.session.flash = { error: `Complete your day first — missing: ${proof.missing.join(', ')}.` };
       return res.redirect('/travel-expenses/' + expense.id);
+    }
+    if (dept === 'Service') {
+      const visited = db.prepare('SELECT COUNT(*) c FROM complaint_visits WHERE engineer_id=? AND visit_date=?').get(uid, expense.date).c;
+      if (!visited) {
+        req.session.flash = { error: 'Service travel allowance needs a complaint you visited on this date. Record the site visit (plate photo) on the complaint first.' };
+        return res.redirect('/travel-expenses/' + expense.id);
+      }
     }
   }
 

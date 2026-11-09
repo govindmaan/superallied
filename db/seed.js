@@ -37,8 +37,9 @@ function seed() {
     ['office','spare_parts'],['office','spare_reports'],['office','stock'],
     ['office','enquiries'],['office','attendance'],['office','expense_claim'],['office','customers'],
 
-    // service
+    // service — attendance, visits, expense claims, and the machine-complaint module
     ['service','attendance'],['service','field_visit'],['service','route_map'],['service','expense_claim'],
+    ['service','service_complaints'],['manager','service_complaints'],
 
     // hr
     ['hr','attendance'],['hr','hr_admin'],['hr','leave_approval'],['hr','attendance_admin'],['hr','reports'],

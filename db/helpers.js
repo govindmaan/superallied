@@ -207,6 +207,12 @@ function nextExpenseNumber() {
   return `EXP-${year}-${String(count + 1).padStart(6, '0')}`;
 }
 
+function nextComplaintNumber() {
+  const year = new Date().getFullYear();
+  const count = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE complaint_number LIKE ?").get(`CMP-${year}-%`).c;
+  return `CMP-${year}-${String(count + 1).padStart(5, '0')}`;
+}
+
 function auditLog(userId, action, entity = '', entityId = '', details = '') {
   try {
     db.prepare('INSERT INTO audit_log (user_id,action,entity,entity_id,details) VALUES (?,?,?,?,?)')
@@ -230,4 +236,4 @@ function nextEmployeeCode() {
   return String(Math.max(EMP_CODE_START, (r?.m || 0) + 1));
 }
 
-module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, routeLeadByDistrict, EMP_CODE_START };
+module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, nextComplaintNumber, routeLeadByDistrict, EMP_CODE_START };

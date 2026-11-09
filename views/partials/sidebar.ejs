@@ -59,6 +59,7 @@
     ]},
     { id: 'service', label: t('Service'), icon: 'bi-tools', groups: [
       { items: [
+        { href: '/complaints',    icon: 'bi-wrench-adjustable', label: t('Machine Complaints'), show: can('service_complaints'), keys: ['complaints'] },
         { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: t('Sold Machines'), show: can('sold_machines'), keys: ['sold-machines'] },
         { href: '/visits',        icon: 'bi-geo-alt-fill',  label: t('Site Visits'),   show: can('field_visit'),   keys: ['visits'] },
       ]},
@@ -153,6 +154,8 @@
     { href: '/', icon: 'bi-house-door-fill', label: t('Home'), on: p === '/' },
     can('enquiries')
       ? { href: '/my-leads', icon: 'bi-person-badge-fill', label: t('My Leads'), on: p.startsWith('/my-leads') }
+      : can('service_complaints')
+      ? { href: '/complaints', icon: 'bi-wrench-adjustable', label: t('Complaints'), on: p.startsWith('/complaints') }
       : { href: '/customers', icon: 'bi-people-fill', label: t('Customers'), on: p.startsWith('/customers') },
     { href: '/?visit=1', icon: 'bi-geo-alt-fill', label: t('Visit'), center: true },
     hasPerm('attendance')

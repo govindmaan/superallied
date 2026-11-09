@@ -49,6 +49,10 @@ const INDEXES = [
   "CREATE INDEX IF NOT EXISTS idx_lead_activity_enquiry ON lead_activity(enquiry_id);",
   "CREATE INDEX IF NOT EXISTS idx_visits_user_time ON field_visits(user_id, visit_time);",
   "CREATE UNIQUE INDEX IF NOT EXISTS idx_sq_share_token ON spare_quotations(share_token);",
+  "CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);",
+  "CREATE INDEX IF NOT EXISTS idx_complaints_assigned ON complaints(assigned_to);",
+  "CREATE INDEX IF NOT EXISTS idx_complaint_visits ON complaint_visits(complaint_id);",
+  "CREATE INDEX IF NOT EXISTS idx_complaint_visits_eng ON complaint_visits(engineer_id, visit_date);",
 ];
 
 function createIndexes() {

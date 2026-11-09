@@ -683,6 +683,41 @@ function createTables() {
       sort_order   INTEGER DEFAULT 0
     );
   `);
+
+  // Machine complaints: a service coordinator opens a complaint against a sold
+  // machine's serial; a service engineer visits, photographs the plate and
+  // closes it. Service travel allowance is only payable against a visit.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      complaint_number TEXT UNIQUE,
+      machine_no      TEXT DEFAULT '',
+      model           TEXT DEFAULT '',
+      customer_name   TEXT DEFAULT '',
+      customer_mobile TEXT DEFAULT '',
+      location        TEXT DEFAULT '',
+      district        TEXT DEFAULT '',
+      problem         TEXT DEFAULT '',
+      status          TEXT DEFAULT 'open',
+      reported_by     INTEGER REFERENCES users(id),
+      assigned_to     INTEGER REFERENCES users(id),
+      opened_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+      assigned_at     DATETIME,
+      closed_at       DATETIME,
+      close_notes     TEXT DEFAULT '',
+      updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS complaint_visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      complaint_id INTEGER NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+      engineer_id  INTEGER REFERENCES users(id),
+      visit_date   DATE,
+      plate_photo  TEXT DEFAULT '',
+      lat REAL, lng REAL,
+      outcome      TEXT DEFAULT '',
+      created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 module.exports = { createTables };

@@ -40,6 +40,7 @@ const databankRoutes        = require('./routes/databank');
 const telecallerRoutes      = require('./routes/telecaller');
 const myleadsRoutes         = require('./routes/myleads');
 const orgRoutes             = require('./routes/org');
+const complaintsRoutes      = require('./routes/complaints');
 const pushRoutes            = require('./routes/push');
 
 const app  = express();
@@ -178,6 +179,7 @@ app.use('/route-map',         requireLogin,                                   ro
 app.use('/backup',            requireLogin, requireAdmin,                     backupRoutes);
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
 app.use('/telecaller',        requireLogin, requirePerm('telecaller'),        telecallerRoutes);
+app.use('/complaints',        requireLogin, requirePerm('service_complaints'), complaintsRoutes);
 app.use('/my-leads',          requireLogin, requirePerm('enquiries'),         myleadsRoutes);
 
 // Old "My Route" page now lives in the route map
