@@ -50,6 +50,10 @@ const COLUMNS = {
     ["purchase_price", "INTEGER DEFAULT 0"],
     ["gst_rate", "REAL DEFAULT 18"],
   ],
+  travel_expenses: [
+    // The claimant's department (org section) at submit time, for routing/reporting
+    ["department", "TEXT DEFAULT ''"],
+  ],
   spare_quotations: [
     ["show_discount", "INTEGER DEFAULT 0"],
     ["quotation_date", "DATE"],

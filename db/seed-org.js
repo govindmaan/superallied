@@ -10,7 +10,7 @@ module.exports = [
   ['head_sales',   'Head of Sales',                2, 'Sales',      'owner', 1, '₹80–90k', 'manager', 'Owns the ₹100 Cr number'],
   ['head_service', 'Head of Service',              2, 'Service',    'owner', 1, '₹70–80k', 'manager', 'Uptime, warranty, service partners'],
   ['head_ops',     'Head of Operations (GM)',      2, 'Operations', 'owner', 1, '₹80–90k', 'manager', 'Deliveries, stock, branches'],
-  ['head_finance', 'Head of Finance and Admin',    2, 'Support',    'owner', 1, '₹70–80k', 'manager', 'Accounts, cash, HR, compliance'],
+  ['head_finance', 'Head of Finance and Admin',    2, 'Support',    'owner', 1, '₹70–80k', 'head_of_finance', 'Accounts, cash, HR, compliance; approves all expenses'],
 
   // Level 3 — managers
   ['rsm',                 'Regional Sales Manager',          3, 'Sales',      'head_sales',   3, '₹45–55k + incentive', 'manager',          'Meerut region, North region, NCR'],

@@ -35,6 +35,11 @@ function migrate() {
   // remove the row on existing DBs too, not just skip seeding it on fresh ones.
   db.prepare("DELETE FROM role_permissions WHERE role IN ('sales','staff') AND permission='quotations'").run();
 
+  // Expense approvals now route only to the Head of Finance (and admin). Revoke
+  // the old manager/hr approver rows on existing DBs so claims no longer land
+  // in their queues. (head_of_finance's rows are added by seed.)
+  db.prepare("DELETE FROM role_permissions WHERE role IN ('manager','hr') AND permission='expense_approval'").run();
+
   // One-time: attendance / odometer days used to be the UTC date, so a punch-in
   // before 5:30 am India time was filed under the previous day. Re-file them under
   // the India date (skipped if that user already has a row for that date).

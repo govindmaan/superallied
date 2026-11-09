@@ -2,16 +2,15 @@ const express = require('express');
 const path    = require('path');
 const router  = express.Router();
 const { db, auditLog, createNotification, nextExpenseNumber, numberToWords, today } = require('../db');
-const { approverIdsFor, canApproveFor } = require('../lib/org');
+const { financeApproverIds, sectionOf } = require('../lib/org');
 const { analyzeImage } = require('../services/expenseImageAnalyzer');
 
+// Every department's expenses are approved by the Head of Finance (and admin).
 function isApprover(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_approval'); }
-// Approver for this claim: the general approvers, or the claimant's approver in the organisation chart
-function canApproveClaim(res, expense) { return isApprover(res) || (!!expense && canApproveFor(res.locals.user?.id, expense.user_id, res.locals.user?.role)); }
+function canApproveClaim(res) { return isApprover(res); }
 function requireClaimApprover(req, res, next) {
-  const expense = db.prepare('SELECT user_id FROM travel_expenses WHERE id=?').get(req.params.id);
-  if (canApproveClaim(res, expense)) return next();
-  req.session.flash = { error: 'You are not the approver for this expense.' };
+  if (canApproveClaim(res)) return next();
+  req.session.flash = { error: 'Only the Head of Finance can approve expenses.' };
   res.redirect('/travel-expenses/' + req.params.id);
 }
 function canClaim(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_claim'); }
@@ -176,11 +175,11 @@ router.post('/', requireClaimAccess, (req, res) => {
   } else {
     const result = db.prepare(`INSERT INTO travel_expenses
       (expense_number,user_id,date,travel_type,vehicle_number,purpose,start_odo,end_odo,distance_km,rate_per_km,
-       travel_amount,total_claim,remarks,status)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'draft')`)
+       travel_amount,total_claim,remarks,department,status)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'draft')`)
       .run(nextExpenseNumber(), uid, tripDate, travel_type||'Own Two Wheeler', profileVehicleNumber, purpose||'',
         s, e, distance_km, rate_per_km, travel_amount,
-        total_claim, remarks||'');
+        total_claim, remarks||'', sectionOf(uid));
     expenseId = result.lastInsertRowid;
     auditLog(uid, 'expense_created', 'travel_expenses', expenseId, `Distance ${distance_km}km`);
   }
@@ -244,9 +243,9 @@ router.post('/:id/submit', requireClaimAccess, (req, res) => {
     approved_by=NULL, approved_at=NULL, approval_remarks='' WHERE id=?`).run(expense.id);
   auditLog(uid, 'expense_submitted', 'travel_expenses', expense.id, expense.expense_number);
 
-  // Notify the approver from the organisation chart (Level 1 while positions above are vacant)
+  // Route to the Head of Finance (Level 1 — owner/admins — while the seat is vacant)
   const user = db.prepare('SELECT full_name FROM users WHERE id=?').get(uid);
-  approverIdsFor(uid).forEach(id => createNotification(id, `Travel Expense Submitted — ${expense.expense_number}`,
+  financeApproverIds().forEach(id => createNotification(id, `Travel Expense Submitted — ${expense.expense_number}`,
     `${user.full_name} submitted a travel expense claim of ₹${expense.total_claim.toFixed(0)}.`, 'expense', '/travel-expenses/' + expense.id));
 
   req.session.flash = { success: `Expense ${expense.expense_number} submitted for approval.` };

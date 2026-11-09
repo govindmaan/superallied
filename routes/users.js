@@ -44,7 +44,7 @@ router.post('/users', requireLogin, requireAdmin, (req, res) => {
     return res.redirect('/users/new');
   }
   const hash = bcrypt.hashSync(password, 10);
-  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller'];
+  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller','head_of_finance'];
   const safeRole = allowedRoles.includes(role) ? role : 'sales';
   db.prepare(`INSERT INTO users (username, password_hash, full_name, role, employee_code, position_code, designation, department)
     VALUES (?,?,?,?,?,?,?,?)`)

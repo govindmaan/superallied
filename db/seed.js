@@ -42,10 +42,6 @@ function seed() {
 
     // hr
     ['hr','attendance'],['hr','hr_admin'],['hr','leave_approval'],['hr','attendance_admin'],['hr','reports'],
-    ['hr','expense_approval'],
-
-    // manager — travel expense approvals
-    ['manager','expense_approval'],
 
     // staff (legacy alias for sales — no machine quotations/Form 22, matches sales)
     ['staff','attendance'],['staff','field_visit'],['staff','customers'],['staff','enquiries'],
@@ -53,6 +49,15 @@ function seed() {
 
     // employee (attendance only)
     ['employee','attendance'],
+
+    // ── Expense claims: everyone in Sales/Service/Operations/Support can submit.
+    // sales/office/service/staff already have expense_claim above; add the rest.
+    ['manager','expense_claim'],['hr','expense_claim'],['employee','expense_claim'],
+    ['accountant','expense_claim'],['accounts_manager','expense_claim'],['telecaller','expense_claim'],
+
+    // ── Head of Finance: the sole approver of every department's expenses
+    // (plus admin). Expense approvals route here; HoF can also claim.
+    ['head_of_finance','expense_approval'],['head_of_finance','expense_claim'],['head_of_finance','reports'],
   ];
 
   defaultPerms.forEach(([r,p]) => insertPerm.run(r,p));
