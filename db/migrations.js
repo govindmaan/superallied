@@ -40,6 +40,10 @@ function migrate() {
   // in their queues. (head_of_finance's rows are added by seed.)
   db.prepare("DELETE FROM role_permissions WHERE role IN ('manager','hr') AND permission='expense_approval'").run();
 
+  // Head of Finance is a focused profile: expense approval + attendance + route
+  // map only. Remove the broader rows an earlier seed granted (claim, reports).
+  db.prepare("DELETE FROM role_permissions WHERE role='head_of_finance' AND permission NOT IN ('expense_approval','attendance','route_map')").run();
+
   // One-time: attendance / odometer days used to be the UTC date, so a punch-in
   // before 5:30 am India time was filed under the previous day. Re-file them under
   // the India date (skipped if that user already has a row for that date).

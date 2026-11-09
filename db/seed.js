@@ -56,9 +56,9 @@ function seed() {
     ['manager','expense_claim'],['hr','expense_claim'],['employee','expense_claim'],
     ['accountant','expense_claim'],['accounts_manager','expense_claim'],['telecaller','expense_claim'],
 
-    // ── Head of Finance: the sole approver of every department's expenses
-    // (plus admin). Expense approvals route here; HoF can also claim.
-    ['head_of_finance','expense_approval'],['head_of_finance','expense_claim'],['head_of_finance','reports'],
+    // ── Head of Finance: a focused oversight profile — only expense approval,
+    // attendance, and route map / heatmap. No claiming, no other modules.
+    ['head_of_finance','expense_approval'],['head_of_finance','attendance'],['head_of_finance','route_map'],
   ];
 
   defaultPerms.forEach(([r,p]) => insertPerm.run(r,p));

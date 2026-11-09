@@ -69,7 +69,7 @@
         { href: '/notifications', icon: 'bi-bell-fill',            label: t('Notifications'), show: true, keys: ['notifications'], badge: unreadCount },
         { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: t('Attendance'),    show: hasPerm('attendance'), keys: ['attendance'] },
         { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
-        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin },
+        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin || user.role === 'head_of_finance' },
         { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: t('My Leaves'),     show: true, keys: ['leaves'] },
         { href: '/salary',        icon: 'bi-cash-coin',            label: t('My Salary'),     show: true, keys: ['salary'] },
         { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: t('ID Card'),   show: true, keys: ['id-card'] },
@@ -150,6 +150,11 @@
     { href: '/telecaller/queue',   icon: 'bi-telephone-outbound',  label: t('Call Queue'), on: p.startsWith('/telecaller/call') },
     { href: '/telecaller/new',     icon: 'bi-plus-circle-fill',    label: t('New'),        center: true },
     { href: '/telecaller/history', icon: 'bi-clock-history',       label: t('History'),    on: p.startsWith('/telecaller/history') },
+  ] : (user && user.role === 'head_of_finance') ? [
+    { href: '/', icon: 'bi-house-door-fill', label: t('Home'), on: p === '/' },
+    { href: '/travel-expenses/queue', icon: 'bi-inbox-fill', label: t('Approvals'), on: p.startsWith('/travel-expenses') },
+    { href: '/attendance', icon: 'bi-calendar-check-fill', label: t('Attendance'), on: p.startsWith('/attendance') },
+    { href: '/route-map', icon: 'bi-map-fill', label: t('Route Map'), on: p.startsWith('/route-map') },
   ] : fieldUser ? [
     { href: '/', icon: 'bi-house-door-fill', label: t('Home'), on: p === '/' },
     can('enquiries')

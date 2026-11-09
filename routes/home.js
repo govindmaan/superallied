@@ -124,6 +124,23 @@ router.get('/', requireLogin, (req, res) => {
   const uid     = req.session.userId;
   const today   = new Date().toLocaleDateString('en-CA');
 
+  // ── Head of Finance: a focused oversight dashboard (approvals + attendance,
+  // with route map / heatmap). No access to the rest of the app.
+  if (role === 'head_of_finance') {
+    const pendingExpenses = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE status='submitted'").get().c;
+    const pendingAmount   = db.prepare("SELECT COALESCE(SUM(total_claim),0) t FROM travel_expenses WHERE status='submitted'").get().t;
+    const approvedToday   = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE status='approved' AND date(approved_at,'+330 minutes')=?").get(today).c;
+    const att = db.prepare(`SELECT
+        SUM(CASE WHEN check_in_time IS NOT NULL THEN 1 ELSE 0 END) present,
+        SUM(CASE WHEN check_in_time IS NOT NULL AND check_out_time IS NULL THEN 1 ELSE 0 END) still_out
+      FROM attendance WHERE date=?`).get(today);
+    const staff = db.prepare("SELECT COUNT(*) c FROM users WHERE COALESCE(is_hr_active,1)=1 AND role NOT IN ('admin')").get().c;
+    const recent = db.prepare(`SELECT te.*, u.full_name FROM travel_expenses te JOIN users u ON u.id=te.user_id
+      WHERE te.status='submitted' ORDER BY te.submitted_at ASC LIMIT 8`).all();
+    return res.render('dashboard-finance', { title: 'Finance', pendingExpenses, pendingAmount, approvedToday,
+      present: att?.present || 0, stillOut: att?.still_out || 0, staff, recent, formatINR });
+  }
+
   if (!isAdminLike) {
     // ── Employee tile dashboard ──
     const todayAtt = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(uid, today);

@@ -20,7 +20,7 @@ const SAME_SPOT_M  = 20;          // consecutive visits closer than this are "sa
 const MAX_RANGE_DAYS = 31;
 
 // Each person sees the route of the visits they recorded; only admin can look at anyone's
-const canViewAll = (res) => res.locals.user?.role === 'admin';
+const canViewAll = (res) => ['admin', 'head_of_finance'].includes(res.locals.user?.role);
 const canUse = (res) => canViewAll(res) || ['route_map', 'field_visit', 'enquiries'].some(p => res.locals.hasPerm(p));
 const isDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '') && !isNaN(new Date(d + 'T00:00:00Z'));
 const todayIST = () => new Date().toLocaleDateString('en-CA');
