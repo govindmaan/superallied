@@ -105,6 +105,7 @@
       { label: t('HR Admin'), items: [
         { href: '/hr/dashboard',  icon: 'bi-grid-fill',            label: t('HR Dashboard'),      show: can('hr_admin'), keys: ['hr'] },
         { href: '/hr/employees',  icon: 'bi-person-lines-fill',    label: t('Employees'),         show: can('hr_admin') },
+        { href: '/org-chart',     icon: 'bi-diagram-3',            label: t('Organisation Chart'), show: can('hr_admin') && !isAdmin },
         { href: '/hr/attendance', icon: 'bi-calendar-week-fill',   label: t('Attendance Report'), show: can('hr_admin') },
         { href: '/hr/attendance/employee', icon: 'bi-person-badge',  label: t('Employee Attendance'), show: isMgr },
         { href: '/hr/leaves',     icon: 'bi-check2-square',        label: t('Leave Approvals'),   show: can('hr_admin') && can('leave_approval') },
@@ -114,6 +115,7 @@
     { id: 'admin', label: t('Admin'), icon: 'bi-shield-lock-fill', groups: [
       { items: [
         { href: '/users',    icon: 'bi-person-gear', label: t('Users'),            show: isAdmin, keys: ['users'] },
+        { href: '/org-chart', icon: 'bi-diagram-3',  label: t('Organisation Chart'), show: isAdmin, keys: ['org-chart'] },
         { href: '/settings', icon: 'bi-sliders',     label: t('Settings'),         show: isAdmin, keys: ['settings'] },
         { href: '/backup',   icon: 'bi-database-down', label: t('Backup & Restore'), show: isAdmin, keys: ['backup'] },
       ]},

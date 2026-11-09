@@ -3,23 +3,30 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { db, auditLog, nextEmployeeCode } = require('../db');
 const { requireLogin, requireAdmin } = require('../lib/auth');
+const org = require('../lib/org');
 
 const router = express.Router();
 
 // ── Users (admin only) ────────────────────────────────────────────────────────
 router.get('/users', requireLogin, requireAdmin, (req, res) => {
-  const users = db.prepare(`SELECT id, username, full_name, role, is_hr_active, created_at, must_change_password,
-      (pin_hash IS NOT NULL) AS has_pin, (locked_until IS NOT NULL AND locked_until > ?) AS locked
-    FROM users ORDER BY created_at`).all(new Date().toISOString());
+  const users = db.prepare(`SELECT u.id, u.username, u.full_name, u.role, u.is_hr_active, u.created_at, u.must_change_password,
+      (u.pin_hash IS NOT NULL) AS has_pin, (u.locked_until IS NOT NULL AND u.locked_until > ?) AS locked,
+      p.title AS position_title, p.level AS position_level
+    FROM users u LEFT JOIN org_positions p ON p.code = u.position_code ORDER BY u.created_at`).all(new Date().toISOString());
   res.render('users', { title: 'Users', users });
 });
 
 router.get('/users/new', requireLogin, requireAdmin, (req, res) => {
-  res.render('user-form', { title: 'New User' });
+  res.render('user-form', { title: 'New User', positions: org.formOptions(), sections: org.SECTIONS });
 });
 
 router.post('/users', requireLogin, requireAdmin, (req, res) => {
-  const { username, full_name, role, password, confirm } = req.body;
+  const { username, full_name, role, password, confirm, position_code } = req.body;
+  const pos = org.positionByCode(position_code);
+  if (!pos) {
+    req.session.flash = { error: 'Choose the position this person will hold.' };
+    return res.redirect('/users/new');
+  }
   if (!username?.trim() || !password) {
     req.session.flash = { error: 'Username and password are required.' };
     return res.redirect('/users/new');
@@ -39,8 +46,9 @@ router.post('/users', requireLogin, requireAdmin, (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller'];
   const safeRole = allowedRoles.includes(role) ? role : 'sales';
-  db.prepare('INSERT INTO users (username, password_hash, full_name, role, employee_code) VALUES (?,?,?,?,?)')
-    .run(username.trim(), hash, full_name?.trim() || '', safeRole, nextEmployeeCode());
+  db.prepare(`INSERT INTO users (username, password_hash, full_name, role, employee_code, position_code, designation, department)
+    VALUES (?,?,?,?,?,?,?,?)`)
+    .run(username.trim(), hash, full_name?.trim() || '', safeRole, nextEmployeeCode(), pos.code, pos.title, pos.section);
   req.session.flash = { success: `User "${username.trim()}" created successfully.` };
   res.redirect('/users');
 });

@@ -106,7 +106,7 @@ router.post('/:id/update', (req, res) => {
 
 // ── Deactivate (admin only) ───────────────────────────────────────────────────
 router.post('/:id/deactivate', (req, res) => {
-  if (req.session.userRole !== 'admin') return res.status(403).send('Forbidden');
+  if (res.locals.user?.role !== 'admin') return res.status(403).send('Forbidden');
   const machine = db.prepare('SELECT machine_no FROM sold_machines WHERE id=?').get(req.params.id);
   if (!machine) return res.redirect('/sold-machines');
   db.prepare('UPDATE sold_machines SET is_active=0, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.params.id);
@@ -117,7 +117,7 @@ router.post('/:id/deactivate', (req, res) => {
 
 // ── Reactivate (admin only) ───────────────────────────────────────────────────
 router.post('/:id/reactivate', (req, res) => {
-  if (req.session.userRole !== 'admin') return res.status(403).send('Forbidden');
+  if (res.locals.user?.role !== 'admin') return res.status(403).send('Forbidden');
   const machine = db.prepare('SELECT machine_no FROM sold_machines WHERE id=?').get(req.params.id);
   if (!machine) return res.redirect('/sold-machines');
   db.prepare('UPDATE sold_machines SET is_active=1, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.params.id);

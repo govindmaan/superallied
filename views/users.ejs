@@ -3,7 +3,10 @@
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-danger"></i><%= t("Users") %></h4>
-    <a href="/users/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("Add Staff") %></a>
+    <div class="d-flex gap-2">
+      <a href="/org-chart" class="btn btn-outline-secondary"><i class="bi bi-diagram-3 me-1"></i><%= t("Organisation Chart") %></a>
+      <a href="/users/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("Add Staff") %></a>
+    </div>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -16,6 +19,7 @@
           <tr>
             <th><%= t("Username") %></th>
             <th><%= t("Full Name") %></th>
+            <th><%= t("Position") %></th>
             <th><%= t("Role") %></th>
             <th><%= t("Status") %></th>
             <th><%= t("Created") %></th>
@@ -27,6 +31,7 @@
           <tr class="<%= u.is_hr_active===0 ? 'opacity-50' : '' %>">
             <td class="fw-semibold font-monospace"><%= u.username %></td>
             <td><%= u.full_name || '—' %></td>
+            <td class="small"><% if (u.position_title) { %><span class="badge bg-dark">L<%= u.position_level %></span> <%= u.position_title %><% } else { %><a href="/org-chart" class="text-warning-emphasis"><%= t("Not placed") %></a><% } %></td>
             <td>
               <% const rb = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success'}; %>
               <% const rl = {admin:'Admin',manager:'Manager',sales:'Sales',office:'Office',hr:'HR',service:'Service',staff:'Staff',employee:'Employee'}; %>
@@ -58,7 +63,7 @@
           </tr>
           <% }) %>
           <% if (!users.length) { %>
-          <tr><td colspan="6" class="text-center text-muted py-4"><%= t("No users found.") %></td></tr>
+          <tr><td colspan="7" class="text-center text-muted py-4"><%= t("No users found.") %></td></tr>
           <% } %>
         </tbody>
       </table>

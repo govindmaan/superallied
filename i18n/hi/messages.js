@@ -266,4 +266,13 @@ module.exports = {
   'Export created: {name}. Download it below.': 'एक्सपोर्ट बना: {name}। नीचे से डाउनलोड करें।',
   'Export failed: {err}': 'एक्सपोर्ट विफल: {err}',
   'Something went wrong.': 'कुछ गलत हो गया।',
+
+  // Organisation chart
+  'Choose the position this person will hold.': 'इस व्यक्ति का पद चुनें।',
+  'Choose a person and a position.': 'व्यक्ति और पद चुनें।',
+  '{name} placed as {title}.': '{name} को {title} पद दिया गया।',
+  '{name} removed from the position.': '{name} को पद से हटाया गया।',
+  'Only the admin and HR can see the organisation chart.': 'संगठन चार्ट केवल एडमिन और HR देख सकते हैं।',
+  'You are not the approver for this expense.': 'आप इस खर्च के स्वीकृतकर्ता नहीं हैं।',
+  'Submitted for approval. The approver has been notified.': 'स्वीकृति के लिए जमा किया गया। स्वीकृतकर्ता को सूचना भेज दी गई।',
 };

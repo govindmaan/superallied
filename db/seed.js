@@ -3,6 +3,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('./connection');
 const MACHINES = require('./seed-machines');
+const ORG_POSITIONS = require('./seed-org');
 
 function seed() {
   // Seed default reimbursement rates (admin/manager-editable via /travel-expenses/rates)
@@ -133,6 +134,17 @@ function seed() {
   ];
   const tcInsertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   tcDefaults.forEach(([k, v]) => tcInsertSetting.run(k, v));
+
+  // Organisation chart positions. The chart is defined by the growth plan, so
+  // titles, levels and seat counts follow db/seed-org.js on every start; people
+  // placed in a position (users.position_code) are never changed here.
+  const upsertPosition = db.prepare(`INSERT INTO org_positions
+      (code, title, level, section, parent_code, planned, salary_band, default_role, note, sort_order)
+    VALUES (?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(code) DO UPDATE SET title=excluded.title, level=excluded.level, section=excluded.section,
+      parent_code=excluded.parent_code, planned=excluded.planned, salary_band=excluded.salary_band,
+      default_role=excluded.default_role, note=excluded.note, sort_order=excluded.sort_order`);
+  ORG_POSITIONS.forEach((p, i) => upsertPosition.run(...p, i));
 }
 
 module.exports = { seed };

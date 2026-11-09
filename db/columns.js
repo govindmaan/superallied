@@ -44,6 +44,7 @@ const COLUMNS = {
     ["sessions_valid_after", "INTEGER"],
     ["old_employee_code", "TEXT DEFAULT ''"],
     ["language", "TEXT DEFAULT ''"],
+    ["position_code", "TEXT DEFAULT ''"],
   ],
   machines: [
     ["purchase_price", "INTEGER DEFAULT 0"],

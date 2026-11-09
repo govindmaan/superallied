@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { db, createNotification } = require('../db');
+const { approverIdsFor } = require('../lib/org');
 
 function workingDays(start, end) {
   let d = new Date(start), e = new Date(end), count = 0;
@@ -62,10 +63,9 @@ router.post('/apply', (req, res) => {
               VALUES (?,?,?,?,?,?)`)
     .run(uid, leave_type_id, start_date, end_date, days, reason||'');
 
-  // Notify admin
-  const admins = db.prepare("SELECT id FROM users WHERE role='admin'").all();
+  // Notify the approver from the organisation chart (Level 1 while positions above are vacant)
   const uname  = db.prepare('SELECT full_name FROM users WHERE id=?').get(uid)?.full_name || 'Someone';
-  admins.forEach(a => createNotification(a.id, 'New Leave Request',
+  approverIdsFor(uid).forEach(id => createNotification(id, 'New Leave Request',
     `${uname} applied for ${days} day(s) leave.`, 'leave', '/hr/leaves'));
 
   req.session.flash = { success: `Leave applied for ${days} day(s). Pending approval.` };

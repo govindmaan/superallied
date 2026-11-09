@@ -666,6 +666,22 @@ function createTables() {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT ''
     );
+
+    -- Organisation chart (growth plan v2): one row per position, with how many
+    -- seats are planned. People sit in a position via users.position_code.
+    -- Approvals go to the nearest filled position above; Level 1 (owner) last.
+    CREATE TABLE IF NOT EXISTS org_positions (
+      code         TEXT PRIMARY KEY,
+      title        TEXT NOT NULL,
+      level        INTEGER NOT NULL,
+      section      TEXT NOT NULL,
+      parent_code  TEXT REFERENCES org_positions(code),
+      planned      INTEGER NOT NULL DEFAULT 1,
+      salary_band  TEXT DEFAULT '',
+      default_role TEXT DEFAULT 'employee',
+      note         TEXT DEFAULT '',
+      sort_order   INTEGER DEFAULT 0
+    );
   `);
 }
 

@@ -2,6 +2,7 @@
 const db = require('./connection');
 
 const INDEXES = [
+  "CREATE INDEX IF NOT EXISTS idx_users_position ON users(position_code);",
   "CREATE INDEX IF NOT EXISTS idx_specs_machine ON machine_specs(machine_id);",
   "CREATE INDEX IF NOT EXISTS idx_att_date ON attendance(date);",
   "CREATE INDEX IF NOT EXISTS idx_att_user ON attendance(user_id);",

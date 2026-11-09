@@ -62,13 +62,28 @@
           <div class="card-header bg-white fw-semibold"><%= t("Employment Details") %></div>
           <div class="card-body">
             <div class="row g-2">
+              <div class="col-12">
+                <label class="form-label fw-semibold" for="position_code"><%= t("Position") %><% if (!emp) { %> <span class="text-danger">*</span><% } %></label>
+                <select name="position_code" id="position_code" class="form-select" <%= emp ? '' : 'required' %>>
+                  <option value=""><%= emp ? t("— Not placed —") : t("Choose position…") %></option>
+                  <% sections.forEach(sec => { const ps = positions.filter(p => p.section === sec); if (!ps.length) return; %>
+                  <optgroup label="<%= sec %>">
+                    <% ps.forEach(p => { %>
+                    <option value="<%= p.code %>" data-role="<%= p.default_role %>" data-title="<%= p.title %>" data-section="<%= p.section %>"
+                            data-approvers="<%= p.approvers %>" <%= emp?.position_code === p.code ? 'selected' : '' %>>L<%= p.level %> · <%= p.title %> (<%= p.filled %>/<%= p.planned %>)</option>
+                    <% }) %>
+                  </optgroup>
+                  <% }) %>
+                </select>
+                <small class="text-muted" id="approvalHint"><%= t("From the organisation chart. Approvals go to the nearest filled position above; Level 1 while vacant.") %></small>
+              </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold"><%= t("Designation") %></label>
-                <input type="text" name="designation" class="form-control" value="<%= emp?.designation || '' %>" placeholder="<%= t("e.g. Sales Executive") %>">
+                <input type="text" name="designation" id="designation" class="form-control" value="<%= emp?.designation || '' %>" placeholder="<%= t("e.g. Sales Executive") %>">
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold"><%= t("Department") %></label>
-                <input type="text" name="department" class="form-control" value="<%= emp?.department || '' %>" placeholder="<%= t("e.g. Sales, Admin") %>">
+                <input type="text" name="department" id="department" class="form-control" value="<%= emp?.department || '' %>" placeholder="<%= t("e.g. Sales, Admin") %>">
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold"><%= t("Date of Joining") %></label>
@@ -76,7 +91,7 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold"><%= t("Role") %></label>
-                <select name="role" class="form-select">
+                <select name="role" id="role" class="form-select">
                   <% allRoles.forEach(r => { %>
                   <option value="<%= r %>" <%=(emp?emp.role===r:r==='sales')?'selected':''%>><%= r.charAt(0).toUpperCase()+r.slice(1) %></option>
                   <% }) %>
@@ -200,4 +215,21 @@ function closeCamera() {
 }
 </script>
 <% } %>
+<script>
+// Position → designation, department and default app role (only when choosing a new position)
+(function () {
+  const sel = document.getElementById('position_code');
+  if (!sel) return;
+  const APPROVALS = <%- JSON.stringify(t('Approvals will go to')) %>;
+  sel.addEventListener('change', () => {
+    const o = sel.selectedOptions[0];
+    if (!o || !o.value) return;
+    document.getElementById('designation').value = o.dataset.title;
+    document.getElementById('department').value = o.dataset.section;
+    const role = document.getElementById('role');
+    if (role.querySelector('option[value="' + o.dataset.role + '"]')) role.value = o.dataset.role;
+    if (o.dataset.approvers) document.getElementById('approvalHint').textContent = APPROVALS + ': ' + o.dataset.approvers;
+  });
+})();
+</script>
 </body></html>

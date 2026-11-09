@@ -33,6 +33,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 // ── Employee List ─────────────────────────────────────────────────────────────
+const org = require('../lib/org');
 const ALL_ROLES = ['admin','manager','hr','sales','office','service','staff','employee','accountant','accounts_manager'];
 
 router.get('/employees', (req, res) => {
@@ -57,14 +58,19 @@ router.get('/employees', (req, res) => {
 // ── New employee form ─────────────────────────────────────────────────────────
 router.get('/employees/new', (req, res) => {
   const managers = db.prepare("SELECT id, full_name FROM users WHERE role IN ('admin','manager') ORDER BY full_name").all();
-  res.render('hr/employee-form', { title: 'Add Employee', emp: null, managers, allRoles: ALL_ROLES });
+  res.render('hr/employee-form', { title: 'Add Employee', emp: null, managers, allRoles: ALL_ROLES, positions: org.formOptions(), sections: org.SECTIONS });
 });
 
 // ── Create employee ───────────────────────────────────────────────────────────
 router.post('/employees', (req, res) => {
   const { username, password, full_name, role, designation,
           department, mobile, emergency_contact, date_of_joining, manager_id,
-          vehicle_type, vehicle_number } = req.body;   // employee code is assigned automatically
+          vehicle_type, vehicle_number, position_code } = req.body;   // employee code is assigned automatically
+  const pos = org.positionByCode(position_code);
+  if (!pos) {
+    req.session.flash = { error: 'Choose the position this person will hold.' };
+    return res.redirect('/hr/employees/new');
+  }
 
   if (!username?.trim() || !password) {
     req.session.flash = { error: 'Username and password are required.' };
@@ -79,12 +85,12 @@ router.post('/employees', (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const result = db.prepare(`INSERT INTO users
     (username,password_hash,full_name,role,employee_code,designation,department,
-     mobile,emergency_contact,date_of_joining,manager_id,vehicle_type,vehicle_number)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+     mobile,emergency_contact,date_of_joining,manager_id,vehicle_type,vehicle_number,position_code)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(username.trim(), hash, full_name||'', safeRole,
-      nextEmployeeCode(), designation||'', department||'',
+      nextEmployeeCode(), designation||pos.title, department||pos.section,
       mobile||'', emergency_contact||'', date_of_joining||null,
-      manager_id ? +manager_id : null, vehicle_type||'', vehicle_number||'');
+      manager_id ? +manager_id : null, vehicle_type||'', vehicle_number||'', pos.code);
 
   auditLog(req.session.userId, 'user_created', 'user', result.lastInsertRowid, `Created "${full_name}" (${safeRole})`);
   req.session.flash = { success: `Employee "${full_name}" created.` };
@@ -115,24 +121,25 @@ router.get('/employees/:id/edit', (req, res) => {
   const emp = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!emp) return res.redirect('/hr/employees');
   const managers = db.prepare("SELECT id, full_name FROM users WHERE role IN ('admin','manager') ORDER BY full_name").all();
-  res.render('hr/employee-form', { title: 'Edit Employee', emp, managers, allRoles: ALL_ROLES });
+  res.render('hr/employee-form', { title: 'Edit Employee', emp, managers, allRoles: ALL_ROLES, positions: org.formOptions(), sections: org.SECTIONS });
 });
 
 router.post('/employees/:id', (req, res) => {
   const { full_name, role, designation, department,
           mobile, emergency_contact, date_of_joining, manager_id, is_hr_active, photo_path,
-          vehicle_type, vehicle_number } = req.body;   // employee code is fixed once assigned
+          vehicle_type, vehicle_number, position_code } = req.body;   // employee code is fixed once assigned
   const safeRole = ALL_ROLES.includes(role) ? role : 'sales';
+  const pos = org.positionByCode(position_code);   // blank = not placed yet
 
   db.prepare(`UPDATE users SET full_name=?,role=?,designation=?,department=?,
     mobile=?,emergency_contact=?,date_of_joining=?,manager_id=?,is_hr_active=?,photo_path=?,
-    vehicle_type=?,vehicle_number=?
+    vehicle_type=?,vehicle_number=?,position_code=?
     WHERE id=?`)
     .run(full_name||'', safeRole, designation||'', department||'',
       mobile||'', emergency_contact||'', date_of_joining||null,
       manager_id ? +manager_id : null,
       is_hr_active === '0' ? 0 : 1,
-      photo_path||'', vehicle_type||'', vehicle_number||'',
+      photo_path||'', vehicle_type||'', vehicle_number||'', pos ? pos.code : '',
       req.params.id);
 
   auditLog(req.session.userId, 'user_updated', 'user', req.params.id, `Updated "${full_name}"`);

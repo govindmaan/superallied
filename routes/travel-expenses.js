@@ -2,9 +2,18 @@ const express = require('express');
 const path    = require('path');
 const router  = express.Router();
 const { db, auditLog, createNotification, nextExpenseNumber, numberToWords, today } = require('../db');
+const { approverIdsFor, canApproveFor } = require('../lib/org');
 const { analyzeImage } = require('../services/expenseImageAnalyzer');
 
 function isApprover(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_approval'); }
+// Approver for this claim: the general approvers, or the claimant's approver in the organisation chart
+function canApproveClaim(res, expense) { return isApprover(res) || (!!expense && canApproveFor(res.locals.user?.id, expense.user_id, res.locals.user?.role)); }
+function requireClaimApprover(req, res, next) {
+  const expense = db.prepare('SELECT user_id FROM travel_expenses WHERE id=?').get(req.params.id);
+  if (canApproveClaim(res, expense)) return next();
+  req.session.flash = { error: 'You are not the approver for this expense.' };
+  res.redirect('/travel-expenses/' + req.params.id);
+}
 function canClaim(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_claim'); }
 
 function requireClaimAccess(req, res, next) {
@@ -235,11 +244,10 @@ router.post('/:id/submit', requireClaimAccess, (req, res) => {
     approved_by=NULL, approved_at=NULL, approval_remarks='' WHERE id=?`).run(expense.id);
   auditLog(uid, 'expense_submitted', 'travel_expenses', expense.id, expense.expense_number);
 
-  const user = db.prepare('SELECT full_name, manager_id FROM users WHERE id=?').get(uid);
-  if (user?.manager_id) {
-    createNotification(user.manager_id, `Travel Expense Submitted — ${expense.expense_number}`,
-      `${user.full_name} submitted a travel expense claim of ₹${expense.total_claim.toFixed(0)}.`, 'expense', '/travel-expenses/queue');
-  }
+  // Notify the approver from the organisation chart (Level 1 while positions above are vacant)
+  const user = db.prepare('SELECT full_name FROM users WHERE id=?').get(uid);
+  approverIdsFor(uid).forEach(id => createNotification(id, `Travel Expense Submitted — ${expense.expense_number}`,
+    `${user.full_name} submitted a travel expense claim of ₹${expense.total_claim.toFixed(0)}.`, 'expense', '/travel-expenses/' + expense.id));
 
   req.session.flash = { success: `Expense ${expense.expense_number} submitted for approval.` };
   res.redirect('/travel-expenses/' + expense.id);
@@ -387,10 +395,10 @@ router.get('/:id', requireClaimAccess, (req, res) => {
 
   const locked = isLocked(expense.date);
   const bill = locked ? db.prepare('SELECT id, bill_no FROM ta_bills WHERE user_id=? AND week_start=?').get(expense.user_id, weekOf(expense.date).start) : null;
-  res.render('travel-expenses/detail', { title: expense.expense_number, expense, owner, docs, visits, approver, isOwner, isApprover: isApprover(res), locked, bill });
+  res.render('travel-expenses/detail', { title: expense.expense_number, expense, owner, docs, visits, approver, isOwner, isApprover: canApproveClaim(res, expense), locked, bill });
 });
 
-router.post('/:id/approve', requireApprover, (req, res) => {
+router.post('/:id/approve', requireClaimApprover, (req, res) => {
   const expense = db.prepare('SELECT * FROM travel_expenses WHERE id=?').get(req.params.id);
   if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect('/travel-expenses/queue'); }
 
@@ -404,7 +412,7 @@ router.post('/:id/approve', requireApprover, (req, res) => {
   res.redirect('/travel-expenses/queue');
 });
 
-router.post('/:id/reject', requireApprover, (req, res) => {
+router.post('/:id/reject', requireClaimApprover, (req, res) => {
   const expense = db.prepare('SELECT * FROM travel_expenses WHERE id=?').get(req.params.id);
   if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect('/travel-expenses/queue'); }
 

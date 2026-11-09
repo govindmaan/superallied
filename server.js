@@ -39,6 +39,7 @@ const backupRoutes          = require('./routes/backup');
 const databankRoutes        = require('./routes/databank');
 const telecallerRoutes      = require('./routes/telecaller');
 const myleadsRoutes         = require('./routes/myleads');
+const orgRoutes             = require('./routes/org');
 const accountsRoutes        = require('./routes/accounts');
 const pushRoutes            = require('./routes/push');
 
@@ -161,6 +162,7 @@ app.use('/salary',        requireLogin, salaryRoutes);
 app.use('/notifications', requireLogin, notifyRoutes);
 app.use('/push',          requireLogin, pushRoutes);
 app.use('/hr',            requireLogin, requireManagerOrAdmin, hrRoutes);
+app.use('/org-chart',     requireLogin, orgRoutes);
 app.use('/visits',        requireLogin, visitsRoutes);
 app.use('/expenses',      requireLogin, requirePerm('expense_claim'), expensesRoutes);
 app.use('/travel-expenses', requireLogin, travelExpensesRoutes);

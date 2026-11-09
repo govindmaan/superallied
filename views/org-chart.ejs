@@ -1,0 +1,146 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'org-chart', user }) %>
+<%
+  const LEVEL_NAMES = { 1: t('Owner'), 2: t('Heads'), 3: t('Managers'), 4: t('Leads and seniors'), 5: t('Executives and staff') };
+  const levelOneNames = levelOne.map(u => u.full_name).join(', ') || t('Admin');
+  const posOptions = (selected) => sections.map(s => {
+    const ps = chart.filter(p => p.section === s);
+    if (!ps.length) return '';
+    return `<optgroup label="${s}">` + ps.map(p =>
+      `<option value="${p.code}" ${p.code === selected ? 'selected' : ''}>L${p.level} · ${p.title} (${p.filled}/${p.planned})</option>`).join('') + '</optgroup>';
+  }).join('');
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3 me-2 text-danger"></i><%= t("Organisation Chart") %></h4>
+      <div class="text-muted small"><%= t("Growth plan v2 · target Dec 2027: 98 people + owner") %></div>
+    </div>
+    <% if (canEdit) { %><a href="/users/new" class="btn btn-danger"><i class="bi bi-person-plus me-1"></i><%= t("Add Staff") %></a><% } %>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success"><%= flash.success %></div><% } %>
+  <% if (flash.error) { %><div class="alert alert-danger"><%= flash.error %></div><% } %>
+
+  <!-- Seats filled per section -->
+  <div class="row g-3 mb-3">
+    <% totals.forEach(s => { const pct = s.planned ? Math.round(s.filled * 100 / s.planned) : 0; %>
+    <div class="col-6 col-lg">
+      <div class="card border-0 shadow-sm h-100"><div class="card-body py-3">
+        <div class="text-muted text-uppercase fw-semibold text-xs"><%= s.section %></div>
+        <div class="fs-4 fw-bold num"><%= s.filled %><span class="text-muted fs-6"> / <%= s.planned %></span></div>
+        <div class="progress mt-1" style="height:6px" role="progressbar" aria-label="<%= s.section %>" aria-valuenow="<%= pct %>" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar bg-danger" style="width:<%= pct %>%"></div>
+        </div>
+      </div></div>
+    </div>
+    <% }) %>
+  </div>
+
+  <div class="alert alert-light border d-flex gap-2 align-items-start">
+    <i class="bi bi-arrow-up-circle text-danger fs-5"></i>
+    <div class="small"><strong><%= t("How approvals are routed") %>:</strong>
+      <%= t("leave, travel expense and spare quotation requests go to the nearest filled position above the person. While those positions are vacant they go to Level 1:") %>
+      <strong><%= levelOneNames %></strong>.</div>
+  </div>
+
+  <% if (canEdit && unplaced.length) { %>
+  <!-- People not yet in a position -->
+  <div class="card border-0 shadow-sm mb-3 border-start border-4 border-warning">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-person-exclamation me-1 text-warning"></i><%= t("Not placed yet") %> <span class="badge bg-warning text-dark"><%= unplaced.length %></span></div>
+    <div class="list-group list-group-flush">
+      <% unplaced.forEach(u => { %>
+      <form method="POST" action="/org-chart/place" class="list-group-item d-flex flex-wrap gap-2 align-items-center">
+        <input type="hidden" name="user_id" value="<%= u.id %>">
+        <div class="me-auto" style="min-width:180px"><span class="fw-semibold"><%= u.full_name || u.username %></span>
+          <span class="text-muted small ms-1"><%= u.employee_code %> · <%= u.role %></span></div>
+        <select name="position_code" class="form-select form-select-sm" style="max-width:340px" required aria-label="<%= t("Position") %>">
+          <option value=""><%= t("Choose position…") %></option>
+          <%- posOptions('') %>
+        </select>
+        <button class="btn btn-sm btn-danger"><%= t("Place") %></button>
+      </form>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- The chart: levels top to bottom, sections left to right -->
+  <% [1,2,3,4,5].forEach(level => { const row = chart.filter(p => p.level === level); %>
+  <div class="mb-3">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <span class="badge bg-dark">L<%= level %></span>
+      <span class="fw-semibold"><%= LEVEL_NAMES[level] %></span>
+      <span class="text-muted small num"><%= row.reduce((a,p)=>a+Math.min(p.filled,p.planned),0) %> / <%= row.reduce((a,p)=>a+p.planned,0) %></span>
+    </div>
+    <div class="row g-2">
+      <% (level === 1 ? ['Leadership'] : sections.filter(s => s !== 'Leadership')).forEach(section => { const ps = row.filter(p => p.section === section); %>
+      <div class="<%= level === 1 ? 'col-12' : 'col-md-6 col-xl-3' %>">
+        <% if (level > 1) { %><div class="text-muted text-uppercase fw-semibold text-xs mb-1"><%= section %></div><% } %>
+        <% ps.forEach(p => { const full = p.filled >= p.planned; %>
+        <div class="card border-0 shadow-sm mb-2 <%= p.filled ? '' : 'opacity-75' %>" id="pos-<%= p.code %>">
+          <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div class="fw-semibold small" style="min-width:0"><%= p.title %></div>
+              <span class="badge <%= full ? 'bg-success' : (p.filled ? 'bg-primary' : 'bg-light text-muted border') %> num"><%= p.filled %>/<%= p.planned %></span>
+            </div>
+            <% if (p.note || p.salary_band) { %><div class="text-muted text-xs"><%= [p.note, p.salary_band].filter(Boolean).join(' · ') %></div><% } %>
+            <div class="d-flex flex-wrap gap-1 mt-1">
+              <% p.people.forEach(u => { %>
+              <span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-1">
+                <i class="bi bi-person-fill text-danger"></i><%= u.full_name || u.username %>
+                <% if (canEdit) { %>
+                <form method="POST" action="/org-chart/unplace" class="d-inline">
+                  <input type="hidden" name="user_id" value="<%= u.id %>">
+                  <button class="btn btn-link p-0 text-muted lh-1" title="<%= t("Remove from position") %>" aria-label="<%= t("Remove from position") %>"><i class="bi bi-x"></i></button>
+                </form>
+                <% } %>
+              </span>
+              <% }) %>
+              <% if (p.vacant) { %><span class="badge rounded-pill text-bg-warning-subtle border border-warning-subtle text-warning-emphasis"><%= p.vacant %> <%= t("vacant") %></span><% } %>
+            </div>
+            <% if (canEdit && p.vacant) { %>
+            <form method="POST" action="/org-chart/place" class="d-flex gap-1 mt-2">
+              <input type="hidden" name="position_code" value="<%= p.code %>">
+              <select name="user_id" class="form-select form-select-sm" required aria-label="<%= t("Place a person") %>">
+                <option value=""><%= t("Place a person…") %></option>
+                <% people.filter(u => u.position_code !== p.code).forEach(u => { %>
+                <option value="<%= u.id %>"><%= u.full_name || u.username %><%= u.position_code ? ' (' + t('move') + ')' : '' %></option>
+                <% }) %>
+              </select>
+              <button class="btn btn-sm btn-outline-danger"><%= t("Place") %></button>
+            </form>
+            <% } %>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+  <% }) %>
+
+  <!-- Where each person's approvals go -->
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-signpost-split me-1 text-danger"></i><%= t("Approvals go to") %></div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light"><tr><th><%= t("Person") %></th><th><%= t("Position") %></th><th><%= t("Approver") %></th><th><%= t("Vacant positions skipped") %></th></tr></thead>
+        <tbody>
+          <% routing.forEach(r => { const roleHint = r.position && r.position.default_role !== r.role; %>
+          <tr>
+            <td><span class="fw-semibold"><%= r.full_name || r.username %></span>
+              <div class="text-muted text-xs"><%= r.employee_code %> · <%= t("app access") %>: <%= r.role %><% if (roleHint) { %> <span class="text-warning-emphasis" title="<%= t("This position usually has") %> <%= r.position.default_role %>"><i class="bi bi-info-circle"></i></span><% } %></div></td>
+            <td><span class="badge bg-dark">L<%= r.position?.level %></span> <%= r.position?.title %></td>
+            <td><%= r.approvers.map(a => a.full_name || a.username).join(', ') %></td>
+            <td class="text-muted small"><%= r.vacant.map(v => v.title).join(' → ') || '—' %></td>
+          </tr>
+          <% }) %>
+          <% if (!routing.length) { %><tr><td colspan="4" class="text-center text-muted py-3"><%= t("Nobody is placed yet.") %></td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

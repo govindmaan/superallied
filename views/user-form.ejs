@@ -25,8 +25,27 @@
                      placeholder="<%= t("e.g. Rahul Sharma") %>">
             </div>
             <div class="mb-3">
+              <label class="form-label fw-semibold" for="position_code"><%= t("Position") %> <span class="text-danger">*</span></label>
+              <select name="position_code" id="position_code" class="form-select" required>
+                <option value=""><%= t("Choose position…") %></option>
+                <% sections.forEach(sec => { const ps = positions.filter(p => p.section === sec); if (!ps.length) return; %>
+                <optgroup label="<%= sec %>">
+                  <% ps.forEach(p => { %>
+                  <option value="<%= p.code %>" data-role="<%= p.default_role %>"
+                          data-approvers="<%= p.approvers %>" data-vacant="<%= p.vacant.join(' → ') %>">L<%= p.level %> · <%= p.title %> (<%= p.filled %>/<%= p.planned %>)</option>
+                  <% }) %>
+                </optgroup>
+                <% }) %>
+              </select>
+              <small class="text-muted"><%= t("From the organisation chart. Sets designation and department.") %></small>
+              <div id="approvalPreview" class="alert alert-light border small py-2 mt-2 mb-0" hidden>
+                <i class="bi bi-arrow-up-circle text-danger me-1"></i><%= t("Approvals will go to") %>: <strong id="approvalTo"></strong>
+                <div class="text-muted text-xs" id="approvalVacant"></div>
+              </div>
+            </div>
+            <div class="mb-3">
               <label class="form-label fw-semibold"><%= t("Role / Department") %></label>
-              <select name="role" class="form-select">
+              <select name="role" id="role" class="form-select">
                 <option value="sales" selected><%= t("Sales — Quotations, Customers, Visits") %></option>
                 <option value="service"><%= t("Service — Field Visits, Expenses") %></option>
                 <option value="hr"><%= t("HR — Employee Management, Leaves") %></option>
@@ -38,7 +57,7 @@
                 <option value="staff"><%= t("Staff (Legacy) — Sales Access") %></option>
                 <option value="admin"><%= t("Admin — Full Access") %></option>
               </select>
-              <small class="text-muted"><%= t("Determines which modules this user can access.") %></small>
+              <small class="text-muted"><%= t("Determines which modules this user can access.") %> <%= t("Filled in from the position; change it if needed.") %></small>
             </div>
             <div class="mb-3">
               <label class="form-label fw-semibold"><%= t("Password") %> <span class="text-danger">*</span></label>
@@ -60,4 +79,20 @@
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Position → default app role, and where this person's approvals will go
+(function () {
+  const sel = document.getElementById('position_code'), role = document.getElementById('role');
+  const box = document.getElementById('approvalPreview');
+  const VACANT = <%- JSON.stringify(t('Vacant now, skipped')) %>;
+  sel.addEventListener('change', () => {
+    const o = sel.selectedOptions[0];
+    if (!o || !o.value) { box.hidden = true; return; }
+    if (o.dataset.role && role.querySelector('option[value="' + o.dataset.role + '"]')) role.value = o.dataset.role;
+    document.getElementById('approvalTo').textContent = o.dataset.approvers || '—';
+    document.getElementById('approvalVacant').textContent = o.dataset.vacant ? VACANT + ': ' + o.dataset.vacant : '';
+    box.hidden = !o.dataset.approvers;
+  });
+})();
+</script>
 </body></html>

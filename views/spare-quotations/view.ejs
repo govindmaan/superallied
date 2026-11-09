@@ -1,6 +1,6 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'spare-quotations', user }) %>
-<% const isAdm = isAdmin || (user && user.userRole === 'admin'); %>
+<% const isAdm = isAdmin; %>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>

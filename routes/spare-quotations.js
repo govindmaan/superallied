@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog, createNotification } = require('../db');
+const { approverIdsFor, canApproveFor } = require('../lib/org');
 const { generatePDFWithLetterhead } = require('../pdf');
 const path = require('path');
 const fs   = require('fs');
@@ -126,8 +127,9 @@ router.get('/:id', (req, res) => {
   const items = db.prepare('SELECT * FROM spare_quotation_items WHERE quotation_id=?').all(req.params.id);
   const flash = req.session.flash || {};
   delete req.session.flash;
-  const isAdmin = req.session.userRole === 'admin';
-  res.render('spare-quotations/view', { title: `Quotation ${q.quotation_no}`, q, items, formatINR, flash, user: req.session, isAdmin });
+  // Approve panel: admin, or the creator's approver in the organisation chart
+  const isAdmin = canApproveFor(res.locals.user?.id, q.created_by, res.locals.user?.role);
+  res.render('spare-quotations/view', { title: `Quotation ${q.quotation_no}`, q, items, formatINR, flash, isAdmin });
 });
 
 // ── Edit form ─────────────────────────────────────────────────────────────────
@@ -262,20 +264,20 @@ router.post('/:id/submit-approval', (req, res) => {
   const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
   if (!q) return res.redirect('/spare-quotations');
   db.prepare("UPDATE spare_quotations SET approval_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
-  const admins = db.prepare("SELECT id FROM users WHERE role='admin'").all();
-  admins.forEach(a => createNotification(a.id, 'Spare quotation to approve',
+  // Notify the approver from the organisation chart (Level 1 while positions above are vacant)
+  approverIdsFor(q.created_by || req.session.userId).forEach(id => createNotification(id, 'Spare quotation to approve',
     `${q.quotation_no} submitted for approval by ${res.locals.user?.full_name || 'salesperson'}.`,
     'approval_request', `/spare-quotations/${q.id}`));
-  req.session.flash = { success: 'Submitted for approval. Admin has been notified.' };
+  req.session.flash = { success: 'Submitted for approval. The approver has been notified.' };
   res.redirect(`/spare-quotations/${req.params.id}`);
 });
 
 // ── Approve / Reject ──────────────────────────────────────────────────────────
 router.post('/:id/approve', (req, res) => {
-  if (res.locals.user?.role !== 'admin') return res.status(403).send('Admin only');
   const { action, notes } = req.body;
   const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
   if (!q) return res.redirect('/spare-quotations');
+  if (!canApproveFor(res.locals.user?.id, q.created_by, res.locals.user?.role)) return res.status(403).send('Only the approver can do this.');
   const newApproval = action === 'approve' ? 'approved' : 'rejected';
   db.prepare('UPDATE spare_quotations SET approval_status=?,approval_notes=?,approved_by=?,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?')
     .run(newApproval, notes||'', req.session.userId, req.params.id);

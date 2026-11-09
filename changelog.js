@@ -4,6 +4,19 @@
 
 module.exports = [
   {
+    date: '2026-11-09',
+    items: [
+      { commit: '', type: 'new', title: 'Organisation chart and approval routing',
+        details: ['Admin → Organisation Chart shows the growth-plan structure: 5 levels, 4 sections (Sales, Service, Operations, Support), 98 seats + owner, with filled and vacant seats.',
+                  'Adding a staff member now asks for their position. Designation, department and app access are filled in from it, and the form shows who will approve their requests.',
+                  'Leave, travel expense and spare quotation requests go to the nearest filled position above the person. While those positions are vacant they go to Level 1 (Govind).',
+                  'The current team was placed from their app role. Check each person on the Organisation Chart page and use Place to move anyone.'] },
+      { commit: '', type: 'fixed', title: 'Spare quotation approval and sold machine deactivation',
+        details: ['The Approve / Reject panel on a pending spare quotation now shows for the approver.',
+                  'Deactivating or reactivating a sold machine no longer shows "Forbidden" for the admin.'] },
+    ],
+  },
+  {
     date: '2026-11-08',
     items: [
       { commit: '', type: 'new', title: 'Push notifications on your phone',

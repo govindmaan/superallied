@@ -58,6 +58,39 @@ function migrate() {
       if (users.length) console.log(`Employee IDs renumbered from ${EMP_CODE_START} for ${users.length} users.`);
     } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Employee ID renumbering failed:', e.message); }
   }
+
+  // One-time (organisation chart, Nov 2026): place today's team in the chart
+  // from their app role, so routing works from day one. Admin checks and moves
+  // people on the Organisation Chart page. Managers and anyone whose role does
+  // not map are left unplaced. Level 1: the admin named Govind, else 'admin'.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_org_autoplace_v1'").get()) {
+    const ROLE_TO_POSITION = {
+      sales: 'sales_officer', staff: 'sales_officer', service: 'service_engineer', telecaller: 'sales_coordinator',
+      office: 'store_parts_exec', accountant: 'accountant', accounts_manager: 'accounts_mgr',
+      hr: 'payroll_hr_exec', employee: 'driver',
+    };
+    const pos = db.prepare('SELECT code, title, section FROM org_positions WHERE code=?');
+    const place = db.prepare("UPDATE users SET position_code=?, designation=CASE WHEN COALESCE(designation,'')='' THEN ? ELSE designation END, department=CASE WHEN COALESCE(department,'')='' THEN ? ELSE department END WHERE id=?");
+    const log = db.prepare("INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (NULL, 'position_auto', 'user', ?, ?)");
+    const people = db.prepare("SELECT id, username, full_name, role FROM users WHERE COALESCE(position_code,'')='' AND COALESCE(is_hr_active,1)=1").all();
+    const admins = people.filter(u => u.role === 'admin');
+    const owner = admins.find(u => /govind/i.test(u.full_name + ' ' + u.username)) || admins.find(u => u.username === 'admin') || admins[0];
+    let placed = 0;
+    db.exec('BEGIN');
+    try {
+      for (const u of people) {
+        const code = u === owner ? 'owner' : ROLE_TO_POSITION[u.role];
+        const p = code && pos.get(code);
+        if (!p) continue;
+        place.run(p.code, p.title, p.section, u.id);
+        log.run(String(u.id), `${u.full_name || u.username} (${u.role}) → ${p.title}`);
+        placed++;
+      }
+      db.prepare("INSERT INTO settings (key, value) VALUES ('migr_org_autoplace_v1', ?)").run(`${placed} of ${people.length} placed`);
+      db.exec('COMMIT');
+      if (placed) console.log(`Organisation chart: placed ${placed} of ${people.length} people from their app role.`);
+    } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Organisation chart placement failed:', e.message); }
+  }
 }
 
 module.exports = { migrate };
