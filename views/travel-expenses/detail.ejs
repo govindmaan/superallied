@@ -41,6 +41,32 @@
         </div>
       </div>
 
+      <% if (typeof day !== 'undefined') {
+           const proof = [
+             ['Check-in selfie', day.att.check_in_photo, day.att.check_in_time],
+             ['Start odometer', day.journey.start_photo, day.journey.start_km],
+             ['Check-out selfie', day.att.check_out_photo, day.att.check_out_time],
+             ['End odometer', day.journey.end_photo, day.journey.end_km],
+           ];
+           const anyProof = proof.some(p => p[1]); %>
+      <% if (anyProof) { %>
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold"><%= t("Day proof") %>
+          <% if (day.journey.total_km) { %><span class="badge bg-info text-dark ms-1"><%= day.journey.total_km.toFixed(1) %> <%= t("km") %></span><% } %></div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-3">
+            <% proof.forEach(([label, photo, meta]) => { %>
+            <div class="text-center" style="width:110px">
+              <% if (photo) { %><a href="<%= photo %>" target="_blank"><img src="<%= photo %>" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ddd"></a>
+              <% } else { %><div style="width:100px;height:100px;border-radius:8px;border:1px dashed #ccc;display:flex;align-items:center;justify-content:center" class="text-muted small"><%= t("missing") %></div><% } %>
+              <div class="small mt-1"><%= t(label) %><% if (meta && String(meta).match(/^\d+(\.\d+)?$/)) { %> · <%= meta %> km<% } %></div>
+            </div>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+      <% } } %>
+
       <% if (visits.length) { %>
       <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white fw-semibold"><%= t("Linked Site Visits") %></div>

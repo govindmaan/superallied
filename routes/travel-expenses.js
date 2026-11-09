@@ -8,6 +8,20 @@ const { analyzeImage } = require('../services/expenseImageAnalyzer');
 // Every department's expenses are approved by the Head of Finance (and admin).
 function isApprover(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_approval'); }
 function canApproveClaim(res) { return isApprover(res); }
+
+// Proof of a working day, already captured elsewhere: the check-in / check-out
+// selfies (attendance) and the start / end odometer photos (expense_journeys).
+// Sales claims are only payable on a complete day; other departments aren't gated.
+function dayProof(userId, date) {
+  const att = db.prepare('SELECT check_in_time, check_in_photo, check_out_time, check_out_photo FROM attendance WHERE user_id=? AND date=?').get(userId, date) || {};
+  const j   = db.prepare('SELECT start_km, start_photo, end_km, end_photo, total_km FROM expense_journeys WHERE user_id=? AND date=?').get(userId, date) || {};
+  const missing = [];
+  if (!att.check_in_photo)  missing.push('check-in selfie');
+  if (!j.start_photo)       missing.push('start-of-day odometer photo');
+  if (!att.check_out_photo) missing.push('check-out selfie');
+  if (!j.end_photo)         missing.push('end-of-day odometer photo');
+  return { att, journey: j, missing, complete: missing.length === 0 };
+}
 function requireClaimApprover(req, res, next) {
   if (canApproveClaim(res)) return next();
   req.session.flash = { error: 'Only the Head of Finance can approve expenses.' };
@@ -239,6 +253,21 @@ router.post('/:id/submit', requireClaimAccess, (req, res) => {
   }
   if (isLocked(expense.date)) { req.session.flash = { error: lockedMsg(expense.date) }; return res.redirect('/travel-expenses/' + expense.id); }
 
+  // Sales expenses are the priority and are mandatory-gated: the day must be
+  // complete (check-in/out selfies + start/end odometer photos) with a purpose.
+  const dept = expense.department || sectionOf(uid);
+  if (dept === 'Sales') {
+    if (!(expense.purpose || '').trim()) {
+      req.session.flash = { error: 'A purpose is required on sales expenses.' };
+      return res.redirect('/travel-expenses/' + expense.id + '/edit');
+    }
+    const proof = dayProof(uid, expense.date);
+    if (!proof.complete) {
+      req.session.flash = { error: `Complete your day first — missing: ${proof.missing.join(', ')}.` };
+      return res.redirect('/travel-expenses/' + expense.id);
+    }
+  }
+
   db.prepare(`UPDATE travel_expenses SET status='submitted', submitted_at=CURRENT_TIMESTAMP,
     approved_by=NULL, approved_at=NULL, approval_remarks='' WHERE id=?`).run(expense.id);
   auditLog(uid, 'expense_submitted', 'travel_expenses', expense.id, expense.expense_number);
@@ -394,7 +423,8 @@ router.get('/:id', requireClaimAccess, (req, res) => {
 
   const locked = isLocked(expense.date);
   const bill = locked ? db.prepare('SELECT id, bill_no FROM ta_bills WHERE user_id=? AND week_start=?').get(expense.user_id, weekOf(expense.date).start) : null;
-  res.render('travel-expenses/detail', { title: expense.expense_number, expense, owner, docs, visits, approver, isOwner, isApprover: canApproveClaim(res, expense), locked, bill });
+  const day = dayProof(expense.user_id, expense.date);
+  res.render('travel-expenses/detail', { title: expense.expense_number, expense, owner, docs, visits, approver, isOwner, isApprover: canApproveClaim(res), locked, bill, day });
 });
 
 router.post('/:id/approve', requireClaimApprover, (req, res) => {

@@ -14,6 +14,13 @@ const { getUserPermissions } = dbmod;
 const hof = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,position_code,department) VALUES ('hof','x','Finance Head','head_of_finance','head_finance','Support')").run().lastInsertRowid);
 // A sales person with a department (org section)
 db.prepare("UPDATE users SET department='Sales' WHERE id=?").run(users.sales.id);
+// Complete today's day for the sales user (selfies + odometer) so the routing
+// tests below aren't blocked by the sales day-gate.
+const _today = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+db.prepare(`INSERT OR REPLACE INTO attendance (user_id,date,check_in_time,check_in_photo,check_out_time,check_out_photo)
+  VALUES (?,?, '09:00','/uploads/a/in.jpg', '18:00','/uploads/a/out.jpg')`).run(users.sales.id, _today);
+db.prepare(`INSERT OR REPLACE INTO expense_journeys (user_id,date,start_km,start_photo,end_km,end_photo,total_km)
+  VALUES (?,?, 1000,'/uploads/j/s.jpg', 1100,'/uploads/j/e.jpg', 100)`).run(users.sales.id, _today);
 
 const sessions = {};
 const app = express();
@@ -81,4 +88,28 @@ test('an employee (operations/support) can also submit', async () => {
   await post('/travel-expenses/', { id: emp }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'delivery', start_odo: '10', end_odo: '30' });
   const e = db.prepare("SELECT department FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(emp);
   assert.equal(e.department, 'Operations');
+});
+
+test('a sales claim cannot be submitted without a complete day (selfies + odometer)', async () => {
+  const s2 = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('sales2','x','Sales Two','sales','Sales')").run().lastInsertRowid);
+  await post('/travel-expenses/', { id: s2 }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'Field work', start_odo: '100', end_odo: '150' });
+  const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(s2);
+  await post(`/travel-expenses/${e.id}/submit`, { id: s2 }, {});
+  assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'draft'); // blocked, no day
+
+  // complete today's day for this user → it submits
+  db.prepare(`INSERT OR REPLACE INTO attendance (user_id,date,check_in_time,check_in_photo,check_out_time,check_out_photo)
+    VALUES (?,?, '09:00','/uploads/a/in.jpg','18:00','/uploads/a/out.jpg')`).run(s2, today);
+  db.prepare(`INSERT OR REPLACE INTO expense_journeys (user_id,date,start_km,start_photo,end_km,end_photo,total_km)
+    VALUES (?,?, 100,'/uploads/j/s.jpg', 150,'/uploads/j/e.jpg', 50)`).run(s2, today);
+  await post(`/travel-expenses/${e.id}/submit`, { id: s2 }, {});
+  assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'submitted');
+});
+
+test('operations claims are not day-gated (paid on every expense)', async () => {
+  const ops = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('ops1','x','Runner','employee','Operations')").run().lastInsertRowid);
+  await post('/travel-expenses/', { id: ops }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'parts run', start_odo: '5', end_odo: '25' });
+  const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(ops);
+  await post(`/travel-expenses/${e.id}/submit`, { id: ops }, {});
+  assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'submitted'); // no gate
 });
