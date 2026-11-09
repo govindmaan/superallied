@@ -120,7 +120,6 @@ function adminDashboardData(locale = 'en-IN') {
 router.get('/', requireLogin, (req, res) => {
   const role    = res.locals.user?.role;
   const isAdminLike = ['admin','manager','hr'].includes(role);
-  if (['accountant', 'accounts_manager'].includes(role)) return res.redirect('/accounts');
   if (role === 'telecaller') return res.redirect('/telecaller');
   const uid     = req.session.userId;
   const today   = new Date().toLocaleDateString('en-CA');

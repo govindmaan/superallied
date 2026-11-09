@@ -2,9 +2,6 @@
   const isAdmin = user && user.role === 'admin';
   const isMgr   = user && (user.role === 'admin' || user.role === 'manager');
   const can     = (p) => isAdmin || hasPerm(p);
-  const accAll  = can('accounts') || can('accounts_approve') || can('accounts_reports');
-  // Accounts is for the accountant and accounts manager profiles (and admin) only
-  const accRole = isAdmin || ['accountant', 'accounts_manager'].includes(user?.role);
   // Route map: everyone who records visits sees their own; admin sees everyone's
   const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
 
@@ -25,24 +22,6 @@
         { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
         { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: t('Sales Reports'),     show: isMgr },
         { href: '/calculator',                   icon: 'bi-calculator-fill',   label: t('Profit Calculator'), show: isAdmin, keys: ['calculator'] },
-      ]},
-    ]},
-    { id: 'accounts', label: t('Accounts'), icon: 'bi-journal-bookmark-fill', groups: !accRole ? [] : [
-      { items: [
-        { href: '/accounts',                icon: 'bi-speedometer',          label: t('Accountant Dashboard'), show: accAll },
-        { href: '/accounts/invoices/upload', icon: 'bi-cloud-arrow-up-fill', label: t('Upload Tally Invoice'), show: can('accounts') },
-        { href: '/accounts/receipts/new',   icon: 'bi-receipt',              label: t('Generate Receipt'),     show: can('accounts') },
-        { href: '/accounts/customers',      icon: 'bi-person-vcard-fill',    label: t('Customer Accounts'),    show: accAll || can('accounts_view') },
-        { href: '/accounts/payments',       icon: 'bi-cash-stack',           label: t('Payment Entry'),        show: accAll },
-        { href: '/accounts/allocations',    icon: 'bi-diagram-3-fill',       label: t('Payment Allocation'),   show: can('accounts') || can('accounts_approve') },
-        { href: '/accounts/invoices',       icon: 'bi-journal-text',         label: t('Invoice Register'),     show: accAll || can('accounts_view') },
-        { href: '/accounts/challans',       icon: 'bi-truck-flatbed',        label: t('Delivery Challans'),    show: accAll || can('accounts_view') },
-        { href: '/accounts/reconciliation', icon: 'bi-arrow-left-right',     label: t('Delivery Challan Reconciliation'), show: accAll },
-        { href: '/accounts/collections',    icon: 'bi-wallet-fill',          label: t('Collection Register'),  show: accAll },
-        { href: '/accounts/reports',        icon: 'bi-clipboard-data-fill',  label: t('Outstanding Reports'),  show: accAll },
-        { href: '/accounts/approvals',      icon: 'bi-check2-all',           label: t('Approvals'),            show: can('accounts') || can('accounts_approve') },
-        { href: '/accounts/audit',          icon: 'bi-shield-check',         label: t('Audit Log'),            show: can('accounts_approve') || can('accounts_reports') },
-        { href: '/accounts/settings',       icon: 'bi-sliders',              label: t('Accounts Settings'),    show: isAdmin },
       ]},
     ]},
     { id: 'databank', label: t('Databank'), icon: 'bi-database-fill', groups: [

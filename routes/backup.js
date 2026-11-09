@@ -4,7 +4,6 @@ const fs      = require('fs');
 const path    = require('path');
 const { execSync, execFileSync } = require('child_process');
 const { db } = require('../db');
-const { FILES_DIR: ACC_FILES_DIR } = require('../services/accounts/files');
 
 const DB_PATH    = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'quotation.db');
 const DATA_DIR   = path.dirname(DB_PATH);
@@ -56,7 +55,6 @@ function exportAll(destTar, uploadsDir) {
   try {
     snapshotDb(path.join(stage, 'quotation.db'));
     if (fs.existsSync(uploadsDir)) fs.cpSync(uploadsDir, path.join(stage, 'uploads'), { recursive: true });
-    if (fs.existsSync(ACC_FILES_DIR)) fs.cpSync(ACC_FILES_DIR, path.join(stage, 'private', 'accounts'), { recursive: true });
     execFileSync('tar', ['-czf', destTar, '-C', stage, '.'], { timeout: 120000 });
   } finally {
     fs.rmSync(stage, { recursive: true, force: true });

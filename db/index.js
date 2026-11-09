@@ -1,5 +1,5 @@
 // Database entry point. Startup order matters:
-//   tables → later-added columns → indexes → accounts module → seed data → data migrations
+//   tables → later-added columns → indexes → seed data → data migrations
 // so a brand-new database and the long-running production one end up identical.
 const db = require('./connection');
 const { createTables } = require('./schema');
@@ -12,7 +12,6 @@ const helpers = require('./helpers');
 createTables();
 addColumns();
 createIndexes();
-require('../services/accounts/schema')(db);
 seed();
 migrate();
 

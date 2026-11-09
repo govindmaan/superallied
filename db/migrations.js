@@ -5,6 +5,16 @@ const db = require('./connection');
 const { EMP_CODE_START } = require('./helpers');
 
 function migrate() {
+  // The in-app Accounts module (Tally invoice upload, receipts, payments,
+  // allocations, challans) was removed — the accountant works in Tally Prime.
+  // Drop its tables so they stop shadowing the schema. DROP IF EXISTS is
+  // idempotent; on a fresh DB these were never created.
+  for (const tbl of ['acc_discrepancy_resolutions', 'acc_cheque_events', 'acc_adjustments',
+    'acc_cancellations', 'acc_allocations', 'acc_payments', 'acc_receipts',
+    'acc_invoice_challans', 'acc_invoice_files', 'acc_challans', 'acc_invoices', 'acc_sequences']) {
+    try { db.exec(`DROP TABLE IF EXISTS ${tbl}`); } catch (e) { /* ignore */ }
+  }
+
   // One-time correction for DBs (including production) seeded before this rate
   // policy existed — guarded so it never overwrites a rate an admin sets later
   // via /travel-expenses/rates. Also retires "Other" as a travel type.

@@ -6,7 +6,7 @@ const session  = require('express-session');
 const path     = require('path');
 const { db, getSettings, getUserPermissions, checkFollowupNotifications } = require('./db');
 const { UPLOADS_DIR, BULL_LOGO_B64 } = require('./lib/assets');
-const { requireLogin, requireAdmin, requirePerm, requireManagerOrAdmin, requireAccountsRole } = require('./lib/auth');
+const { requireLogin, requireAdmin, requirePerm, requireManagerOrAdmin } = require('./lib/auth');
 const i18n = require('./lib/i18n');
 
 // ── Route modules ─────────────────────────────────────────────────────────────
@@ -40,7 +40,6 @@ const databankRoutes        = require('./routes/databank');
 const telecallerRoutes      = require('./routes/telecaller');
 const myleadsRoutes         = require('./routes/myleads');
 const orgRoutes             = require('./routes/org');
-const accountsRoutes        = require('./routes/accounts');
 const pushRoutes            = require('./routes/push');
 
 const app  = express();
@@ -180,8 +179,6 @@ app.use('/backup',            requireLogin, requireAdmin,                     ba
 app.use('/databank',          requireLogin, requirePerm('databank'),          databankRoutes);
 app.use('/telecaller',        requireLogin, requirePerm('telecaller'),        telecallerRoutes);
 app.use('/my-leads',          requireLogin, requirePerm('enquiries'),         myleadsRoutes);
-// Accounts: accountant and accounts manager profiles (and admin) only; the module also checks its own permissions
-app.use('/accounts',          requireLogin, requireAccountsRole,              accountsRoutes);
 
 // Old "My Route" page now lives in the route map
 app.get('/my-route', requireLogin, (req, res) => res.redirect('/route-map'));
