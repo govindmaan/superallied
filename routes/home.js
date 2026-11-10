@@ -223,8 +223,8 @@ router.get('/', requireLogin, (req, res) => {
 
     // ── Driver: attendance + expense only ──
     if (emp.position_code === 'driver') {
-      const recentExpenses = db.prepare(`SELECT id, claim_date, purpose, total_amount, status
-        FROM travel_expenses WHERE user_id=? ORDER BY created_at DESC LIMIT 5`).all(uid);
+      const recentExpenses = db.prepare(`SELECT id, date AS claim_date, purpose, total_claim AS total_amount, status
+        FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 5`).all(uid);
       return res.render('dashboard-driver', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim, recentExpenses, formatINR });
     }
 
