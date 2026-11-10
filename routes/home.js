@@ -170,6 +170,16 @@ router.get('/', requireLogin, (req, res) => {
         myQuotes, myVisits, myEnquiries, followupsDue, formatINR });
     }
 
+    // ── Service department: complaints-and-visits dashboard ──
+    if (emp.position_section === 'Service') {
+      const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
+      const openComplaints = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE status='open' AND assigned_to=?").get(uid).c;
+      const myComplaints   = db.prepare("SELECT * FROM complaints WHERE status='open' AND assigned_to=? ORDER BY opened_at DESC LIMIT 5").all(uid);
+      const mySpareQuotes  = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+      return res.render('dashboard-service', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
+        myVisits, openComplaints, myComplaints, mySpareQuotes, formatINR });
+    }
+
     // ── Operations department: spares-focused dashboard ──
     if (emp.position_section === 'Operations') {
       const mySpareQuotes = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
