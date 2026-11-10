@@ -221,14 +221,45 @@ router.get('/', requireLogin, (req, res) => {
         myVisits, myComplaints, mySpareQuotes, teamService, formatINR });
     }
 
-    // ── Operations department: spares-focused dashboard ──
+    // ── Operations department: parts & stock dashboard ──
     if (emp.position_section === 'Operations') {
-      const mySpareQuotes = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
-      const zeroStockCount = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0)=0").get().c;
-      const lowStockCount  = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0) BETWEEN 1 AND 3").get().c;
-      const recentSpare    = db.prepare(`SELECT * FROM spare_quotations WHERE created_by=? ORDER BY created_at DESC LIMIT 5`).all(uid);
+      const lvl = emp.position_level || 9;
+      const mySpareQuotes  = db.prepare(`SELECT COUNT(*) c FROM spare_quotations WHERE created_by=?
+        AND strftime('%Y-%m',COALESCE(quotation_date,created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')`).get(uid).c;
+      const myQuotesToday  = db.prepare(`SELECT COUNT(*) c FROM spare_quotations WHERE created_by=?
+        AND date(COALESCE(quotation_date,created_at),'+330 minutes')=date('now','+330 minutes')`).get(uid).c;
+      const zeroStockCount = db.prepare(`SELECT COUNT(*) c FROM spare_parts sp
+        LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0)=0`).get().c;
+      const lowStockCount  = db.prepare(`SELECT COUNT(*) c FROM spare_parts sp
+        LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0) BETWEEN 1 AND 3`).get().c;
+      const pendingOrders  = db.prepare(`SELECT COUNT(*) c FROM part_orders WHERE status='pending'`).get().c;
+      // Zero-stock items (most urgently needed)
+      const zeroStockItems = db.prepare(`SELECT sp.sap_part_no, sp.rnd_part_no, sp.material_description,
+          COALESCE(sa.stock_quantity,0) AS qty, sa.category
+        FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id
+        WHERE COALESCE(sa.stock_quantity,0)=0
+        ORDER BY sp.material_description LIMIT 8`).all();
+      // Recent part orders
+      const recentOrders = db.prepare(`SELECT po.*, u.full_name AS creator_name
+        FROM part_orders po LEFT JOIN users u ON u.id=po.created_by
+        ORDER BY po.created_at DESC LIMIT 6`).all();
+      // Recent spare quotations
+      const recentSpare = db.prepare(`SELECT sq.*, u.full_name AS creator_name
+        FROM spare_quotations sq LEFT JOIN users u ON u.id=sq.created_by
+        ${lvl <= 4 ? '' : 'WHERE sq.created_by=?'}
+        ORDER BY sq.created_at DESC LIMIT 6`).all(...(lvl <= 4 ? [] : [uid]));
+      // L4+ also see team spare quote totals and pending approvals
+      let teamOps = null;
+      if (lvl <= 4) {
+        const teamQuotesMonth = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(grand_total),0) v FROM spare_quotations
+          WHERE strftime('%Y-%m',COALESCE(quotation_date,created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')`).get();
+        const pendingApproval = db.prepare(`SELECT COUNT(*) c FROM spare_quotations WHERE approval_status='pending'`).get().c;
+        const totalParts      = db.prepare(`SELECT COUNT(*) c FROM spare_parts`).get().c;
+        teamOps = { teamQuotesMonth, pendingApproval, totalParts };
+      }
       return res.render('dashboard-operations', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
-        mySpareQuotes, zeroStockCount, lowStockCount, recentSpare, formatINR });
+        mySpareQuotes, myQuotesToday, zeroStockCount, lowStockCount, pendingOrders,
+        zeroStockItems, recentOrders, recentSpare, teamOps, formatINR });
     }
 
     const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
