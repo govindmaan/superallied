@@ -5,33 +5,20 @@
   // Route map: everyone who records visits sees their own; admin sees everyone's
   const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
 
-  // Menu = sections → groups → links. `show` decides visibility for the logged-in
-  // user; a group or section with nothing visible is not rendered at all.
-  // `keys` are the `active` values pages pass in, used when the URL alone doesn't match.
+  // Menu — four business divisions + Admin.
+  // `show` gates each link; groups and sections with nothing visible are dropped below.
   const menu = [
+    // ── 1. SALES ───────────────────────────────────────────────────────────────
     { id: 'sales', label: t('Sales'), icon: 'bi-graph-up-arrow', groups: [
       { items: [
         { href: '/my-leads',            icon: 'bi-person-badge-fill',      label: t('My Leads'),           show: can('enquiries'), keys: ['myleads'] },
         { href: '/enquiries',           icon: 'bi-funnel-fill',            label: t('Enquiries'),          show: isMgr || can('enquiries'), keys: ['enquiries'] },
-        { href: '/enquiries/pipeline',  icon: 'bi-kanban',                 label: t('Enquiry Pipeline'),   show: isMgr || can('enquiries') },
+        { href: '/enquiries/pipeline',  icon: 'bi-kanban',                 label: t('Pipeline'),           show: isMgr || can('enquiries') },
         { href: '/enquiries/dashboard', icon: 'bi-bar-chart-fill',         label: t('Enquiry Dashboard'),  show: isMgr || can('enquiries') },
         { href: '/customers',           icon: 'bi-people-fill',            label: t('Customers'),          show: can('customers'),  keys: ['customers'] },
         { href: '/quotations',          icon: 'bi-file-earmark-text-fill', label: t('Machine Quotations'), show: can('quotations'), keys: ['quotations'] },
       ]},
-      { label: t('Sales Team'), items: [
-        { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
-        { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: t('Sales Reports'),     show: isMgr },
-        { href: '/calculator',                   icon: 'bi-calculator-fill',   label: t('Profit Calculator'), show: isAdmin, keys: ['calculator'] },
-      ]},
-    ]},
-    { id: 'databank', label: t('Databank'), icon: 'bi-database-fill', groups: [
-      { items: [
-        { href: '/databank',        icon: 'bi-search',      label: t('Search Customers'), show: can('databank'), keys: ['databank'] },
-        { href: '/databank/access', icon: 'bi-shield-lock', label: t('Databank Access'),  show: isAdmin,         keys: ['databank-access'] },
-      ]},
-    ]},
-    { id: 'telecaller', label: t('Telecaller'), icon: 'bi-telephone-inbound-fill', groups: [
-      { items: [
+      { label: t('Telecaller'), items: [
         { href: '/telecaller',             icon: 'bi-grid-1x2-fill',      label: t('Telecaller Home'),  show: can('telecaller'),       keys: ['telecaller'] },
         { href: '/telecaller/new',         icon: 'bi-plus-circle-fill',   label: t('New Enquiry'),      show: can('telecaller') },
         { href: '/telecaller/queue',       icon: 'bi-telephone-outbound', label: t('Call Queue'),       show: can('telecaller') },
@@ -40,64 +27,79 @@
         { href: '/telecaller/territories', icon: 'bi-geo-alt-fill',       label: t('Territories'),      show: can('telecaller_admin'), keys: ['telecaller-territories'] },
         { href: '/telecaller/config',      icon: 'bi-sliders',            label: t('Scripts & Pitches'),show: can('telecaller_admin'), keys: ['telecaller-config'] },
       ]},
-    ]},
-    { id: 'operations', label: t('Operations'), icon: 'bi-gear-wide-connected', groups: [
-      { items: [
-        { href: '/form-22',               icon: 'bi-patch-check-fill', label: t('Form 22'),        show: can('quotations'), keys: ['form22'] },
-        { href: '/machines',              icon: 'bi-sliders2',         label: t('Machine Master'), show: isMgr, keys: ['machines'] },
-        { href: '/machines/price-update', icon: 'bi-currency-rupee',   label: t('Update Prices'),  show: isMgr },
+      { label: t('Databank'), items: [
+        { href: '/databank',        icon: 'bi-search',      label: t('Search Customers'), show: can('databank'), keys: ['databank'] },
+        { href: '/databank/access', icon: 'bi-shield-lock', label: t('Databank Access'),  show: isAdmin,         keys: ['databank-access'] },
+      ]},
+      { label: t('Sales Team'), items: [
+        { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
+        { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: t('Sales Reports'),     show: isMgr },
+        { href: '/calculator',                   icon: 'bi-calculator-fill',   label: t('Profit Calculator'), show: isAdmin, keys: ['calculator'] },
       ]},
     ]},
-    { id: 'spares', label: t('Spares'), icon: 'bi-box-seam-fill', groups: [
-      { items: [
-        { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',       label: t('Spare Quotations'),   show: can('spare_quotations'), keys: ['spare-quotations'] },
-        { href: '/part-orders',                      icon: 'bi-cart-fill',            label: t('Part Orders'),        show: can('spare_parts'),      keys: ['part-orders'] },
-        { href: '/spare-parts',                      icon: 'bi-boxes',                label: t('Parts Master'),       show: can('spare_parts'),      keys: ['spare-parts'] },
-        { href: '/stock',                            icon: 'bi-clipboard-data',       label: t('Stock Availability'), show: can('stock'),            keys: ['stock'] },
-        { href: '/spare-quotations/reports/summary', icon: 'bi-bar-chart-line-fill',  label: t('Parts Reports'),      show: can('spare_reports'),    keys: ['spare-reports'] },
-      ]},
-    ]},
+
+    // ── 2. SERVICE ─────────────────────────────────────────────────────────────
     { id: 'service', label: t('Service'), icon: 'bi-tools', groups: [
       { items: [
-        { href: '/complaints',    icon: 'bi-wrench-adjustable', label: t('Machine Complaints'), show: can('service_complaints'), keys: ['complaints'] },
-        { href: '/sold-machines', icon: 'bi-hdd-rack-fill', label: t('Sold Machines'), show: can('sold_machines'), keys: ['sold-machines'] },
-        { href: '/visits',        icon: 'bi-geo-alt-fill',  label: t('Site Visits'),   show: can('field_visit'),   keys: ['visits'] },
+        { href: '/complaints',    icon: 'bi-wrench-adjustable',    label: t('Machine Complaints'), show: can('service_complaints'), keys: ['complaints'] },
+        { href: '/sold-machines', icon: 'bi-hdd-rack-fill',        label: t('Sold Machines'),      show: can('sold_machines'),      keys: ['sold-machines'] },
+        { href: '/visits',        icon: 'bi-geo-alt-fill',         label: t('Site Visits'),        show: can('field_visit'),        keys: ['visits'] },
+        { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? t('Route Maps') : t('My Route Map'), show: routeMap, keys: ['route'] },
+        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'),      show: isAdmin || can('expense_approval') },
       ]},
     ]},
-    { id: 'hr', label: t('Human Resources'), icon: 'bi-people-fill', groups: [
+
+    // ── 3. OPERATIONS ──────────────────────────────────────────────────────────
+    { id: 'operations', label: t('Operations'), icon: 'bi-gear-wide-connected', groups: [
       { items: [
-        { href: '/notifications', icon: 'bi-bell-fill',            label: t('Notifications'), show: true, keys: ['notifications'], badge: unreadCount },
-        { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: t('Attendance'),    show: hasPerm('attendance'), keys: ['attendance'] },
-        { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
-        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin || can('expense_approval') },
-        { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: t('My Leaves'),     show: true, keys: ['leaves'] },
-        { href: '/salary',        icon: 'bi-cash-coin',            label: t('My Salary'),     show: true, keys: ['salary'] },
-        { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: t('ID Card'),   show: true, keys: ['id-card'] },
-        { href: '/profile',       icon: 'bi-person-circle',        label: t('My Profile'),    show: true, keys: ['profile'] },
+        { href: '/form-22',               icon: 'bi-patch-check-fill',     label: t('Form 22'),          show: can('quotations'),       keys: ['form22'] },
+        { href: '/machines',              icon: 'bi-sliders2',             label: t('Machine Master'),   show: isMgr,                   keys: ['machines'] },
+        { href: '/machines/price-update', icon: 'bi-currency-rupee',       label: t('Update Prices'),    show: isMgr },
+      ]},
+      { label: t('Spares'), items: [
+        { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',      label: t('Spare Quotations'),   show: can('spare_quotations'), keys: ['spare-quotations'] },
+        { href: '/part-orders',                      icon: 'bi-cart-fill',           label: t('Part Orders'),        show: can('spare_parts'),      keys: ['part-orders'] },
+        { href: '/spare-parts',                      icon: 'bi-boxes',               label: t('Parts Master'),       show: can('spare_parts'),      keys: ['spare-parts'] },
+        { href: '/stock',                            icon: 'bi-clipboard-data',      label: t('Stock Availability'), show: can('stock'),            keys: ['stock'] },
+        { href: '/spare-quotations/reports/summary', icon: 'bi-bar-chart-line-fill', label: t('Parts Reports'),      show: can('spare_reports'),    keys: ['spare-reports'] },
+      ]},
+    ]},
+
+    // ── 4. SUPPORT (HR / Finance) ──────────────────────────────────────────────
+    { id: 'support', label: t('Support'), icon: 'bi-people-fill', groups: [
+      { items: [
+        { href: '/notifications', icon: 'bi-bell-fill',                   label: t('Notifications'), show: true,                    keys: ['notifications'], badge: unreadCount },
+        { href: '/attendance',    icon: 'bi-calendar-check-fill',         label: t('Attendance'),    show: hasPerm('attendance'),   keys: ['attendance'] },
+        { href: '/leaves',        icon: 'bi-calendar-x-fill',             label: t('My Leaves'),     show: true,                    keys: ['leaves'] },
+        { href: '/salary',        icon: 'bi-cash-coin',                   label: t('My Salary'),     show: true,                    keys: ['salary'] },
+        { href: '/id-card',       icon: 'bi-credit-card-2-front-fill',    label: t('ID Card'),       show: true,                    keys: ['id-card'] },
+        { href: '/profile',       icon: 'bi-person-circle',               label: t('My Profile'),    show: true,                    keys: ['profile'] },
       ]},
       { label: t('Expenses'), items: [
-        { href: '/travel-expenses/new',       icon: 'bi-truck',          label: t('New Travel Expense'),  show: can('expense_claim') },
-        { href: '/travel-expenses/my',        icon: 'bi-receipt-cutoff', label: t('My Travel Expenses'),  show: can('expense_claim'), keys: ['travel-expenses'] },
-        { href: '/travel-expenses/bills',     icon: 'bi-file-earmark-text', label: t('TA Bills'),          show: can('expense_claim') || can('expense_approval') },
-        { href: '/travel-expenses/queue',     icon: 'bi-check2-square',  label: t('Expense Approvals'),   show: can('expense_approval') },
-        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',      label: t('Expense Rate Config'), show: isMgr },
+        { href: '/travel-expenses/new',         icon: 'bi-truck',             label: t('New Travel Expense'),  show: can('expense_claim') },
+        { href: '/travel-expenses/my',          icon: 'bi-receipt-cutoff',    label: t('My Travel Expenses'),  show: can('expense_claim'),                    keys: ['travel-expenses'] },
+        { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: t('TA Bills'),            show: can('expense_claim') || can('expense_approval') },
+        { href: '/travel-expenses/queue',       icon: 'bi-check2-square',     label: t('Expense Approvals'),   show: can('expense_approval') },
+        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',           label: t('Expense Rate Config'), show: isMgr },
       ]},
       { label: t('HR Admin'), items: [
-        { href: '/hr/dashboard',  icon: 'bi-grid-fill',            label: t('HR Dashboard'),      show: can('hr_admin'), keys: ['hr'] },
-        { href: '/hr/employees',  icon: 'bi-person-lines-fill',    label: t('Employees'),         show: can('hr_admin') },
-        { href: '/org-chart',     icon: 'bi-diagram-3',            label: t('Organisation Chart'), show: can('hr_admin') && !isAdmin },
-        { href: '/hr/attendance', icon: 'bi-calendar-week-fill',   label: t('Attendance Report'), show: can('hr_admin') },
-        { href: '/hr/attendance/employee', icon: 'bi-person-badge',  label: t('Employee Attendance'), show: isMgr },
-        { href: '/hr/leaves',     icon: 'bi-check2-square',        label: t('Leave Approvals'),   show: can('hr_admin') && can('leave_approval') },
-        { href: '/hr/salary',     icon: 'bi-wallet2',              label: t('Salary Manager'),    show: can('hr_admin') && can('salary_admin') },
+        { href: '/hr/dashboard',           icon: 'bi-grid-fill',          label: t('HR Dashboard'),         show: can('hr_admin'),                        keys: ['hr'] },
+        { href: '/hr/employees',           icon: 'bi-person-lines-fill',  label: t('Employees'),            show: can('hr_admin') },
+        { href: '/org-chart',              icon: 'bi-diagram-3',          label: t('Organisation Chart'),   show: can('hr_admin') && !isAdmin },
+        { href: '/hr/attendance',          icon: 'bi-calendar-week-fill', label: t('Attendance Report'),    show: can('hr_admin') },
+        { href: '/hr/attendance/employee', icon: 'bi-person-badge',       label: t('Employee Attendance'),  show: isMgr },
+        { href: '/hr/leaves',              icon: 'bi-check2-square',      label: t('Leave Approvals'),      show: can('hr_admin') && can('leave_approval') },
+        { href: '/hr/salary',              icon: 'bi-wallet2',            label: t('Salary Manager'),       show: can('hr_admin') && can('salary_admin') },
       ]},
     ]},
+
+    // ── Admin ──────────────────────────────────────────────────────────────────
     { id: 'admin', label: t('Admin'), icon: 'bi-shield-lock-fill', groups: [
       { items: [
-        { href: '/users',    icon: 'bi-person-gear', label: t('Users'),            show: isAdmin, keys: ['users'] },
-        { href: '/org-chart', icon: 'bi-diagram-3',  label: t('Organisation Chart'), show: isAdmin, keys: ['org-chart'] },
-        { href: '/settings', icon: 'bi-sliders',     label: t('Settings'),         show: isAdmin, keys: ['settings'] },
-        { href: '/backup',   icon: 'bi-database-down', label: t('Backup & Restore'), show: isAdmin, keys: ['backup'] },
+        { href: '/users',     icon: 'bi-person-gear',    label: t('Users'),              show: isAdmin, keys: ['users'] },
+        { href: '/org-chart', icon: 'bi-diagram-3',      label: t('Organisation Chart'), show: isAdmin, keys: ['org-chart'] },
+        { href: '/settings',  icon: 'bi-sliders',        label: t('Settings'),           show: isAdmin, keys: ['settings'] },
+        { href: '/backup',    icon: 'bi-database-down',  label: t('Backup & Restore'),   show: isAdmin, keys: ['backup'] },
       ]},
     ]},
   ];
@@ -118,11 +120,12 @@
   const activeHref    = hit ? hit.i.href : null;
   const activeSection = hit ? hit.s.id : null;
 
-  // With no active page, open the section that best fits this user's permissions
+  // With no active page, open the division that best fits this user's permissions
   const defaultOpen = activeSection ||
-    (can('enquiries') || can('quotations') || can('customers') ? 'sales' :
-     can('service_complaints') || can('field_visit') ? 'service' :
-     can('hr_admin') || can('leave_approval') ? 'hr' : null);
+    (can('enquiries') || can('quotations') || can('customers') || can('telecaller') || can('databank') ? 'sales' :
+     can('service_complaints') || can('sold_machines') || can('field_visit') ? 'service' :
+     can('spare_parts') || can('spare_quotations') || can('stock') ? 'operations' :
+     'support');
 %>
 
 <!-- Mobile Top Bar -->
