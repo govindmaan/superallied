@@ -9,6 +9,80 @@
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
+  <% if (staffAttendance) { %>
+  <!-- Staff attendance overview (HoF / Admin) -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="bi bi-people me-2 text-danger"></i><%= t("Staff Attendance") %></span>
+      <form method="GET" action="/attendance" class="d-flex align-items-center gap-2 mb-0">
+        <input type="date" name="date" class="form-control form-control-sm" style="width:150px"
+               value="<%= staffAttendance.date %>" max="<%= todayStr %>"
+               onchange="this.form.submit()">
+      </form>
+    </div>
+    <div class="card-body pb-2">
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="text-center border rounded py-2">
+            <div class="fw-bold fs-4 text-dark"><%= staffAttendance.summary.total %></div>
+            <div class="small text-muted"><%= t("Total") %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="text-center border rounded py-2 border-success">
+            <div class="fw-bold fs-4 text-success"><%= staffAttendance.summary.present %></div>
+            <div class="small text-muted"><%= t("Checked In") %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="text-center border rounded py-2 border-secondary">
+            <div class="fw-bold fs-4 text-secondary"><%= staffAttendance.summary.out %></div>
+            <div class="small text-muted"><%= t("Checked Out") %></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="text-center border rounded py-2 border-danger">
+            <div class="fw-bold fs-4 text-danger"><%= staffAttendance.summary.absent %></div>
+            <div class="small text-muted"><%= t("Absent") %></div>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th><%= t("Name") %></th>
+              <th class="d-none d-md-table-cell"><%= t("Position") %></th>
+              <th><%= t("Check In") %></th>
+              <th><%= t("Check Out") %></th>
+              <th><%= t("Status") %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% staffAttendance.rows.forEach(r => { %>
+            <% const checkedIn = !!r.check_in_time; const checkedOut = !!r.check_out_time; %>
+            <tr>
+              <td class="fw-semibold"><%= r.full_name || r.employee_code || '—' %></td>
+              <td class="small text-muted d-none d-md-table-cell"><%= r.position_title || '—' %></td>
+              <td class="small"><%= checkedIn ? new Date(r.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+              <td class="small"><%= checkedOut ? new Date(r.check_out_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+              <td>
+                <% if (checkedOut) { %><span class="badge bg-secondary"><%= t("Out") %></span>
+                <% } else if (checkedIn) { %><span class="badge bg-success"><%= t("In") %></span>
+                <% } else { %><span class="badge bg-danger bg-opacity-75"><%= t("Absent") %></span><% } %>
+              </td>
+            </tr>
+            <% }) %>
+            <% if (!staffAttendance.rows.length) { %>
+            <tr><td colspan="5" class="text-center text-muted py-3"><%= t("No staff records.") %></td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <% } %>
+
   <!-- Today's status card -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white fw-semibold"><%= t("Today —") %> <%= todayStr %></div>

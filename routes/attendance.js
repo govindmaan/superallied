@@ -33,8 +33,33 @@ router.get('/', (req, res) => {
     FROM attendance WHERE user_id=? AND date >= date('now','+330 minutes','-30 days')
   `).get(uid);
 
+  // HoF and admin see all-staff attendance for the selected date
+  let staffAttendance = null;
+  const canSeeAll = res.locals.hasPerm && (res.locals.hasPerm('*') || res.locals.hasPerm('expense_approval'));
+  if (canSeeAll) {
+    const dateFilter = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : todayR;
+    staffAttendance = {
+      date: dateFilter,
+      rows: db.prepare(`
+        SELECT u.id, u.full_name, u.employee_code, p.title AS position_title, p.section,
+               a.check_in_time, a.check_out_time, a.check_in_lat, a.check_in_lng
+        FROM users u
+        LEFT JOIN org_positions p ON p.code = u.position_code
+        LEFT JOIN attendance a ON a.user_id = u.id AND a.date = ?
+        WHERE u.is_hr_active = 1 AND u.id != ?
+        ORDER BY p.section, u.full_name
+      `).all(dateFilter, uid),
+    };
+    staffAttendance.summary = {
+      total:   staffAttendance.rows.length,
+      present: staffAttendance.rows.filter(r => r.check_in_time).length,
+      out:     staffAttendance.rows.filter(r => r.check_out_time).length,
+      absent:  staffAttendance.rows.filter(r => !r.check_in_time).length,
+    };
+  }
+
   res.render('attendance', { title: 'My Attendance', todayRec, todayJourney, history, stats, todayStr: todayR,
-    cal: monthCalendar(uid, req.query.m, todayR) });
+    cal: monthCalendar(uid, req.query.m, todayR), staffAttendance });
 });
 
 // Month calendar: present / absent / leave / off (Sunday) for one user
