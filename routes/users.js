@@ -108,4 +108,22 @@ router.post('/users/:id/activate', requireLogin, requireAdmin, (req, res) => {
   res.redirect('/users');
 });
 
+router.post('/users/:id/change-role', requireLogin, requireAdmin, (req, res) => {
+  const uid = +req.params.id;
+  if (uid === req.session.userId) {
+    req.session.flash = { error: 'You cannot change your own role.' };
+    return res.redirect('/users');
+  }
+  const u = db.prepare('SELECT username, full_name, role FROM users WHERE id = ?').get(uid);
+  if (!u) { req.session.flash = { error: 'User not found.' }; return res.redirect('/users'); }
+  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller','head_of_finance'];
+  const { role } = req.body;
+  if (!allowedRoles.includes(role)) { req.session.flash = { error: 'Invalid role.' }; return res.redirect('/users'); }
+  const name = u.full_name || u.username;
+  db.prepare('UPDATE users SET role=? WHERE id=?').run(role, uid);
+  auditLog(req.session.userId, 'user_role_changed', 'user', uid, `Changed role of "${name}" from ${u.role} to ${role}`);
+  req.session.flash = { success: `Role changed to "${role}" for ${name}. They will see the new dashboard on next page load.` };
+  res.redirect('/users');
+});
+
 module.exports = router;
