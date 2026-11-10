@@ -151,6 +151,25 @@ router.get('/', requireLogin, (req, res) => {
     const monthClaim = db.prepare("SELECT COALESCE(SUM(total_claim),0) as t FROM travel_expenses WHERE user_id=? AND date LIKE ?")
       .get(uid, new Date().toLocaleDateString('en-CA').slice(0, 7) + '%').t;
 
+    // ── Sales department: leads-and-quotations dashboard ──
+    if (emp.position_section === 'Sales') {
+      const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+      const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
+      let myEnquiries = 0, followupsDue = [];
+      if (res.locals.hasPerm('enquiries')) {
+        myEnquiries = db.prepare("SELECT COUNT(*) AS c FROM enquiries WHERE status='active' AND assigned_to=?").get(uid).c;
+        followupsDue = db.prepare(`
+          SELECT e.id, e.customer_name, e.phone, e.machine_interested, f.d AS due
+          FROM enquiries e
+          JOIN (SELECT enquiry_id, MAX(next_followup_date) AS d FROM enquiry_followups WHERE next_followup_date IS NOT NULL GROUP BY enquiry_id) f
+            ON f.enquiry_id = e.id
+          WHERE e.status='active' AND e.assigned_to=? AND f.d <= ?
+          ORDER BY f.d LIMIT 10`).all(uid, todayIST());
+      }
+      return res.render('dashboard-sales', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
+        myQuotes, myVisits, myEnquiries, followupsDue, formatINR });
+    }
+
     // ── Operations department: spares-focused dashboard ──
     if (emp.position_section === 'Operations') {
       const mySpareQuotes = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;

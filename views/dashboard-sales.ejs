@@ -1,0 +1,435 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'dashboard', user }) %>
+<% const lvl = emp.position_level || 5; %>
+<div class="main-content emp-home">
+
+  <!-- Greeting -->
+  <div class="emp-greeting">
+    <div class="d-flex align-items-center gap-3">
+      <% if (emp.photo_path) { %>
+        <img src="<%= emp.photo_path %>" class="emp-avatar" alt="">
+      <% } else { %>
+        <div class="emp-avatar-fallback"><%= (emp.full_name||'U').charAt(0).toUpperCase() %></div>
+      <% } %>
+      <div>
+        <div class="emp-hello">Good <%= new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening' %> 👋</div>
+        <div class="emp-name"><%= emp.full_name || emp.username %></div>
+        <% if (emp.designation) { %><div class="emp-date"><%= emp.designation %></div><% } %>
+        <div class="emp-date"><%= new Date(today).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) %></div>
+      </div>
+    </div>
+    <div class="mt-3">
+      <% if (todayAtt?.check_out_time) { %>
+        <span class="att-pill att-done"><i class="bi bi-check-circle-fill me-1"></i>Day Complete</span>
+      <% } else if (todayAtt?.check_in_time) { %>
+        <span class="att-pill att-in"><i class="bi bi-dot me-1" style="font-size:1.4rem;line-height:0"></i>Checked In at <%= new Date(todayAtt.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+      <% } else { %>
+        <span class="att-pill att-out"><i class="bi bi-exclamation-circle me-1"></i>Not Checked In</span>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Primary actions -->
+  <div class="primary-actions">
+    <a href="/attendance" class="pa-btn <%= todayAtt?.check_out_time ? 'pa-done' : todayAtt?.check_in_time ? 'pa-out' : 'pa-in' %>">
+      <i class="bi <%= todayAtt?.check_out_time ? 'bi-check2-circle' : todayAtt?.check_in_time ? 'bi-box-arrow-right' : 'bi-box-arrow-in-right' %>"></i>
+      <span><%= todayAtt?.check_out_time ? 'Day Complete' : todayAtt?.check_in_time ? 'Check Out' : 'Check In' %></span>
+    </a>
+    <a href="#" class="pa-btn pa-visit" onclick="openVisitModal(); return false">
+      <i class="bi bi-geo-alt-fill"></i><span>Site Visit</span>
+      <small><%= myVisits %> today</small>
+    </a>
+  </div>
+
+  <!-- Follow-ups due (L4 and above, or anyone with enquiries perm) -->
+  <% if (hasPerm('enquiries') && lvl <= 4) { %>
+  <div class="card border-0 shadow-sm mb-3 followups">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-semibold"><i class="bi bi-telephone-forward me-1 text-danger"></i>Follow-ups due</span>
+      <span class="badge <%= followupsDue.length ? 'bg-danger' : 'bg-light text-muted border' %>"><%= followupsDue.length %></span>
+    </div>
+    <% if (followupsDue.length) { %>
+    <div class="list-group list-group-flush">
+      <% followupsDue.forEach(f => { const overdue = f.due < today; const ph = String(f.phone || '').replace(/\D/g, ''); %>
+      <div class="list-group-item d-flex align-items-center gap-2 py-2">
+        <a href="/enquiries/<%= f.id %>" class="flex-grow-1 text-decoration-none text-dark" style="min-width:0">
+          <div class="fw-semibold text-truncate"><%= f.customer_name %></div>
+          <div class="small <%= overdue ? 'text-danger' : 'text-muted' %> text-truncate">
+            <%= overdue ? 'Overdue · ' + new Date(f.due+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : 'Today' %><%= f.machine_interested ? ' · ' + f.machine_interested : '' %>
+          </div>
+        </a>
+        <% if (ph) { %>
+        <a href="tel:<%= ph %>" class="btn btn-success round-btn"><i class="bi bi-telephone-fill"></i></a>
+        <a href="https://wa.me/<%= ph.length===10?'91'+ph:ph %>" target="_blank" rel="noopener" class="btn btn-outline-success round-btn"><i class="bi bi-whatsapp"></i></a>
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="card-body py-3 small text-muted"><i class="bi bi-check-circle me-1 text-success"></i>No follow-ups due today.</div>
+    <% } %>
+  </div>
+  <% } %>
+
+  <!-- Stat chips -->
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <% if (hasPerm('enquiries')) { %>
+    <div class="stat-chip"><i class="bi bi-funnel me-1"></i><strong><%= myEnquiries %></strong> Open enquiries</div>
+    <% } %>
+    <% if (hasPerm('quotations') && lvl <= 4) { %>
+    <div class="stat-chip"><i class="bi bi-file-earmark-text me-1"></i><strong><%= myQuotes %></strong> Quotations this month</div>
+    <% } %>
+    <% if (pendingLeaves > 0) { %>
+    <div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> Leave pending</div>
+    <% } %>
+  </div>
+
+  <!-- Action tiles -->
+  <div class="tile-grid">
+
+    <!-- Attendance -->
+    <a href="/attendance" class="tile tile-attendance">
+      <div class="tile-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="tile-label">Attendance</div>
+      <div class="tile-sub">
+        <% if (!todayAtt?.check_in_time) { %>Tap to Check In
+        <% } else if (!todayAtt?.check_out_time) { %>Checked In • Check Out
+        <% } else { %>Done for today<% } %>
+      </div>
+    </a>
+
+    <!-- New Enquiry (all with enquiries perm) -->
+    <% if (hasPerm('enquiries')) { %>
+    <a href="/enquiries/new" class="tile tile-enquiry">
+      <div class="tile-icon"><i class="bi bi-person-plus-fill"></i></div>
+      <div class="tile-label">New Enquiry</div>
+      <div class="tile-sub">Add a customer lead</div>
+    </a>
+    <a href="/enquiries" class="tile tile-pipeline">
+      <div class="tile-icon"><i class="bi bi-funnel-fill"></i></div>
+      <div class="tile-label">My Enquiries</div>
+      <div class="tile-sub"><%= myEnquiries %> open</div>
+    </a>
+    <% } %>
+
+    <!-- Machine Quotations (L4 and above) -->
+    <% if (hasPerm('quotations') && lvl <= 4) { %>
+    <a href="/quotations/new" class="tile tile-quote">
+      <div class="tile-icon"><i class="bi bi-file-earmark-plus-fill"></i></div>
+      <div class="tile-label">New Quotation</div>
+      <div class="tile-sub"><%= myQuotes %> this month</div>
+    </a>
+    <% } %>
+
+    <!-- Customers (L4 and above) -->
+    <% if (hasPerm('customers') && lvl <= 4) { %>
+    <a href="/customers" class="tile tile-customers">
+      <div class="tile-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="tile-label">Customers</div>
+      <div class="tile-sub">Search & add</div>
+    </a>
+    <% } %>
+
+    <!-- Pipeline (L3 and above) -->
+    <% if ((hasPerm('enquiries') || hasPerm('quotations')) && lvl <= 3) { %>
+    <a href="/enquiries/pipeline" class="tile" style="background:linear-gradient(135deg,#0dcaf0,#0aa2c0)">
+      <div class="tile-icon"><i class="bi bi-kanban"></i></div>
+      <div class="tile-label">Pipeline</div>
+      <div class="tile-sub">Deal stages</div>
+    </a>
+    <a href="/enquiries/dashboard" class="tile" style="background:linear-gradient(135deg,#cc0000,#990000)">
+      <div class="tile-icon"><i class="bi bi-bar-chart-fill"></i></div>
+      <div class="tile-label">Enquiry Dashboard</div>
+      <div class="tile-sub">Team overview</div>
+    </a>
+    <% } %>
+
+    <!-- Travel Expense -->
+    <% if (hasPerm('expense_claim')) { %>
+    <a href="/travel-expenses/new" class="tile tile-expense">
+      <div class="tile-icon"><i class="bi bi-truck"></i></div>
+      <div class="tile-label">Travel Expense</div>
+      <div class="tile-sub">₹<%= parseFloat(monthClaim||0).toFixed(0) %> this month</div>
+    </a>
+    <% } %>
+
+    <!-- Route Map -->
+    <a href="/route-map" class="tile tile-route">
+      <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
+      <div class="tile-label">Route Map</div>
+      <div class="tile-sub">Today's route</div>
+    </a>
+
+    <!-- Sales Reports (L3 and above) -->
+    <% if (lvl <= 3) { %>
+    <a href="/salespersons/reports/summary" class="tile" style="background:linear-gradient(135deg,#198754,#146c43)">
+      <div class="tile-icon"><i class="bi bi-graph-up-arrow"></i></div>
+      <div class="tile-label">Sales Reports</div>
+      <div class="tile-sub">Team performance</div>
+    </a>
+    <% } %>
+
+    <!-- Profit Calculator (L2 and above) -->
+    <% if (hasPerm('*') || lvl <= 2) { %>
+    <a href="/calculator" class="tile" style="background:linear-gradient(135deg,#6610f2,#520dc2)">
+      <div class="tile-icon"><i class="bi bi-calculator-fill"></i></div>
+      <div class="tile-label">Profit Calculator</div>
+      <div class="tile-sub">Deal margins</div>
+    </a>
+    <% } %>
+
+    <!-- Salespersons (L2 and above) -->
+    <% if ((hasPerm('*') || lvl <= 2) && hasPerm('salespersons_admin')) { %>
+    <a href="/salespersons" class="tile" style="background:linear-gradient(135deg,#fd7e14,#dc6502)">
+      <div class="tile-icon"><i class="bi bi-person-badge-fill"></i></div>
+      <div class="tile-label">Salespersons</div>
+      <div class="tile-sub">Team management</div>
+    </a>
+    <% } %>
+
+    <!-- My Leaves -->
+    <a href="/leaves" class="tile tile-leave">
+      <div class="tile-icon"><i class="bi bi-calendar-x-fill"></i></div>
+      <div class="tile-label">My Leaves</div>
+      <div class="tile-sub"><%= pendingLeaves > 0 ? pendingLeaves + ' pending' : 'Apply leave' %></div>
+    </a>
+
+    <!-- My Salary -->
+    <a href="/salary" class="tile tile-salary">
+      <div class="tile-icon"><i class="bi bi-cash-coin"></i></div>
+      <div class="tile-label">My Salary</div>
+      <div class="tile-sub">View slips</div>
+    </a>
+
+    <!-- ID Card -->
+    <a href="/id-card" class="tile tile-id">
+      <div class="tile-icon"><i class="bi bi-credit-card-2-front-fill"></i></div>
+      <div class="tile-label">ID Card</div>
+      <div class="tile-sub">View & Download</div>
+    </a>
+
+  </div>
+
+  <% if (unreadCount > 0) { %>
+  <a href="/notifications" class="notif-bar">
+    <i class="bi bi-bell-fill me-2"></i>
+    You have <strong><%= unreadCount %></strong> unread notification<%= unreadCount===1?'':'s' %>
+    <i class="bi bi-chevron-right ms-auto"></i>
+  </a>
+  <% } %>
+</div>
+
+<!-- Site Visit Modal (identical to dashboard-employee) -->
+<div class="modal fade" id="visitModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-geo-alt-fill text-danger me-2"></i>Site Punch-In</h5></div>
+      <div class="modal-body">
+        <div id="visitStep1">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Customer / Site Name <span class="text-danger">*</span></label>
+            <input type="text" id="v_customer" class="form-control form-control-lg" placeholder="Enter customer / site name…">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-7">
+              <label class="form-label fw-semibold">Contact Person</label>
+              <input type="text" id="v_contact" class="form-control" placeholder="Who did you meet?">
+            </div>
+            <div class="col-5">
+              <label class="form-label fw-semibold">Phone</label>
+              <input type="tel" id="v_phone" class="form-control" inputmode="numeric" maxlength="13" placeholder="10-digit">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Purpose of Visit</label>
+            <select id="v_purpose" class="form-select">
+              <option value="">— Select —</option>
+              <option value="Customer Visit">Customer Visit</option>
+              <option value="Site Visit">Site Visit</option>
+              <option value="Sales Meeting">Sales Meeting</option>
+              <option value="Service Support">Service Support</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Remarks</label>
+            <textarea id="v_remarks" class="form-control" rows="2" placeholder="Outcome, notes…"></textarea>
+          </div>
+          <div class="d-flex align-items-start gap-2">
+            <div id="v_gps_status" class="small text-muted flex-grow-1"><i class="bi bi-geo-alt me-1"></i>Getting location…</div>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="v_gps_retry" onclick="getVisitLocation()">Retry</button>
+          </div>
+          <div class="mt-2 d-none" id="v_address_wrap">
+            <label class="form-label fw-semibold small mb-1">Visit address <span class="text-danger">*</span></label>
+            <textarea id="v_address" class="form-control form-control-sm" rows="2" maxlength="300" placeholder="Village / area, town"></textarea>
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-danger flex-grow-1 fw-bold" onclick="goToVisitCamera()" id="v_submit_btn">
+              <i class="bi bi-camera-fill me-1"></i>Take Site Photo & Punch In
+            </button>
+            <button class="btn btn-outline-secondary" onclick="closeVisitModal()">Cancel</button>
+          </div>
+        </div>
+        <div id="visitStepCam" class="d-none text-center">
+          <p class="text-muted small mb-2">Take a photo of the site / customer</p>
+          <video id="visitVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
+          <div class="mt-3 d-flex gap-2 justify-content-center">
+            <button class="btn btn-danger px-5 fw-bold" onclick="snapVisitPhoto()"><i class="bi bi-camera-fill me-1"></i>Snap Photo</button>
+          </div>
+          <button class="btn btn-link text-muted btn-sm mt-1" onclick="backToVisitForm()">Back</button>
+        </div>
+        <div id="visitStep2" class="d-none text-center py-3">
+          <div class="spinner-border text-danger mb-3"></div><p>Saving visit…</p>
+        </div>
+        <div id="visitStep3" class="d-none text-center py-3">
+          <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
+          <p class="fw-bold mt-2 mb-1">Site visit successfully recorded!</p>
+          <div class="text-start small bg-light rounded p-3 mt-2" id="v_summary"></div>
+        </div>
+        <div id="visitStepErr" class="d-none text-center py-3">
+          <i class="bi bi-exclamation-circle-fill text-danger" style="font-size:2.5rem"></i>
+          <p class="fw-bold mt-2" id="v_err_msg">Something went wrong.</p>
+          <button class="btn btn-outline-danger btn-sm" onclick="backToVisitForm()">Try Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@media (min-width: 992px) { .emp-home { padding-top: 20px; } }
+.emp-greeting {
+  background: linear-gradient(135deg, #0a2540 0%, #1a3a5c 100%);
+  border-radius: 16px; padding: 20px; color: #fff; margin-bottom: 20px;
+}
+.emp-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.4); flex-shrink: 0; }
+.emp-avatar-fallback {
+  width: 60px; height: 60px; border-radius: 50%; background: #cc0000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 900; flex-shrink: 0;
+}
+.emp-hello { font-size: 13px; opacity: 0.7; }
+.emp-name  { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.emp-date  { font-size: 12px; opacity: 0.65; margin-top: 2px; }
+.att-pill { display: inline-flex; align-items: center; border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; }
+.att-done { background: rgba(40,167,69,0.2); color: #7dffa9; }
+.att-in   { background: rgba(255,193,7,0.2); color: #ffe066; }
+.att-out  { background: rgba(220,53,69,0.2); color: #ff8a94; }
+.stat-chip { background: rgba(0,0,0,0.06); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #444; }
+.stat-chip-warn { background: #fff3cd; color: #856404; }
+.primary-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.pa-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+          border-radius: 16px; padding: 16px 8px; min-height: 92px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px;
+          box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+.pa-btn i { font-size: 1.9rem; line-height: 1; }
+.pa-btn small { font-weight: 500; opacity: .85; font-size: 12px; }
+.pa-btn:active { transform: scale(.98); color: #fff; }
+.pa-in    { background: #198754; }
+.pa-out   { background: #fd7e14; }
+.pa-done  { background: #6c757d; }
+.pa-visit { background: #cc0000; }
+.pa-btn:hover { color: #fff; filter: brightness(1.05); }
+.followups .list-group-item { min-height: 60px; }
+.round-btn { width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; font-size: 1.1rem; }
+.tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (min-width: 576px) { .tile-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 992px) { .tile-grid { grid-template-columns: repeat(4, 1fr); } }
+.tile {
+  background: #fff; border-radius: 16px; padding: 20px 16px;
+  text-decoration: none; color: #1a1d2e;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  min-height: 110px; justify-content: center; border: 2px solid transparent;
+}
+.tile:hover, .tile:active { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.14); color: #1a1d2e; }
+.tile-icon { font-size: 2rem; margin-bottom: 8px; }
+.tile-label { font-size: 14px; font-weight: 700; line-height: 1.2; }
+.tile-sub   { font-size: 11px; color: #888; margin-top: 3px; }
+.tile-attendance { border-color: #28a745; } .tile-attendance .tile-icon { color: #28a745; }
+.tile-enquiry    { border-color: #cc0000; } .tile-enquiry    .tile-icon { color: #cc0000; }
+.tile-pipeline   { border-color: #0dcaf0; } .tile-pipeline   .tile-icon { color: #0aa2c0; }
+.tile-quote      { border-color: #cc0000; } .tile-quote      .tile-icon { color: #cc0000; }
+.tile-customers  { border-color: #198754; } .tile-customers  .tile-icon { color: #198754; }
+.tile-expense    { border-color: #fd7e14; } .tile-expense    .tile-icon { color: #fd7e14; }
+.tile-route      { border-color: #6f42c1; } .tile-route      .tile-icon { color: #6f42c1; }
+.tile-leave      { border-color: #e83e8c; } .tile-leave      .tile-icon { color: #e83e8c; }
+.tile-salary     { border-color: #20c997; } .tile-salary     .tile-icon { color: #20c997; }
+.tile-id         { border-color: #6c757d; } .tile-id         .tile-icon { color: #6c757d; }
+@media (max-width: 575.98px) { .tile { min-height: 96px; padding: 14px 10px; } .tile-icon { font-size: 1.7rem; margin-bottom: 4px; } }
+.notif-bar { background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 4px; text-decoration: none; color: #856404; font-size: 14px; font-weight: 600; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let _visitLat = null, _visitLng = null, _visitStream = null, _visitAcc = null, _visitLocStatus = 'unavailable';
+function showVisitStep(id) {
+  ['visitStep1','visitStepCam','visitStep2','visitStep3','visitStepErr'].forEach(s => document.getElementById(s).classList.add('d-none'));
+  document.getElementById(id).classList.remove('d-none');
+}
+function openVisitModal() {
+  ['v_customer','v_contact','v_phone','v_purpose','v_remarks','v_address'].forEach(id => { document.getElementById(id).value = ''; });
+  showVisitStep('visitStep1');
+  new bootstrap.Modal(document.getElementById('visitModal')).show();
+  getVisitLocation();
+}
+function getVisitLocation() {
+  _visitLat = null; _visitLng = null; _visitAcc = null; _visitLocStatus = 'unavailable';
+  const status = document.getElementById('v_gps_status'), retry = document.getElementById('v_gps_retry');
+  const needAddress = (show) => document.getElementById('v_address_wrap').classList.toggle('d-none', !show);
+  status.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Getting your location…';
+  retry.classList.add('d-none'); needAddress(false);
+  if (!navigator.geolocation) { status.innerHTML = '<i class="bi bi-exclamation-triangle text-warning me-1"></i>This device cannot share its location. Please type the visit address.'; needAddress(true); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    _visitLat = pos.coords.latitude; _visitLng = pos.coords.longitude; _visitAcc = pos.coords.accuracy; _visitLocStatus = 'gps';
+    const acc = Math.round(pos.coords.accuracy);
+    status.innerHTML = `<i class="bi bi-geo-alt-fill ${acc > 200 ? 'text-warning' : 'text-success'} me-1"></i>Location captured (±${acc} m)` + (acc > 200 ? ' — accuracy is low; move into the open and tap Retry if you can.' : '');
+    retry.classList.toggle('d-none', acc <= 200);
+  }, err => {
+    _visitLocStatus = err.code === 1 ? 'denied' : err.code === 3 ? 'timeout' : 'unavailable';
+    const why = err.code === 1 ? 'Location permission is blocked. Allow location for this site in your browser settings, then tap Retry' : err.code === 3 ? 'Location took too long. Tap Retry' : 'Location is unavailable (turn on GPS). Tap Retry';
+    status.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>${why} — or type the visit address below.`;
+    retry.classList.remove('d-none'); needAddress(true);
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+async function goToVisitCamera() {
+  const customer = document.getElementById('v_customer').value.trim();
+  if (!customer) { document.getElementById('v_customer').focus(); return; }
+  const phone = document.getElementById('v_phone').value.replace(/[^0-9+]/g, '');
+  if (phone && !/^(\+?91)?[6-9]\d{9}$/.test(phone)) { alert('Enter a valid 10-digit mobile number, or leave it blank.'); document.getElementById('v_phone').focus(); return; }
+  if (_visitLat == null && !document.getElementById('v_address').value.trim()) { document.getElementById('v_address_wrap').classList.remove('d-none'); document.getElementById('v_address').focus(); return; }
+  showVisitStep('visitStepCam');
+  try {
+    _visitStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+  } catch(e) {
+    try { _visitStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+    catch(e2) { document.getElementById('v_err_msg').textContent = 'Camera not available: ' + e2.message; showVisitStep('visitStepErr'); return; }
+  }
+  document.getElementById('visitVideo').srcObject = _visitStream;
+}
+function backToVisitForm() { if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; } showVisitStep('visitStep1'); }
+async function snapVisitPhoto() {
+  const video = document.getElementById('visitVideo');
+  const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
+  canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+  const photoData = canvas.toDataURL('image/jpeg', 0.8);
+  if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; }
+  showVisitStep('visitStep2');
+  try {
+    const up = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: photoData, folder: 'visits' }) }).then(r => r.json());
+    const customer = document.getElementById('v_customer').value.trim();
+    const resp = await fetch('/visits', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customer_name: customer, contact_person: document.getElementById('v_contact').value.trim(),
+        phone: document.getElementById('v_phone').value.trim(), purpose: document.getElementById('v_purpose').value,
+        remarks: document.getElementById('v_remarks').value, address: document.getElementById('v_address').value.trim(),
+        lat: _visitLat, lng: _visitLng, accuracy: _visitAcc, location_status: _visitLocStatus, photo: up.path || '' }) }).then(r => r.json());
+    if (!resp.ok) { document.getElementById('v_err_msg').textContent = resp.error || 'Could not save visit.'; showVisitStep('visitStepErr'); return; }
+    const now = new Date();
+    document.getElementById('v_summary').innerHTML = `<div><strong>Visit ID:</strong> ${resp.visitId}</div><div><strong>Customer/Site:</strong> ${customer}</div><div><strong>Time:</strong> ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`;
+    showVisitStep('visitStep3');
+    setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('visitModal')).hide(); location.reload(); }, 2500);
+  } catch(e) { document.getElementById('v_err_msg').textContent = 'Network error. Please try again.'; showVisitStep('visitStepErr'); }
+}
+function closeVisitModal() { if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; } bootstrap.Modal.getInstance(document.getElementById('visitModal'))?.hide(); }
+</script>
+</body></html>
