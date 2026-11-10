@@ -156,8 +156,7 @@ router.get('/', requireLogin, (req, res) => {
       const mySpareQuotes = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
       const zeroStockCount = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0)=0").get().c;
       const lowStockCount  = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0) BETWEEN 1 AND 3").get().c;
-      const recentSpare    = db.prepare(`SELECT sq.*, c.name AS customer_name FROM spare_quotations sq
-        LEFT JOIN customers c ON c.id=sq.customer_id WHERE sq.created_by=? ORDER BY sq.created_at DESC LIMIT 5`).all(uid);
+      const recentSpare    = db.prepare(`SELECT * FROM spare_quotations WHERE created_by=? ORDER BY created_at DESC LIMIT 5`).all(uid);
       return res.render('dashboard-operations', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
         mySpareQuotes, zeroStockCount, lowStockCount, recentSpare, formatINR });
     }
