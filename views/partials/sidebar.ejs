@@ -5,6 +5,19 @@
   // Route map: everyone who records visits sees their own; admin sees everyone's
   const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
 
+  // Vertical section filtering: employees see only their division + support
+  // Leadership / managers / admins see everything
+  const VERT_SECTIONS = {
+    Sales:      ['sales', 'support'],
+    Service:    ['service', 'support'],
+    Operations: ['operations', 'support'],
+    Support:    ['support'],
+  };
+  const userSection = user && user.position_section;
+  const allowedSecs = isMgr ? null : (VERT_SECTIONS[userSection] || null);
+  // null = unrestricted (admin/manager/unplaced); array = only these divisions shown
+  const secAllowed  = (id) => !allowedSecs || allowedSecs.includes(id);
+
   // Menu — four business divisions + Admin.
   // `show` gates each link; groups and sections with nothing visible are dropped below.
   const menu = [
@@ -113,7 +126,7 @@
   menu.forEach(s => {
     s.groups = s.groups.map(g => ({ ...g, items: g.items.filter(i => i.show) })).filter(g => g.items.length);
   });
-  const sections = menu.filter(s => s.groups.length);
+  const sections = menu.filter(s => s.groups.length && secAllowed(s.id));
 
   // Highlight one link: longest href that prefixes the current URL, else the page's `active` key
   const path = (typeof currentPath !== 'undefined' && currentPath) || '';

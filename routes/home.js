@@ -145,12 +145,25 @@ router.get('/', requireLogin, (req, res) => {
   if (!isAdminLike) {
     // ── Employee tile dashboard ──
     const todayAtt = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(uid, today);
-    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
-    const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
     const pendingLeaves = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE user_id=? AND status='pending'").get(uid).c;
-    const emp = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
+    const emp = db.prepare(`SELECT u.*, p.section AS position_section, p.level AS position_level
+      FROM users u LEFT JOIN org_positions p ON p.code = u.position_code WHERE u.id=?`).get(uid);
     const monthClaim = db.prepare("SELECT COALESCE(SUM(total_claim),0) as t FROM travel_expenses WHERE user_id=? AND date LIKE ?")
       .get(uid, new Date().toLocaleDateString('en-CA').slice(0, 7) + '%').t;
+
+    // ── Operations department: spares-focused dashboard ──
+    if (emp.position_section === 'Operations') {
+      const mySpareQuotes = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+      const zeroStockCount = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0)=0").get().c;
+      const lowStockCount  = db.prepare("SELECT COUNT(*) as c FROM spare_parts sp LEFT JOIN stock_availability sa ON sa.part_id=sp.id WHERE COALESCE(sa.stock_quantity,0) BETWEEN 1 AND 3").get().c;
+      const recentSpare    = db.prepare(`SELECT sq.*, c.name AS customer_name FROM spare_quotations sq
+        LEFT JOIN customers c ON c.id=sq.customer_id WHERE sq.created_by=? ORDER BY sq.created_at DESC LIMIT 5`).all(uid);
+      return res.render('dashboard-operations', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
+        mySpareQuotes, zeroStockCount, lowStockCount, recentSpare, formatINR });
+    }
+
+    const myQuotes = db.prepare("SELECT COUNT(*) as c FROM quotations WHERE user_id=? AND cancelled_at IS NULL AND strftime('%Y-%m', created_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+    const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
     // Sales: my open enquiries and follow-ups due today or overdue
     let myEnquiries = 0, followupsDue = [];
     if (res.locals.hasPerm('enquiries')) {
