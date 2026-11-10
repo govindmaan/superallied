@@ -1,35 +1,153 @@
 <%- include('partials/head', { title }) %>
 <%- include('partials/sidebar', { active: 'dashboard', user }) %>
-<% const lvl = emp.position_level || 5; %>
-<div class="main-content emp-home">
+<%
+  const isManager = (emp.position_level || 9) <= 3;
+  const tod = today;
+%>
+<div class="main-content svc-dash">
 
-  <!-- Greeting -->
-  <div class="emp-greeting">
+  <!-- ── Greeting ─────────────────────────────────────────────────────────── -->
+  <div class="svc-header">
     <div class="d-flex align-items-center gap-3">
       <% if (emp.photo_path) { %>
-        <img src="<%= emp.photo_path %>" class="emp-avatar" alt="">
+        <img src="<%= emp.photo_path %>" class="svc-avatar" alt="">
       <% } else { %>
-        <div class="emp-avatar-fallback"><%= (emp.full_name||'U').charAt(0).toUpperCase() %></div>
+        <div class="svc-avatar-fb"><%= (emp.full_name||'U').charAt(0).toUpperCase() %></div>
       <% } %>
       <div>
-        <div class="emp-hello">Good <%= new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening' %> 👋</div>
-        <div class="emp-name"><%= emp.full_name || emp.username %></div>
-        <% if (emp.designation) { %><div class="emp-date"><%= emp.designation %></div><% } %>
-        <div class="emp-date"><%= new Date(today).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) %></div>
+        <div class="svc-hello">Good <%= new Date().getHours()<12?'Morning':new Date().getHours()<17?'Afternoon':'Evening' %> 👋</div>
+        <div class="svc-name"><%= emp.full_name || emp.username %></div>
+        <% if (emp.designation) { %><div class="svc-sub"><%= emp.designation %></div><% } %>
+        <div class="svc-sub"><%= new Date(tod).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}) %></div>
       </div>
     </div>
     <div class="mt-3">
       <% if (todayAtt?.check_out_time) { %>
         <span class="att-pill att-done"><i class="bi bi-check-circle-fill me-1"></i>Day Complete</span>
       <% } else if (todayAtt?.check_in_time) { %>
-        <span class="att-pill att-in"><i class="bi bi-dot me-1" style="font-size:1.4rem;line-height:0"></i>Checked In at <%= new Date(todayAtt.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+        <span class="att-pill att-in"><i class="bi bi-dot me-1" style="font-size:1.4rem;line-height:0"></i>Checked In · <%= new Date(todayAtt.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
       <% } else { %>
         <span class="att-pill att-out"><i class="bi bi-exclamation-circle me-1"></i>Not Checked In</span>
       <% } %>
     </div>
   </div>
 
-  <!-- Primary actions -->
+  <!-- ── MANAGER VIEW: Team overview ──────────────────────────────────────── -->
+  <% if (isManager && teamService) { %>
+
+  <!-- 4 KPI cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-danger">
+      <div class="kpi-val"><%= (teamService.cStats.open_count||0) + (teamService.cStats.assigned_count||0) + (teamService.cStats.visited_count||0) %></div>
+      <div class="kpi-label"><i class="bi bi-wrench-adjustable me-1"></i>Active Complaints</div>
+      <div class="kpi-sub"><%= teamService.cStats.open_count||0 %> open · <%= teamService.cStats.assigned_count||0 %> assigned · <%= teamService.cStats.visited_count||0 %> visited</div>
+    </div>
+    <div class="kpi-card kpi-success">
+      <div class="kpi-val"><%= teamService.closedMonth %></div>
+      <div class="kpi-label"><i class="bi bi-check2-circle me-1"></i>Closed This Month</div>
+      <div class="kpi-sub">Complaints resolved</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-val"><%= teamService.spareMonth.c %></div>
+      <div class="kpi-label"><i class="bi bi-box-seam me-1"></i>Spare Parts Sold</div>
+      <div class="kpi-sub">₹<%= (teamService.spareMonth.v/1000).toFixed(0) %>k this month</div>
+    </div>
+    <div class="kpi-card kpi-teal">
+      <div class="kpi-val"><%= teamService.engineers.filter(e=>e.check_in_time).length %>/<%= teamService.engineers.length %></div>
+      <div class="kpi-label"><i class="bi bi-people-fill me-1"></i>Engineers Present</div>
+      <div class="kpi-sub">Field staff today</div>
+    </div>
+  </div>
+
+  <!-- Engineer attendance + work report -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold small d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-person-badge me-1 text-primary"></i>Engineer Status — Today</span>
+      <span class="text-muted" style="font-size:11px"><%= new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}) %></span>
+    </div>
+    <div class="eng-strip">
+      <% if (!teamService.engineers.length) { %>
+        <div class="p-3 text-center text-muted small">No field engineers in org chart.</div>
+      <% } else { teamService.engineers.forEach(e => {
+           const inTime  = e.check_in_time  ? new Date(e.check_in_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : null;
+           const outTime = e.check_out_time ? new Date(e.check_out_time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : null;
+      %> %>
+      <div class="eng-row">
+        <div class="eng-dot <%= e.check_out_time ? 'dot-out' : e.check_in_time ? 'dot-in' : 'dot-abs' %>"></div>
+        <div class="eng-info">
+          <div class="eng-nm fw-semibold"><%= e.full_name || '—' %></div>
+          <div class="eng-pos text-muted"><%= e.position_title || '' %></div>
+        </div>
+        <div class="eng-stats">
+          <% if (inTime) { %>
+            <span class="eng-time <%= outTime ? 'text-secondary' : 'text-success' %>"><%= outTime ? outTime + ' out' : inTime + ' in' %></span>
+          <% } else { %>
+            <span class="eng-time text-danger">Absent</span>
+          <% } %>
+          <div class="eng-work">
+            <% if (e.visits_today > 0) { %><span class="ewp ewp-visit"><i class="bi bi-geo-alt-fill"></i><%= e.visits_today %></span><% } %>
+            <% if (e.closed_today > 0) { %><span class="ewp ewp-closed"><i class="bi bi-check2"></i><%= e.closed_today %></span><% } %>
+            <% if (e.open_mine > 0)   { %><span class="ewp ewp-open"><i class="bi bi-wrench"></i><%= e.open_mine %></span><% } %>
+          </div>
+        </div>
+      </div>
+      <% }) } %>
+    </div>
+  </div>
+
+  <!-- Needs assignment -->
+  <% if (teamService.needsAssignment.length) { %>
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <span class="fw-semibold small"><i class="bi bi-exclamation-circle me-1 text-danger"></i>Needs Assignment</span>
+      <span class="badge bg-danger"><%= teamService.needsAssignment.length %></span>
+    </div>
+    <div class="list-group list-group-flush">
+      <% teamService.needsAssignment.forEach(c => { %>
+      <a href="/complaints/<%= c.id %>" class="list-group-item list-group-item-action py-2">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div style="min-width:0">
+            <div class="fw-semibold text-truncate small"><%= c.customer_name || '—' %></div>
+            <div class="text-muted" style="font-size:11px"><%= c.complaint_number %> · <%= c.machine_no %><%= c.district ? ' · ' + c.district : '' %></div>
+            <% if (c.problem) { %><div class="text-muted text-truncate" style="font-size:11px"><%= c.problem %></div><% } %>
+          </div>
+          <span class="badge bg-danger flex-shrink-0">Unassigned</span>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+    <div class="card-footer bg-white text-end">
+      <a href="/complaints?f=open" class="btn btn-sm btn-outline-danger">View All Open →</a>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Visits today -->
+  <% if (teamService.recentVisits.length) { %>
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold small d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-geo-alt-fill me-1 text-success"></i>Site Visits Today</span>
+      <span class="badge bg-success"><%= teamService.recentVisits.length %></span>
+    </div>
+    <div class="list-group list-group-flush">
+      <% teamService.recentVisits.forEach(v => { %>
+      <a href="/complaints/<%= v.complaint_id %>" class="list-group-item list-group-item-action py-2">
+        <div class="d-flex justify-content-between align-items-center gap-2">
+          <div style="min-width:0">
+            <div class="fw-semibold small text-truncate"><%= v.customer_name || '—' %> · <span class="text-muted"><%= v.machine_no %></span></div>
+            <div class="text-muted" style="font-size:11px"><%= v.engineer_name || 'Unknown' %> · <%= v.complaint_number %><%= v.outcome ? ' · ' + v.outcome : '' %></div>
+          </div>
+          <span class="text-muted flex-shrink-0" style="font-size:11px"><%= new Date(v.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) %></span>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+
+  <% } %> <!-- /isManager -->
+
+  <!-- ── PRIMARY ACTIONS (all service staff) ──────────────────────────────── -->
   <div class="primary-actions">
     <a href="/attendance" class="pa-btn <%= todayAtt?.check_out_time ? 'pa-done' : todayAtt?.check_in_time ? 'pa-out' : 'pa-in' %>">
       <i class="bi <%= todayAtt?.check_out_time ? 'bi-check2-circle' : todayAtt?.check_in_time ? 'bi-box-arrow-right' : 'bi-box-arrow-in-right' %>"></i>
@@ -39,24 +157,29 @@
       <i class="bi bi-geo-alt-fill"></i><span>Site Visit</span>
       <small><%= myVisits %> today</small>
     </a>
+    <a href="/complaints/new" class="pa-btn pa-complaint">
+      <i class="bi bi-plus-circle-fill"></i><span>New Complaint</span>
+    </a>
   </div>
 
-  <!-- Open complaints I'm assigned to (all service staff) -->
-  <% if (hasPerm('service_complaints') && myComplaints.length) { %>
+  <!-- ── My active complaints ──────────────────────────────────────────────── -->
+  <% if (myComplaints.length) { %>
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-wrench-adjustable me-1 text-warning"></i>Open Complaints</span>
-      <span class="badge bg-warning text-dark"><%= myComplaints.length %></span>
+      <span class="fw-semibold small"><i class="bi bi-wrench-adjustable me-1 text-warning"></i>My Active Complaints</span>
+      <a href="/complaints" class="text-muted" style="font-size:12px">View all →</a>
     </div>
     <div class="list-group list-group-flush">
       <% myComplaints.forEach(c => { %>
       <a href="/complaints/<%= c.id %>" class="list-group-item list-group-item-action py-2">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start gap-2">
           <div style="min-width:0">
-            <div class="fw-semibold text-truncate"><%= c.customer_name || '—' %></div>
-            <div class="small text-muted text-truncate"><%= c.machine_no || '' %><%= c.problem ? ' · ' + c.problem : '' %></div>
+            <div class="fw-semibold small text-truncate"><%= c.customer_name || '—' %></div>
+            <div class="text-muted" style="font-size:11px"><%= c.complaint_number %> · <%= c.machine_no %><%= c.district ? ' · ' + c.district : '' %></div>
+            <% if (c.problem) { %><div class="text-muted text-truncate" style="font-size:11px"><%= c.problem %></div><% } %>
           </div>
-          <span class="badge bg-danger ms-2 flex-shrink-0"><%= c.status || 'open' %></span>
+          <% const badgeClr = c.status==='open'?'bg-danger':c.status==='assigned'?'bg-warning text-dark':c.status==='visited'?'bg-info text-dark':'bg-success'; %>
+          <span class="badge <%= badgeClr %> flex-shrink-0"><%= c.status %></span>
         </div>
       </a>
       <% }) %>
@@ -64,44 +187,30 @@
   </div>
   <% } %>
 
-  <!-- Stat chips -->
+  <!-- ── Personal stat chips ───────────────────────────────────────────────── -->
   <div class="d-flex flex-wrap gap-2 mb-3">
-    <% if (hasPerm('service_complaints')) { %>
-    <div class="stat-chip"><i class="bi bi-wrench me-1"></i><strong><%= openComplaints %></strong> Open complaints</div>
-    <% } %>
-    <% if (hasPerm('field_visit')) { %>
-    <div class="stat-chip"><i class="bi bi-geo-alt me-1"></i><strong><%= myVisits %></strong> Visits today</div>
-    <% } %>
-    <% if (pendingLeaves > 0) { %>
-    <div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> Leave pending</div>
-    <% } %>
+    <div class="stat-chip"><i class="bi bi-wrench me-1"></i><strong><%= myComplaints.length %></strong> active complaints</div>
+    <div class="stat-chip"><i class="bi bi-geo-alt me-1"></i><strong><%= myVisits %></strong> visits today</div>
+    <div class="stat-chip"><i class="bi bi-receipt-cutoff me-1"></i><strong><%= mySpareQuotes %></strong> spare quotes this month</div>
+    <% if (pendingLeaves > 0) { %><div class="stat-chip stat-chip-warn"><i class="bi bi-clock me-1"></i><strong><%= pendingLeaves %></strong> leave pending</div><% } %>
   </div>
 
-  <!-- Action tiles -->
+  <!-- ── Action tiles ──────────────────────────────────────────────────────── -->
   <div class="tile-grid">
 
-    <!-- Attendance -->
     <a href="/attendance" class="tile tile-attendance">
       <div class="tile-icon"><i class="bi bi-calendar-check-fill"></i></div>
       <div class="tile-label">Attendance</div>
-      <div class="tile-sub">
-        <% if (!todayAtt?.check_in_time) { %>Tap to Check In
-        <% } else if (!todayAtt?.check_out_time) { %>Checked In • Check Out
-        <% } else { %>Done for today<% } %>
-      </div>
+      <div class="tile-sub"><%= !todayAtt?.check_in_time?'Check In':!todayAtt?.check_out_time?'Check Out':'Done' %></div>
     </a>
 
-    <!-- Machine Complaints (all service staff) -->
-    <% if (hasPerm('service_complaints')) { %>
     <a href="/complaints" class="tile tile-complaint">
       <div class="tile-icon"><i class="bi bi-wrench-adjustable-circle-fill"></i></div>
       <div class="tile-label">Complaints</div>
-      <div class="tile-sub"><%= openComplaints %> open</div>
+      <div class="tile-sub"><%= myComplaints.length %> active</div>
     </a>
-    <% } %>
 
-    <!-- Sold Machines (L4 and above) -->
-    <% if (hasPerm('sold_machines') && lvl <= 4) { %>
+    <% if (hasPerm('sold_machines')) { %>
     <a href="/sold-machines" class="tile tile-machines">
       <div class="tile-icon"><i class="bi bi-hdd-rack-fill"></i></div>
       <div class="tile-label">Sold Machines</div>
@@ -109,52 +218,36 @@
     </a>
     <% } %>
 
-    <!-- Spare Quotations (L4 and above) -->
-    <% if (hasPerm('spare_quotations') && lvl <= 4) { %>
-    <a href="/spare-quotations/new" class="tile" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <% if (hasPerm('spare_quotations')) { %>
+    <a href="/spare-quotations/new" class="tile tile-spare">
       <div class="tile-icon"><i class="bi bi-receipt-cutoff"></i></div>
-      <div class="tile-label">New Spare Quote</div>
+      <div class="tile-label">Spare Quote</div>
       <div class="tile-sub"><%= mySpareQuotes %> this month</div>
     </a>
     <% } %>
 
-    <!-- Stock (L4 and above) -->
-    <% if (hasPerm('stock') && lvl <= 4) { %>
-    <a href="/stock" class="tile" style="background:linear-gradient(135deg,#198754,#146c43)">
+    <% if (hasPerm('stock')) { %>
+    <a href="/stock" class="tile tile-stock">
       <div class="tile-icon"><i class="bi bi-clipboard-data-fill"></i></div>
       <div class="tile-label">Stock</div>
       <div class="tile-sub">Parts availability</div>
     </a>
     <% } %>
 
-    <!-- Parts Master (L3 and above) -->
-    <% if (hasPerm('spare_parts') && lvl <= 3) { %>
-    <a href="/spare-parts" class="tile" style="background:linear-gradient(135deg,#6610f2,#520dc2)">
-      <div class="tile-icon"><i class="bi bi-boxes"></i></div>
-      <div class="tile-label">Parts Master</div>
-      <div class="tile-sub">Catalogue</div>
-    </a>
-    <% } %>
-
-    <!-- Part Orders (L3 and above) -->
-    <% if (hasPerm('spare_parts') && lvl <= 3) { %>
-    <a href="/part-orders" class="tile" style="background:linear-gradient(135deg,#fd7e14,#dc6502)">
+    <% if (hasPerm('spare_parts') && (emp.position_level||9) <= 3) { %>
+    <a href="/part-orders" class="tile tile-orders">
       <div class="tile-icon"><i class="bi bi-cart-fill"></i></div>
       <div class="tile-label">Part Orders</div>
       <div class="tile-sub">Requests & tracking</div>
     </a>
     <% } %>
 
-    <!-- Form 22 (L3 and above) -->
-    <% if ((hasPerm('sold_machines') || hasPerm('spare_parts')) && lvl <= 3) { %>
-    <a href="/form-22" class="tile" style="background:linear-gradient(135deg,#20c997,#1aa179)">
-      <div class="tile-icon"><i class="bi bi-patch-check-fill"></i></div>
-      <div class="tile-label">Form 22</div>
-      <div class="tile-sub">Delivery note</div>
+    <a href="/route-map" class="tile tile-route">
+      <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
+      <div class="tile-label">Route Map</div>
+      <div class="tile-sub">Today's route</div>
     </a>
-    <% } %>
 
-    <!-- Travel Expense -->
     <% if (hasPerm('expense_claim')) { %>
     <a href="/travel-expenses/new" class="tile tile-expense">
       <div class="tile-icon"><i class="bi bi-truck"></i></div>
@@ -163,28 +256,18 @@
     </a>
     <% } %>
 
-    <!-- Route Map -->
-    <a href="/route-map" class="tile tile-route">
-      <div class="tile-icon"><i class="bi bi-map-fill"></i></div>
-      <div class="tile-label">Route Map</div>
-      <div class="tile-sub">Today's route</div>
-    </a>
-
-    <!-- My Leaves -->
     <a href="/leaves" class="tile tile-leave">
       <div class="tile-icon"><i class="bi bi-calendar-x-fill"></i></div>
       <div class="tile-label">My Leaves</div>
-      <div class="tile-sub"><%= pendingLeaves > 0 ? pendingLeaves + ' pending' : 'Apply leave' %></div>
+      <div class="tile-sub"><%= pendingLeaves>0?pendingLeaves+' pending':'Apply leave' %></div>
     </a>
 
-    <!-- My Salary -->
     <a href="/salary" class="tile tile-salary">
       <div class="tile-icon"><i class="bi bi-cash-coin"></i></div>
       <div class="tile-label">My Salary</div>
       <div class="tile-sub">View slips</div>
     </a>
 
-    <!-- ID Card -->
     <a href="/id-card" class="tile tile-id">
       <div class="tile-icon"><i class="bi bi-credit-card-2-front-fill"></i></div>
       <div class="tile-label">ID Card</div>
@@ -265,109 +348,151 @@
 </div>
 
 <style>
-@media (min-width: 992px) { .emp-home { padding-top: 20px; } }
-.emp-greeting {
-  background: linear-gradient(135deg, #1a2e1a 0%, #2d4a2d 100%);
-  border-radius: 16px; padding: 20px; color: #fff; margin-bottom: 20px;
-}
-.emp-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.4); flex-shrink: 0; }
-.emp-avatar-fallback { width: 60px; height: 60px; border-radius: 50%; background: #fd7e14; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 900; flex-shrink: 0; }
-.emp-hello { font-size: 13px; opacity: 0.7; }
-.emp-name  { font-size: 20px; font-weight: 800; line-height: 1.2; }
-.emp-date  { font-size: 12px; opacity: 0.65; margin-top: 2px; }
-.att-pill { display: inline-flex; align-items: center; border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; }
-.att-done { background: rgba(40,167,69,0.2); color: #7dffa9; }
-.att-in   { background: rgba(255,193,7,0.2); color: #ffe066; }
-.att-out  { background: rgba(220,53,69,0.2); color: #ff8a94; }
-.stat-chip { background: rgba(0,0,0,0.06); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #444; }
-.stat-chip-warn { background: #fff3cd; color: #856404; }
-.primary-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-.pa-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 16px; padding: 16px 8px; min-height: 92px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
-.pa-btn i { font-size: 1.9rem; line-height: 1; }
-.pa-btn small { font-weight: 500; opacity: .85; font-size: 12px; }
-.pa-btn:active { transform: scale(.98); color: #fff; }
-.pa-in    { background: #198754; }
-.pa-out   { background: #fd7e14; }
-.pa-done  { background: #6c757d; }
-.pa-visit { background: #fd7e14; }
-.pa-btn:hover { color: #fff; filter: brightness(1.05); }
-.tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
-@media (min-width: 576px) { .tile-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 992px) { .tile-grid { grid-template-columns: repeat(4, 1fr); } }
-.tile { background: #fff; border-radius: 16px; padding: 20px 16px; text-decoration: none; color: #1a1d2e; box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.15s, box-shadow 0.15s; display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 110px; justify-content: center; border: 2px solid transparent; }
-.tile:hover, .tile:active { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.14); color: #1a1d2e; }
-.tile-icon { font-size: 2rem; margin-bottom: 8px; }
-.tile-label { font-size: 14px; font-weight: 700; line-height: 1.2; }
-.tile-sub   { font-size: 11px; color: #888; margin-top: 3px; }
-.tile-attendance { border-color: #28a745; } .tile-attendance .tile-icon { color: #28a745; }
-.tile-complaint  { border-color: #fd7e14; } .tile-complaint  .tile-icon { color: #fd7e14; }
-.tile-machines   { border-color: #0d6efd; } .tile-machines   .tile-icon { color: #0d6efd; }
-.tile-expense    { border-color: #fd7e14; } .tile-expense    .tile-icon { color: #fd7e14; }
-.tile-route      { border-color: #6f42c1; } .tile-route      .tile-icon { color: #6f42c1; }
-.tile-leave      { border-color: #e83e8c; } .tile-leave      .tile-icon { color: #e83e8c; }
-.tile-salary     { border-color: #20c997; } .tile-salary     .tile-icon { color: #20c997; }
-.tile-id         { border-color: #6c757d; } .tile-id         .tile-icon { color: #6c757d; }
-@media (max-width: 575.98px) { .tile { min-height: 96px; padding: 14px 10px; } .tile-icon { font-size: 1.7rem; margin-bottom: 4px; } }
-.notif-bar { background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 4px; text-decoration: none; color: #856404; font-size: 14px; font-weight: 600; }
+@media (min-width:992px){ .svc-dash { padding-top:20px; } }
+
+/* Header */
+.svc-header { background:linear-gradient(135deg,#1a2a3a 0%,#1e3a5f 100%); border-radius:16px; padding:20px; color:#fff; margin-bottom:16px; }
+.svc-avatar  { width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.4);flex-shrink:0; }
+.svc-avatar-fb { width:60px;height:60px;border-radius:50%;background:#fd7e14;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;flex-shrink:0; }
+.svc-hello { font-size:13px;opacity:.7; }
+.svc-name  { font-size:20px;font-weight:800;line-height:1.2; }
+.svc-sub   { font-size:12px;opacity:.65;margin-top:2px; }
+.att-pill  { display:inline-flex;align-items:center;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600; }
+.att-done  { background:rgba(40,167,69,.2);color:#7dffa9; }
+.att-in    { background:rgba(255,193,7,.2);color:#ffe066; }
+.att-out   { background:rgba(220,53,69,.2);color:#ff8a94; }
+
+/* KPI cards */
+.kpi-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px; }
+.kpi-card { border-radius:14px;padding:14px 12px;color:#fff; }
+.kpi-val  { font-size:2rem;font-weight:900;line-height:1; }
+.kpi-label{ font-size:12px;font-weight:700;margin-top:4px;opacity:.95; }
+.kpi-sub  { font-size:10px;opacity:.75;margin-top:2px; }
+.kpi-danger  { background:linear-gradient(135deg,#dc3545,#b02a37); }
+.kpi-success { background:linear-gradient(135deg,#198754,#145c3c); }
+.kpi-blue    { background:linear-gradient(135deg,#0d6efd,#0a47b0); }
+.kpi-teal    { background:linear-gradient(135deg,#0dcaf0,#0891a8);color:#003040; }
+.kpi-teal .kpi-label,.kpi-teal .kpi-sub,.kpi-teal .kpi-val { color:#003040; }
+
+/* Engineer strip */
+.eng-strip { }
+.eng-row   { display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f1f1f1; }
+.eng-row:last-child { border-bottom:none; }
+.eng-dot   { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+.dot-in    { background:#28a745; }
+.dot-out   { background:#6c757d; }
+.dot-abs   { background:#dc3545; }
+.eng-info  { flex:1;min-width:0; }
+.eng-nm    { font-size:13px;line-height:1.2; }
+.eng-pos   { font-size:11px; }
+.eng-stats { text-align:right;flex-shrink:0; }
+.eng-time  { font-size:12px;font-weight:600;display:block; }
+.eng-work  { display:flex;gap:4px;justify-content:flex-end;margin-top:3px; }
+.ewp       { font-size:10px;padding:2px 6px;border-radius:10px;display:inline-flex;align-items:center;gap:2px; }
+.ewp-visit  { background:#cff4fc;color:#0a6577; }
+.ewp-closed { background:#d1e7dd;color:#0a3622; }
+.ewp-open   { background:#fff3cd;color:#664d03; }
+
+/* Primary actions */
+.primary-actions { display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px; }
+.pa-btn { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:16px;padding:14px 6px;min-height:84px;color:#fff;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.12); }
+.pa-btn i { font-size:1.7rem;line-height:1; }
+.pa-btn small { font-weight:500;opacity:.85;font-size:11px; }
+.pa-btn:active { transform:scale(.97);color:#fff; }
+.pa-btn:hover  { color:#fff;filter:brightness(1.05); }
+.pa-in        { background:#198754; }
+.pa-out       { background:#fd7e14; }
+.pa-done      { background:#6c757d; }
+.pa-visit     { background:#6f42c1; }
+.pa-complaint { background:#dc3545; }
+
+/* Stat chips */
+.stat-chip      { background:rgba(0,0,0,.06);border-radius:20px;padding:5px 14px;font-size:12px;color:#444; }
+.stat-chip-warn { background:#fff3cd;color:#856404; }
+
+/* Tiles */
+.tile-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px; }
+@media (min-width:576px){ .tile-grid { grid-template-columns:repeat(3,1fr); } }
+@media (min-width:992px){ .tile-grid { grid-template-columns:repeat(4,1fr); } }
+.tile { background:#fff;border-radius:16px;padding:18px 14px;text-decoration:none;color:#1a1d2e;box-shadow:0 2px 12px rgba(0,0,0,.08);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:100px;justify-content:center;border:2px solid transparent; }
+.tile:hover,.tile:active { transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.14);color:#1a1d2e; }
+.tile-icon  { font-size:1.9rem;margin-bottom:6px; }
+.tile-label { font-size:13px;font-weight:700;line-height:1.2; }
+.tile-sub   { font-size:11px;color:#888;margin-top:2px; }
+@media (max-width:575.98px){ .tile { min-height:88px;padding:12px 10px; } .tile-icon { font-size:1.6rem;margin-bottom:4px; } }
+.tile-attendance { border-color:#28a745; } .tile-attendance .tile-icon { color:#28a745; }
+.tile-complaint  { border-color:#dc3545; } .tile-complaint  .tile-icon { color:#dc3545; }
+.tile-machines   { border-color:#0d6efd; } .tile-machines   .tile-icon { color:#0d6efd; }
+.tile-spare      { border-color:#0dcaf0; } .tile-spare      .tile-icon { color:#0891a8; }
+.tile-stock      { border-color:#198754; } .tile-stock      .tile-icon { color:#198754; }
+.tile-orders     { border-color:#fd7e14; } .tile-orders     .tile-icon { color:#fd7e14; }
+.tile-route      { border-color:#6f42c1; } .tile-route      .tile-icon { color:#6f42c1; }
+.tile-expense    { border-color:#fd7e14; } .tile-expense    .tile-icon { color:#fd7e14; }
+.tile-leave      { border-color:#e83e8c; } .tile-leave      .tile-icon { color:#e83e8c; }
+.tile-salary     { border-color:#20c997; } .tile-salary     .tile-icon { color:#20c997; }
+.tile-id         { border-color:#6c757d; } .tile-id         .tile-icon { color:#6c757d; }
+
+/* Notif bar */
+.notif-bar { background:#fff3cd;border:1px solid #ffc107;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:4px;text-decoration:none;color:#856404;font-size:14px;font-weight:600; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let _visitLat = null, _visitLng = null, _visitStream = null, _visitAcc = null, _visitLocStatus = 'unavailable';
-function showVisitStep(id) { ['visitStep1','visitStepCam','visitStep2','visitStep3','visitStepErr'].forEach(s => document.getElementById(s).classList.add('d-none')); document.getElementById(id).classList.remove('d-none'); }
-function openVisitModal() { ['v_customer','v_contact','v_phone','v_purpose','v_remarks','v_address'].forEach(id => { document.getElementById(id).value = ''; }); showVisitStep('visitStep1'); new bootstrap.Modal(document.getElementById('visitModal')).show(); getVisitLocation(); }
-function getVisitLocation() {
-  _visitLat = null; _visitLng = null; _visitAcc = null; _visitLocStatus = 'unavailable';
-  const status = document.getElementById('v_gps_status'), retry = document.getElementById('v_gps_retry');
-  const needAddress = (show) => document.getElementById('v_address_wrap').classList.toggle('d-none', !show);
-  status.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Getting your location…'; retry.classList.add('d-none'); needAddress(false);
-  if (!navigator.geolocation) { status.innerHTML = '<i class="bi bi-exclamation-triangle text-warning me-1"></i>This device cannot share its location. Please type the visit address.'; needAddress(true); return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    _visitLat = pos.coords.latitude; _visitLng = pos.coords.longitude; _visitAcc = pos.coords.accuracy; _visitLocStatus = 'gps';
-    const acc = Math.round(pos.coords.accuracy);
-    status.innerHTML = `<i class="bi bi-geo-alt-fill ${acc > 200 ? 'text-warning' : 'text-success'} me-1"></i>Location captured (±${acc} m)` + (acc > 200 ? ' — accuracy is low; move into the open and tap Retry if you can.' : '');
-    retry.classList.toggle('d-none', acc <= 200);
-  }, err => {
-    _visitLocStatus = err.code === 1 ? 'denied' : err.code === 3 ? 'timeout' : 'unavailable';
-    const why = err.code === 1 ? 'Location permission is blocked. Allow location in your browser settings, then tap Retry' : err.code === 3 ? 'Location took too long. Tap Retry' : 'Location is unavailable (turn on GPS). Tap Retry';
-    status.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>${why} — or type the visit address below.`;
-    retry.classList.remove('d-none'); needAddress(true);
-  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+let _visitLat=null,_visitLng=null,_visitStream=null,_visitAcc=null,_visitLocStatus='unavailable';
+function showVisitStep(id){['visitStep1','visitStepCam','visitStep2','visitStep3','visitStepErr'].forEach(s=>document.getElementById(s).classList.add('d-none'));document.getElementById(id).classList.remove('d-none');}
+function openVisitModal(){['v_customer','v_contact','v_phone','v_purpose','v_remarks','v_address'].forEach(id=>{document.getElementById(id).value='';});showVisitStep('visitStep1');new bootstrap.Modal(document.getElementById('visitModal')).show();getVisitLocation();}
+function getVisitLocation(){
+  _visitLat=null;_visitLng=null;_visitAcc=null;_visitLocStatus='unavailable';
+  const status=document.getElementById('v_gps_status'),retry=document.getElementById('v_gps_retry');
+  const needAddress=(show)=>document.getElementById('v_address_wrap').classList.toggle('d-none',!show);
+  status.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Getting your location…';retry.classList.add('d-none');needAddress(false);
+  if(!navigator.geolocation){status.innerHTML='<i class="bi bi-exclamation-triangle text-warning me-1"></i>This device cannot share location. Type visit address.';needAddress(true);return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    _visitLat=pos.coords.latitude;_visitLng=pos.coords.longitude;_visitAcc=pos.coords.accuracy;_visitLocStatus='gps';
+    const acc=Math.round(pos.coords.accuracy);
+    status.innerHTML=`<i class="bi bi-geo-alt-fill ${acc>200?'text-warning':'text-success'} me-1"></i>Location captured (±${acc} m)`;
+    retry.classList.toggle('d-none',acc<=200);
+  },err=>{
+    _visitLocStatus=err.code===1?'denied':err.code===3?'timeout':'unavailable';
+    const why=err.code===1?'Location blocked — allow in browser settings, then Retry':err.code===3?'Location timed out — tap Retry':'Location unavailable — turn on GPS then Retry';
+    status.innerHTML=`<i class="bi bi-exclamation-triangle text-warning me-1"></i>${why} or type address below.`;
+    retry.classList.remove('d-none');needAddress(true);
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 }
-async function goToVisitCamera() {
-  const customer = document.getElementById('v_customer').value.trim();
-  if (!customer) { document.getElementById('v_customer').focus(); return; }
-  const phone = document.getElementById('v_phone').value.replace(/[^0-9+]/g, '');
-  if (phone && !/^(\+?91)?[6-9]\d{9}$/.test(phone)) { alert('Enter a valid 10-digit mobile number, or leave it blank.'); document.getElementById('v_phone').focus(); return; }
-  if (_visitLat == null && !document.getElementById('v_address').value.trim()) { document.getElementById('v_address_wrap').classList.remove('d-none'); document.getElementById('v_address').focus(); return; }
+async function goToVisitCamera(){
+  const customer=document.getElementById('v_customer').value.trim();
+  if(!customer){document.getElementById('v_customer').focus();return;}
+  const phone=document.getElementById('v_phone').value.replace(/[^0-9+]/g,'');
+  if(phone&&!/^(\+?91)?[6-9]\d{9}$/.test(phone)){alert('Enter a valid 10-digit number or leave blank.');document.getElementById('v_phone').focus();return;}
+  if(_visitLat==null&&!document.getElementById('v_address').value.trim()){document.getElementById('v_address_wrap').classList.remove('d-none');document.getElementById('v_address').focus();return;}
   showVisitStep('visitStepCam');
-  try { _visitStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false }); }
-  catch(e) { try { _visitStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); } catch(e2) { document.getElementById('v_err_msg').textContent = 'Camera not available: ' + e2.message; showVisitStep('visitStepErr'); return; } }
-  document.getElementById('visitVideo').srcObject = _visitStream;
+  try{_visitStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}},audio:false});}
+  catch(e){try{_visitStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});}catch(e2){document.getElementById('v_err_msg').textContent='Camera not available: '+e2.message;showVisitStep('visitStepErr');return;}}
+  document.getElementById('visitVideo').srcObject=_visitStream;
 }
-function backToVisitForm() { if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; } showVisitStep('visitStep1'); }
-async function snapVisitPhoto() {
-  const video = document.getElementById('visitVideo');
-  const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 480;
-  canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-  const photoData = canvas.toDataURL('image/jpeg', 0.8);
-  if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; }
+function backToVisitForm(){if(_visitStream){_visitStream.getTracks().forEach(t=>t.stop());_visitStream=null;}showVisitStep('visitStep1');}
+async function snapVisitPhoto(){
+  const video=document.getElementById('visitVideo');
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=480;
+  canvas.getContext('2d').drawImage(video,0,0,640,480);
+  const photoData=canvas.toDataURL('image/jpeg',.8);
+  if(_visitStream){_visitStream.getTracks().forEach(t=>t.stop());_visitStream=null;}
   showVisitStep('visitStep2');
-  try {
-    const up = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: photoData, folder: 'visits' }) }).then(r => r.json());
-    const customer = document.getElementById('v_customer').value.trim();
-    const resp = await fetch('/visits', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customer_name: customer, contact_person: document.getElementById('v_contact').value.trim(),
-        phone: document.getElementById('v_phone').value.trim(), purpose: document.getElementById('v_purpose').value,
-        remarks: document.getElementById('v_remarks').value, address: document.getElementById('v_address').value.trim(),
-        lat: _visitLat, lng: _visitLng, accuracy: _visitAcc, location_status: _visitLocStatus, photo: up.path || '' }) }).then(r => r.json());
-    if (!resp.ok) { document.getElementById('v_err_msg').textContent = resp.error || 'Could not save visit.'; showVisitStep('visitStepErr'); return; }
-    const now = new Date();
-    document.getElementById('v_summary').innerHTML = `<div><strong>Visit ID:</strong> ${resp.visitId}</div><div><strong>Customer/Site:</strong> ${customer}</div><div><strong>Time:</strong> ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  try{
+    const up=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:photoData,folder:'visits'})}).then(r=>r.json());
+    const customer=document.getElementById('v_customer').value.trim();
+    const resp=await fetch('/visits',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customer_name:customer,contact_person:document.getElementById('v_contact').value.trim(),
+        phone:document.getElementById('v_phone').value.trim(),purpose:document.getElementById('v_purpose').value,
+        remarks:document.getElementById('v_remarks').value,address:document.getElementById('v_address').value.trim(),
+        lat:_visitLat,lng:_visitLng,accuracy:_visitAcc,location_status:_visitLocStatus,photo:up.path||''})}).then(r=>r.json());
+    if(!resp.ok){document.getElementById('v_err_msg').textContent=resp.error||'Could not save visit.';showVisitStep('visitStepErr');return;}
+    const now=new Date();
+    document.getElementById('v_summary').innerHTML=`<div><strong>Visit ID:</strong> ${resp.visitId}</div><div><strong>Customer/Site:</strong> ${customer}</div><div><strong>Time:</strong> ${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`;
     showVisitStep('visitStep3');
-    setTimeout(() => { bootstrap.Modal.getInstance(document.getElementById('visitModal')).hide(); location.reload(); }, 2500);
-  } catch(e) { document.getElementById('v_err_msg').textContent = 'Network error. Please try again.'; showVisitStep('visitStepErr'); }
+    setTimeout(()=>{bootstrap.Modal.getInstance(document.getElementById('visitModal')).hide();location.reload();},2500);
+  }catch(e){document.getElementById('v_err_msg').textContent='Network error. Please try again.';showVisitStep('visitStepErr');}
 }
-function closeVisitModal() { if (_visitStream) { _visitStream.getTracks().forEach(t => t.stop()); _visitStream = null; } bootstrap.Modal.getInstance(document.getElementById('visitModal'))?.hide(); }
+function closeVisitModal(){if(_visitStream){_visitStream.getTracks().forEach(t=>t.stop());_visitStream=null;}bootstrap.Modal.getInstance(document.getElementById('visitModal'))?.hide();}
 </script>
 </body></html>

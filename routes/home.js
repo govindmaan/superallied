@@ -172,12 +172,53 @@ router.get('/', requireLogin, (req, res) => {
 
     // ── Service department: complaints-and-visits dashboard ──
     if (emp.position_section === 'Service') {
-      const myVisits = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
-      const openComplaints = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE status='open' AND assigned_to=?").get(uid).c;
-      const myComplaints   = db.prepare("SELECT * FROM complaints WHERE status='open' AND assigned_to=? ORDER BY opened_at DESC LIMIT 5").all(uid);
+      const myVisits       = db.prepare("SELECT COUNT(*) as c FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=?").get(uid, today).c;
+      const myComplaints   = db.prepare(`SELECT c.*, u.full_name AS engineer_name FROM complaints c LEFT JOIN users u ON u.id=c.assigned_to
+        WHERE c.status IN ('open','assigned','visited') AND (c.assigned_to=? OR c.reported_by=?) ORDER BY c.opened_at DESC LIMIT 6`).all(uid, uid);
       const mySpareQuotes  = db.prepare("SELECT COUNT(*) as c FROM spare_quotations WHERE created_by=? AND strftime('%Y-%m', COALESCE(quotation_date, created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')").get(uid).c;
+
+      // L3 and above (workshop_mgr, head_service): team overview
+      let teamService = null;
+      if ((emp.position_level || 9) <= 3) {
+        const cStats = db.prepare(`
+          SELECT
+            SUM(CASE WHEN status IN ('open','assigned','visited') THEN 1 ELSE 0 END) AS active,
+            SUM(CASE WHEN status='open' THEN 1 ELSE 0 END)    AS open_count,
+            SUM(CASE WHEN status='assigned' THEN 1 ELSE 0 END) AS assigned_count,
+            SUM(CASE WHEN status='visited' THEN 1 ELSE 0 END)  AS visited_count
+          FROM complaints`).get();
+        const closedMonth = db.prepare(`SELECT COUNT(*) c FROM complaints
+          WHERE status='closed' AND strftime('%Y-%m',closed_at,'+330 minutes')=strftime('%Y-%m','now','+330 minutes')`).get().c;
+        const spareMonth  = db.prepare(`SELECT COUNT(*) c, COALESCE(SUM(grand_total),0) v FROM spare_quotations
+          WHERE strftime('%Y-%m',COALESCE(quotation_date,created_at),'+330 minutes')=strftime('%Y-%m','now','+330 minutes')`).get();
+        const engineers   = db.prepare(`
+          SELECT u.id, u.full_name, p.title AS position_title,
+                 a.check_in_time, a.check_out_time,
+                 (SELECT COUNT(*) FROM complaint_visits cv WHERE cv.engineer_id=u.id AND cv.visit_date=?) AS visits_today,
+                 (SELECT COUNT(*) FROM complaints cl WHERE cl.assigned_to=u.id AND cl.status='closed'
+                    AND date(cl.closed_at,'+330 minutes')=?)                                              AS closed_today,
+                 (SELECT COUNT(*) FROM complaints cl WHERE cl.assigned_to=u.id
+                    AND cl.status IN ('open','assigned','visited'))                                       AS open_mine
+          FROM users u
+          LEFT JOIN org_positions p ON p.code=u.position_code
+          LEFT JOIN attendance a ON a.user_id=u.id AND a.date=?
+          WHERE u.is_hr_active=1 AND p.section='Service' AND (p.level IS NULL OR p.level>=4)
+          ORDER BY a.check_in_time, u.full_name`).all(today, today, today);
+        const needsAssignment = db.prepare(`SELECT * FROM complaints
+          WHERE status='open' AND (assigned_to IS NULL)
+          ORDER BY opened_at DESC LIMIT 6`).all();
+        const recentVisits = db.prepare(`
+          SELECT cv.*, c.complaint_number, c.customer_name, c.machine_no, u.full_name AS engineer_name
+          FROM complaint_visits cv
+          JOIN complaints c ON c.id=cv.complaint_id
+          LEFT JOIN users u ON u.id=cv.engineer_id
+          WHERE cv.visit_date=?
+          ORDER BY cv.created_at DESC LIMIT 8`).all(today);
+        teamService = { cStats, closedMonth, spareMonth, engineers, needsAssignment, recentVisits };
+      }
+
       return res.render('dashboard-service', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim,
-        myVisits, openComplaints, myComplaints, mySpareQuotes, formatINR });
+        myVisits, myComplaints, mySpareQuotes, teamService, formatINR });
     }
 
     // ── Operations department: spares-focused dashboard ──
