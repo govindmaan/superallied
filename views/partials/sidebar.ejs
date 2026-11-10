@@ -31,6 +31,11 @@
         { href: '/databank',        icon: 'bi-search',      label: t('Search Customers'), show: can('databank'), keys: ['databank'] },
         { href: '/databank/access', icon: 'bi-shield-lock', label: t('Databank Access'),  show: isAdmin,         keys: ['databank-access'] },
       ]},
+      { label: t('Field'), items: [
+        { href: '/visits',            icon: 'bi-geo-alt-fill', label: t('Site Visits'),   show: can('field_visit'),                    keys: ['visits'] },
+        { href: '/route-map',         icon: 'bi-map-fill',     label: isAdmin ? t('Route Maps') : t('My Route Map'), show: routeMap, keys: ['route'] },
+        { href: '/route-map/heatmap', icon: 'bi-fire',         label: t('Visit Heatmap'), show: isAdmin || can('expense_approval') },
+      ]},
       { label: t('Sales Team'), items: [
         { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
         { href: '/salespersons/reports/summary', icon: 'bi-bar-chart-fill',    label: t('Sales Reports'),     show: isMgr },
