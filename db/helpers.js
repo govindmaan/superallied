@@ -92,6 +92,17 @@ function getUserPermissions(role) {
   return db.prepare('SELECT permission FROM role_permissions WHERE role=?').all(role).map(r => r.permission);
 }
 
+// Position-based permissions: looks up the position's default_role in org_positions,
+// then returns that role's permissions. Falls back to roleOverride (e.g. the stored
+// users.role) for users without a position_code (e.g. the seeded admin account).
+function getPositionPermissions(positionCode, roleOverride) {
+  if (positionCode) {
+    const pos = db.prepare('SELECT default_role FROM org_positions WHERE code=?').get(positionCode);
+    if (pos) return getUserPermissions(pos.default_role);
+  }
+  return getUserPermissions(roleOverride || '');
+}
+
 // In-app notification, also pushed to the user's phones/browsers that have notifications on
 function createNotification(userId, title, body = '', type = 'info', link = '') {
   try {
@@ -236,4 +247,4 @@ function nextEmployeeCode() {
   return String(Math.max(EMP_CODE_START, (r?.m || 0) + 1));
 }
 
-module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, nextComplaintNumber, routeLeadByDistrict, EMP_CODE_START };
+module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, getPositionPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, nextComplaintNumber, routeLeadByDistrict, EMP_CODE_START };

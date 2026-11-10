@@ -20,7 +20,6 @@
             <th><%= t("Username") %></th>
             <th><%= t("Full Name") %></th>
             <th><%= t("Position") %></th>
-            <th><%= t("Role") %></th>
             <th><%= t("Status") %></th>
             <th><%= t("Created") %></th>
             <th></th>
@@ -33,11 +32,6 @@
             <td><%= u.full_name || '—' %></td>
             <td class="small"><% if (u.position_title) { %><span class="badge bg-dark">L<%= u.position_level %></span> <%= u.position_title %><% } else { %><a href="/org-chart" class="text-warning-emphasis"><%= t("Not placed") %></a><% } %></td>
             <td>
-              <% const rb = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success'}; %>
-              <% const rl = {admin:'Admin',manager:'Manager',sales:'Sales',office:'Office',hr:'HR',service:'Service',staff:'Staff',employee:'Employee'}; %>
-              <span class="badge <%= rb[u.role]||'bg-secondary' %>"><%= rl[u.role]||u.role %></span>
-            </td>
-            <td>
               <span class="badge <%= u.is_hr_active===0?'bg-secondary':'bg-success' %>"><%= u.is_hr_active===0?t('Inactive'):t('Active') %></span>
               <% if (u.locked) { %><span class="badge bg-danger" title="<%= t("Too many wrong login attempts") %>"><%= t("Locked") %></span><% } %>
               <% if (u.must_change_password) { %><span class="badge bg-warning text-dark" title="<%= t("Will choose a new password at next login") %>"><%= t("Reset pending") %></span><% } %>
@@ -47,7 +41,7 @@
               <% if (u.id !== user.id) { %>
                 <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-reset-id="<%= u.id %>" data-reset-name="<%= u.full_name || u.username %>"
                         data-reset-pin="<%= u.has_pin ? 1 : 0 %>"><i class="bi bi-key"></i> <%= t("Reset password") %></button>
-                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-role-id="<%= u.id %>" data-role-name="<%= u.full_name || u.username %>" data-role-current="<%= u.role %>"><i class="bi bi-person-gear"></i> <%= t("Role") %></button>
+                <button type="button" class="btn btn-sm btn-outline-primary me-1" data-pos-id="<%= u.id %>" data-pos-name="<%= u.full_name || u.username %>" data-pos-current="<%= u.position_code || '' %>"><i class="bi bi-diagram-3"></i> <%= t("Position") %></button>
                 <% if (u.is_hr_active === 0) { %>
                 <form method="POST" action="/users/<%= u.id %>/activate" class="d-inline" data-confirm-activate="<%= u.full_name || u.username %>">
                   <button class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle"></i> <%= t("Activate") %></button>
@@ -122,33 +116,26 @@
   </div>
 </div>
 
-<!-- Change Role modal -->
-<div class="modal fade" id="roleModal" tabindex="-1">
+<!-- Change Position modal -->
+<div class="modal fade" id="posModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="POST" id="roleForm">
-        <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-person-gear me-1 text-primary"></i><%= t("Change Role") %> — <span id="roleName"></span></h5>
+      <form method="POST" id="posForm">
+        <div class="modal-header"><h5 class="modal-title fw-bold"><i class="bi bi-diagram-3 me-1 text-primary"></i><%= t("Change Position") %> — <span id="posName"></span></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-          <label class="form-label fw-semibold small"><%= t("New Role") %></label>
-          <select name="role" id="roleSelect" class="form-select">
-            <option value="sales"><%= t("Sales — Quotations, Customers, Visits") %></option>
-            <option value="service"><%= t("Service — Field Visits, Expenses") %></option>
-            <option value="hr"><%= t("HR — Employee Management, Leaves") %></option>
-            <option value="office"><%= t("Office — Quotations, Admin Tasks") %></option>
-            <option value="employee"><%= t("Employee — Attendance Only") %></option>
-            <option value="accountant"><%= t("Accountant") %></option>
-            <option value="head_of_finance"><%= t("Head of Finance — approves all expenses") %></option>
-            <option value="telecaller"><%= t("Telecaller") %></option>
-            <option value="manager"><%= t("Manager — Team Approvals + HR") %></option>
-            <option value="staff"><%= t("Staff (Legacy) — Sales Access") %></option>
-            <option value="admin"><%= t("Admin — Full Access") %></option>
+          <label class="form-label fw-semibold small"><%= t("New Position") %></label>
+          <select name="position_code" id="posSelect" class="form-select">
+            <option value=""><%= t("Choose position…") %></option>
+            <% positions.forEach(p => { %>
+            <option value="<%= p.code %>">L<%= p.level %> · <%= p.title %> (<%= p.section %>)</option>
+            <% }) %>
           </select>
-          <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i><%= t("Takes effect immediately on their next page load. No re-login needed.") %></div>
+          <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i><%= t("Access follows the position automatically. Takes effect immediately.") %></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><%= t("Cancel") %></button>
-          <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i><%= t("Save Role") %></button>
+          <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i><%= t("Save Position") %></button>
         </div>
       </form>
     </div>
@@ -191,11 +178,12 @@ document.querySelectorAll('[data-confirm-deactivate]').forEach(f => {
   f.addEventListener('submit', e => { if (!confirm('Deactivate ' + f.dataset.confirmDeactivate + '? They will not be able to log in. Their records are preserved.')) e.preventDefault(); });
 });
 (() => {
-  const modal = new bootstrap.Modal(document.getElementById('roleModal'));
-  document.querySelectorAll('[data-role-id]').forEach(b => b.addEventListener('click', () => {
-    document.getElementById('roleForm').action = `/users/${b.dataset.roleId}/change-role`;
-    document.getElementById('roleName').textContent = b.dataset.roleName;
-    document.getElementById('roleSelect').value = b.dataset.roleCurrent;
+  const modal = new bootstrap.Modal(document.getElementById('posModal'));
+  document.querySelectorAll('[data-pos-id]').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('posForm').action = `/users/${b.dataset.posId}/change-position`;
+    document.getElementById('posName').textContent = b.dataset.posName;
+    const sel = document.getElementById('posSelect');
+    if (b.dataset.posCurrent) sel.value = b.dataset.posCurrent;
     modal.show();
   }));
 })();

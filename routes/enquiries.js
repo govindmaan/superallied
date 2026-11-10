@@ -19,8 +19,8 @@ const STAGE_KEYS = Object.keys(STAGES);
 const CALL_STATUSES = ['Interested', 'Not Interested', 'Busy', 'Switch Off', 'Call Back Later', 'No Response'];
 const LEAD_SOURCES = ['Walk-in', 'Reference', 'Call', 'Field Visit', 'Advertisement', 'Exhibition', 'Other'];
 
-function canSeeAll(user) {
-  return user && ['admin', 'manager'].includes(user.role);
+function canSeeAll(res) {
+  return res.locals.hasPerm('*') || res.locals.hasPerm('hr_admin');
 }
 
 function stageAtLeast(stage, target) {
@@ -35,7 +35,7 @@ function bumpStage(enquiryId, targetStage) {
 }
 
 function getEnquiries(user, filters = {}) {
-  const allAccess = canSeeAll(user);
+  const allAccess = canSeeAll(res);
   let sql = `SELECT e.*, u.full_name as assignee_name, cu.full_name as creator_name
     FROM enquiries e
     LEFT JOIN users u ON u.id = e.assigned_to
@@ -85,14 +85,14 @@ router.get('/', (req, res) => {
   res.render('enquiries/list', {
     title: 'Enquiries', enquiries, STAGES, staff, LEAD_SOURCES,
     q, stage, status, assigned_to, district, machine, lead_source, from, to, sort,
-    allAccess: canSeeAll(user), page, perPage, total, totalPages: Math.ceil(total / perPage) || 1,
+    allAccess: canSeeAll(res), page, perPage, total, totalPages: Math.ceil(total / perPage) || 1,
   });
 });
 
 // ── Pipeline (Kanban) ─────────────────────────────────────────────────────────
 router.get('/pipeline', (req, res) => {
   const user = res.locals.user;
-  const allAccess = canSeeAll(user);
+  const allAccess = canSeeAll(res);
   const uid = user.id;
   const where = allAccess ? "status='active'" : `status='active' AND assigned_to=${uid}`;
 
@@ -110,7 +110,7 @@ router.get('/pipeline', (req, res) => {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 router.get('/dashboard', (req, res) => {
   const user = res.locals.user;
-  const allAccess = canSeeAll(user);
+  const allAccess = canSeeAll(res);
   const uid = user.id;
   const scope = allAccess ? '' : `AND e.assigned_to = ${uid}`;
   const today = new Date().toLocaleDateString('en-CA');
@@ -213,7 +213,7 @@ router.post('/', (req, res) => {
   }
 
   const enquiryNumber = nextEnquiryNumber();
-  const assignedTo = canSeeAll(user) && b.assigned_to ? parseInt(b.assigned_to) : user.id;
+  const assignedTo = canSeeAll(res) && b.assigned_to ? parseInt(b.assigned_to) : user.id;
 
   const info = db.prepare(`INSERT INTO enquiries
     (enquiry_number, customer_name, phone, location, district, village_city, machine_interested, lead_source, assigned_to, created_by)
@@ -261,7 +261,7 @@ function loadEnquiryOrDeny(req, res) {
   const enquiry = db.prepare(`SELECT e.*, u.full_name as assignee_name, cu.full_name as creator_name
     FROM enquiries e LEFT JOIN users u ON u.id=e.assigned_to LEFT JOIN users cu ON cu.id=e.created_by WHERE e.id=?`).get(req.params.id);
   if (!enquiry) { req.session.flash = { error: 'Enquiry not found.' }; res.redirect('/enquiries'); return null; }
-  if (!canSeeAll(user) && enquiry.assigned_to !== user.id) { req.session.flash = { error: 'Access denied.' }; res.redirect('/enquiries'); return null; }
+  if (!canSeeAll(res) && enquiry.assigned_to !== user.id) { req.session.flash = { error: 'Access denied.' }; res.redirect('/enquiries'); return null; }
   return enquiry;
 }
 
@@ -275,13 +275,13 @@ router.get('/:id', (req, res) => {
   const staff = db.prepare("SELECT id, full_name FROM users WHERE role NOT IN ('admin') ORDER BY full_name").all();
   res.render('enquiries/detail', {
     title: `Enquiry ${enquiry.enquiry_number}`, enquiry, timeline, sale, quotations, staff,
-    STAGES, STAGE_KEYS, CALL_STATUSES, allAccess: canSeeAll(res.locals.user),
+    STAGES, STAGE_KEYS, CALL_STATUSES, allAccess: canSeeAll(res),
   });
 });
 
 // ── Edit basic fields ──────────────────────────────────────────────────────────
 router.get('/:id/edit', (req, res) => {
-  if (res.locals.user.role !== 'admin') { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
+  if (!res.locals.hasPerm('*')) { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
   const enquiry = loadEnquiryOrDeny(req, res);
   if (!enquiry) return;
   const machines = db.prepare('SELECT model_code, display_name FROM machines WHERE active=1 ORDER BY display_name').all();
@@ -290,7 +290,7 @@ router.get('/:id/edit', (req, res) => {
 });
 
 router.post('/:id', (req, res) => {
-  if (res.locals.user.role !== 'admin') { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
+  if (!res.locals.hasPerm('*')) { req.session.flash = { error: 'Only an administrator can edit an enquiry.' }; return res.redirect(`/enquiries/${req.params.id}`); }
   const enquiry = loadEnquiryOrDeny(req, res);
   if (!enquiry) return;
   const b = req.body;
@@ -415,7 +415,7 @@ router.post('/:id/close', (req, res) => {
 // ── Reassign ───────────────────────────────────────────────────────────────────
 router.post('/:id/assign', (req, res) => {
   const user = res.locals.user;
-  if (!canSeeAll(user)) { req.session.flash = { error: 'Manager or Admin access required.' }; return res.redirect(`/enquiries/${req.params.id}`); }
+  if (!canSeeAll(res)) { req.session.flash = { error: 'Manager or Admin access required.' }; return res.redirect(`/enquiries/${req.params.id}`); }
   const enquiry = db.prepare('SELECT * FROM enquiries WHERE id=?').get(req.params.id);
   if (!enquiry) { req.session.flash = { error: 'Enquiry not found.' }; return res.redirect('/enquiries'); }
 
@@ -436,7 +436,7 @@ router.post('/:id/status', (req, res) => {
   const user = res.locals.user;
   const enquiry = db.prepare('SELECT * FROM enquiries WHERE id=?').get(req.params.id);
   if (!enquiry) return res.json({ ok: false, error: 'Not found' });
-  if (!canSeeAll(user) && enquiry.assigned_to !== user.id) return res.json({ ok: false, error: 'Access denied' });
+  if (!canSeeAll(res) && enquiry.assigned_to !== user.id) return res.json({ ok: false, error: 'Access denied' });
 
   const { status } = req.body;
   if (!['active', 'won', 'lost'].includes(status)) return res.json({ ok: false, error: 'Invalid status' });
@@ -485,7 +485,7 @@ router.post('/:id/quotations', (req, res) => {
 // ── Delete (admin only) ────────────────────────────────────────────────────────
 router.post('/:id/delete', (req, res) => {
   const user = res.locals.user;
-  if (user.role !== 'admin') { req.session.flash = { error: 'Admin only.' }; return res.redirect('/enquiries'); }
+  if (!res.locals.hasPerm('*')) { req.session.flash = { error: 'Admin only.' }; return res.redirect('/enquiries'); }
   db.prepare('DELETE FROM enquiries WHERE id=?').run(req.params.id);
   req.session.flash = { success: 'Enquiry deleted.' };
   res.redirect('/enquiries');

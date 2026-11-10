@@ -1,7 +1,7 @@
 <%
-  const isAdmin = user && user.role === 'admin';
-  const isMgr   = user && (user.role === 'admin' || user.role === 'manager');
-  const can     = (p) => isAdmin || hasPerm(p);
+  const isAdmin = typeof hasPerm === 'function' && hasPerm('*');
+  const isMgr   = isAdmin || (typeof hasPerm === 'function' && hasPerm('hr_admin'));
+  const can     = (p) => isAdmin || (typeof hasPerm === 'function' && hasPerm(p));
   // Route map: everyone who records visits sees their own; admin sees everyone's
   const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
 
@@ -69,7 +69,7 @@
         { href: '/notifications', icon: 'bi-bell-fill',            label: t('Notifications'), show: true, keys: ['notifications'], badge: unreadCount },
         { href: '/attendance',    icon: 'bi-calendar-check-fill',  label: t('Attendance'),    show: hasPerm('attendance'), keys: ['attendance'] },
         { href: '/route-map',     icon: 'bi-map-fill',             label: isAdmin ? 'Route Maps' : 'My Route Map', show: routeMap, keys: ['route'] },
-        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin || user.role === 'head_of_finance' },
+        { href: '/route-map/heatmap', icon: 'bi-fire',             label: t('Visit Heatmap'), show: isAdmin || can('expense_approval') },
         { href: '/leaves',        icon: 'bi-calendar-x-fill',      label: t('My Leaves'),     show: true, keys: ['leaves'] },
         { href: '/salary',        icon: 'bi-cash-coin',            label: t('My Salary'),     show: true, keys: ['salary'] },
         { href: '/id-card',       icon: 'bi-credit-card-2-front-fill', label: t('ID Card'),   show: true, keys: ['id-card'] },
@@ -118,9 +118,11 @@
   const activeHref    = hit ? hit.i.href : null;
   const activeSection = hit ? hit.s.id : null;
 
-  // With no active page (Dashboard, Help), open the section that fits the user's role
-  const roleHome = { sales: 'sales', staff: 'sales', office: 'sales', service: 'service', hr: 'hr', employee: 'hr', accountant: 'accounts', accounts_manager: 'accounts' };
-  const defaultOpen = activeSection || roleHome[user?.role] || null;
+  // With no active page, open the section that best fits this user's permissions
+  const defaultOpen = activeSection ||
+    (can('enquiries') || can('quotations') || can('customers') ? 'sales' :
+     can('service_complaints') || can('field_visit') ? 'service' :
+     can('hr_admin') || can('leave_approval') ? 'hr' : null);
 %>
 
 <!-- Mobile Top Bar -->
@@ -143,14 +145,14 @@
 
 <%
   // Bottom bar on phones for field staff (sales, service, office…); admin/manager/HR use the sidebar
-  const fieldUser = user && !['admin','manager','hr','accountant','accounts_manager'].includes(user.role);
+  const fieldUser = user && !isMgr;
   const p = (typeof currentPath !== 'undefined' && currentPath) || '';
-  const bottomNav = (user && user.role === 'telecaller') ? [
+  const bottomNav = (can('telecaller') && !isAdmin) ? [
     { href: '/telecaller',         icon: 'bi-house-door-fill',     label: t('Home'),       on: p === '/telecaller' },
     { href: '/telecaller/queue',   icon: 'bi-telephone-outbound',  label: t('Call Queue'), on: p.startsWith('/telecaller/call') },
     { href: '/telecaller/new',     icon: 'bi-plus-circle-fill',    label: t('New'),        center: true },
     { href: '/telecaller/history', icon: 'bi-clock-history',       label: t('History'),    on: p.startsWith('/telecaller/history') },
-  ] : (user && user.role === 'head_of_finance') ? [
+  ] : (can('expense_approval') && !isAdmin) ? [
     { href: '/', icon: 'bi-house-door-fill', label: t('Home'), on: p === '/' },
     { href: '/travel-expenses/queue', icon: 'bi-inbox-fill', label: t('Approvals'), on: p.startsWith('/travel-expenses') },
     { href: '/attendance', icon: 'bi-calendar-check-fill', label: t('Attendance'), on: p.startsWith('/attendance') },
@@ -269,8 +271,7 @@
       <span class="fw-semibold text-truncate d-block" style="max-width:140px;font-size:13px">
         <%= user ? user.full_name || user.username : '' %>
       </span>
-      <% const roleBadge = {admin:'bg-danger',manager:'bg-warning text-dark',sales:'bg-info text-dark',office:'bg-primary',hr:'bg-purple',service:'bg-secondary',staff:'bg-secondary',employee:'bg-success',accountant:'bg-dark',accounts_manager:'bg-dark'}; %>
-      <span class="badge <%= roleBadge[user?.role] || 'bg-secondary' %>"><%= (user?.role||'').replace('_', ' ').toUpperCase() %></span>
+      <span class="badge bg-secondary text-truncate" style="max-width:130px"><%= user?.position_title || (isAdmin ? 'Admin' : '') %></span>
     </div>
     <a href="/help" class="btn btn-sm <%= active==='help'?'btn-light':'btn-outline-light' %> flex-shrink-0" title="<%= t("Help & Updates") %>" aria-label="<%= t("Help & Updates") %>">
       <i class="bi bi-question-circle"></i>

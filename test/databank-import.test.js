@@ -18,12 +18,14 @@ app.set('views', path.join(__dirname, '..', 'views'));
 Object.assign(app.locals, require('../lib/i18n').defaultLocals);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '20mb' }));
+const { getPositionPermissions } = require('../db');
 app.use((req, res, next) => {
   const uid = Number(req.get('x-user'));
   req.session = sessions[uid] ||= { userId: uid };
-  const u = db.prepare('SELECT id, username, full_name, role, databank_access FROM users WHERE id=?').get(uid);
+  const u = db.prepare('SELECT id, username, full_name, role, position_code, databank_access FROM users WHERE id=?').get(uid);
+  const perms = getPositionPermissions(u?.position_code, u?.role);
   Object.assign(res.locals, { user: u, flash: {}, settings: {}, unreadCount: 0, currentPath: req.path,
-    hasPerm: () => true, dbTime: (v) => v ? new Date(v) : null });
+    hasPerm: (p) => perms.includes('*') || perms.includes(p), dbTime: (v) => v ? new Date(v) : null });
   next();
 });
 app.use('/databank', require('../routes/databank'));

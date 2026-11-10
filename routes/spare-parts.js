@@ -80,7 +80,7 @@ router.post('/:id/delete', (req, res) => {
 
 // ── Admin: delete all ─────────────────────────────────────────────────────────
 router.post('/delete-all', (req, res) => {
-  if (res.locals.user?.role !== 'admin') return res.status(403).json({ ok: false, error: 'Admin only.' });
+  if (!res.locals.hasPerm('*')) return res.status(403).json({ ok: false, error: 'Admin only.' });
   const count = db.prepare('SELECT COUNT(*) as c FROM spare_parts').get().c;
   db.prepare('DELETE FROM spare_parts').run();
   auditLog(req.session?.userId, 'PARTS_DELETE_ALL', 'spare_parts', '', `deleted=${count}`);

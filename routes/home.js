@@ -118,15 +118,16 @@ function adminDashboardData(locale = 'en-IN') {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 router.get('/', requireLogin, (req, res) => {
-  const role    = res.locals.user?.role;
-  const isAdminLike = ['admin','manager','hr'].includes(role);
-  if (role === 'telecaller') return res.redirect('/telecaller');
+  const perm        = (p) => res.locals.hasPerm(p);
+  const isAdmin     = perm('*');
+  const isAdminLike = isAdmin || perm('hr_admin');
+  if (perm('telecaller') && !isAdmin) return res.redirect('/telecaller');
   const uid     = req.session.userId;
   const today   = new Date().toLocaleDateString('en-CA');
 
   // ── Head of Finance: a focused oversight dashboard (approvals + attendance,
   // with route map / heatmap). No access to the rest of the app.
-  if (role === 'head_of_finance') {
+  if (perm('expense_approval') && !isAdmin) {
     const pendingExpenses = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE status='submitted'").get().c;
     const pendingAmount   = db.prepare("SELECT COALESCE(SUM(total_claim),0) t FROM travel_expenses WHERE status='submitted'").get().t;
     const approvedToday   = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE status='approved' AND date(approved_at,'+330 minutes')=?").get(today).c;
@@ -166,10 +167,9 @@ router.get('/', requireLogin, (req, res) => {
       myEnquiries, followupsDue, openVisit: req.query.visit === '1' });
   }
 
-  if (role === 'admin') return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(res.locals.locale), formatINR });
+  if (isAdmin) return res.render('dashboard-admin', { title: 'Dashboard', ...adminDashboardData(res.locals.locale), formatINR });
 
   // ── Manager / HR dashboard ──
-  const isAdmin = role === 'admin';
   const stats = {
     customers: db.prepare('SELECT COUNT(*) as c FROM customers').get().c,
     quotations: isAdmin

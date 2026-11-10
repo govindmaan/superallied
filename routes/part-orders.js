@@ -114,14 +114,14 @@ router.get('/:id', (req, res) => {
   if (!order) return res.redirect('/part-orders');
 
   const items = db.prepare('SELECT * FROM part_order_items WHERE order_id=? ORDER BY id').all(order.id);
-  const isAdmin   = res.locals.user?.role === 'admin';
+  const isAdmin   = res.locals.hasPerm('*');
   const canCancel = order.status === 'pending' && (isAdmin || order.created_by === req.session.userId);
 
   res.render('part-orders/view', { title: order.order_no, order, items, isAdmin, canCancel });
 });
 
 function adminOnly(req, res, next) {
-  if (res.locals.user?.role === 'admin') return next();
+  if (res.locals.hasPerm('*')) return next();
   req.session.flash = { error: 'Admin access required.' };
   res.redirect(`/part-orders/${req.params.id}`);
 }
@@ -141,7 +141,7 @@ router.post('/:id/confirm', adminOnly, (req, res) => {
 router.post('/:id/cancel', (req, res) => {
   const order = db.prepare('SELECT status, created_by FROM part_orders WHERE id=?').get(req.params.id);
   if (!order) return res.redirect('/part-orders');
-  if (order.status !== 'pending' || (res.locals.user?.role !== 'admin' && order.created_by !== req.session.userId)) {
+  if (order.status !== 'pending' || (!res.locals.hasPerm('*') && order.created_by !== req.session.userId)) {
     req.session.flash = { error: 'Only a pending order can be cancelled, by its creator or an admin.' };
     return res.redirect(`/part-orders/${req.params.id}`);
   }

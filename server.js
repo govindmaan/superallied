@@ -4,7 +4,7 @@ require('dotenv').config();
 const express  = require('express');
 const session  = require('express-session');
 const path     = require('path');
-const { db, getSettings, getUserPermissions, checkFollowupNotifications } = require('./db');
+const { db, getSettings, getUserPermissions, getPositionPermissions, checkFollowupNotifications } = require('./db');
 const { UPLOADS_DIR, BULL_LOGO_B64 } = require('./lib/assets');
 const { requireLogin, requireAdmin, requirePerm, requireManagerOrAdmin } = require('./lib/auth');
 const i18n = require('./lib/i18n');
@@ -84,7 +84,11 @@ app.use((req, res, next) => {
 // Inject user, settings, permissions, notification count into all views
 app.use((req, res, next) => {
   let u = req.session.userId
-    ? db.prepare('SELECT id, username, full_name, role, databank_access, must_change_password, sessions_valid_after, language FROM users WHERE id = ?').get(req.session.userId)
+    ? db.prepare(`SELECT u.id, u.username, u.full_name, u.role, u.position_code, u.databank_access,
+        u.must_change_password, u.sessions_valid_after, u.language,
+        p.title AS position_title, p.level AS position_level, p.section AS position_section
+      FROM users u LEFT JOIN org_positions p ON p.code = u.position_code
+      WHERE u.id = ?`).get(req.session.userId)
     : null;
   // Password was reset after this session began: end it
   if (u?.sessions_valid_after && (req.session.authAt || 0) < u.sessions_valid_after) {
@@ -123,7 +127,7 @@ app.use((req, res, next) => {
 
   // Permission helpers
   if (u) {
-    const perms = getUserPermissions(u.role);
+    const perms = getPositionPermissions(u.position_code, u.role);
     if (u.databank_access) perms.push('databank');
     res.locals.hasPerm = (p) => perms.includes('*') || perms.includes(p);
     res.locals._perms  = perms;

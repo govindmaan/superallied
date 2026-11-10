@@ -13,7 +13,7 @@ const router = express.Router();
 router.get('/api/machines/:id', requireLogin, (req, res) => {
   const m = db.prepare('SELECT * FROM machines WHERE id = ?').get(req.params.id);
   // Dealer purchase price (profit data) is admin-only
-  if (m && res.locals.user?.role !== 'admin') delete m.purchase_price;
+  if (m && !res.locals.hasPerm('*')) delete m.purchase_price;
   res.json(m || {});
 });
 
@@ -26,7 +26,7 @@ router.get('/api/spare/machine-lookup', requireLogin, (req, res) => {
 
 router.get('/api/customers/search', requireLogin, (req, res) => {
   const q = req.query.q || '';
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   let sql = "SELECT id, name, phone, gstin FROM customers WHERE deleted_at IS NULL AND (name LIKE ? OR phone LIKE ?)";
   const params = [`%${q}%`, `%${q}%`];
   if (!isAdmin) { sql += ' AND created_by=?'; params.push(req.session.userId); }

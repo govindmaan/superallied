@@ -9,7 +9,7 @@ const router = express.Router();
 // Non-admins only see/manage customers they created themselves. Older customers
 // with no recorded creator are visible to admin only.
 function canAccessCustomer(res, customer) {
-  if (res.locals.user?.role === 'admin') return true;
+  if (res.locals.hasPerm('*')) return true;
   if (customer.deleted_at) return false;
   return customer.created_by != null && customer.created_by === res.locals.user?.id;
 }
@@ -29,7 +29,7 @@ function parseCustomerIds(body) {
 
 router.get('/customers', requireLogin, (req, res) => {
   const q = req.query.q || '';
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   // Admin can switch to the deleted customers (?deleted=1) to see or restore them
   const showDeleted = isAdmin && req.query.deleted === '1';
   let sql = `SELECT c.*, u.full_name AS deleted_by_name,

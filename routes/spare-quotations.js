@@ -10,7 +10,7 @@ const { paymentQr } = require('../services/paymentQr');
 
 // ── List ──────────────────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const { status, q, from, to } = req.query;
   const uid = req.session.userId;
 
@@ -328,7 +328,7 @@ async function buildSparePdf(app, id, { customerCopy = true } = {}) {
 
 // ?copy=customer forces the customer copy (used when sharing on WhatsApp)
 router.get('/:id/pdf', async (req, res) => {
-  const customerCopy = req.query.copy === 'customer' || res.locals.user?.role !== 'admin';
+  const customerCopy = req.query.copy === 'customer' || !res.locals.hasPerm('*');
   try {
     const pdf = await buildSparePdf(req.app, req.params.id, { customerCopy });
     if (!pdf) return res.status(404).send('Not found');

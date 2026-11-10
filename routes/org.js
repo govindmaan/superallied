@@ -6,7 +6,7 @@ const org = require('../lib/org');
 
 const router = express.Router();
 
-const isAdmin = (res) => res.locals.user?.role === 'admin';
+const isAdmin = (res) => res.locals.hasPerm('*');
 
 router.get('/', (req, res) => {
   if (!isAdmin(res) && !res.locals.hasPerm('hr_admin')) {

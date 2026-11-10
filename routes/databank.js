@@ -4,7 +4,7 @@ const { db, auditLog } = require('../db');
 const XLSX = require('xlsx');
 
 const PAGE_SIZE = 50;
-const isAdmin = (res) => res.locals.user?.role === 'admin';
+const isAdmin = (res) => res.locals.hasPerm('*');
 function adminOnly(req, res, next) {
   if (isAdmin(res)) return next();
   req.session.flash = { error: 'Only the admin can do this.' };

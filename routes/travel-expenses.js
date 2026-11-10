@@ -6,7 +6,7 @@ const { financeApproverIds, sectionOf } = require('../lib/org');
 const { analyzeImage } = require('../services/expenseImageAnalyzer');
 
 // Every department's expenses are approved by the Head of Finance (and admin).
-function isApprover(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_approval'); }
+function isApprover(res) { return res.locals.hasPerm('*') || res.locals.hasPerm('expense_approval'); }
 function canApproveClaim(res) { return isApprover(res); }
 
 // Proof of a working day, already captured elsewhere: the check-in / check-out
@@ -27,7 +27,7 @@ function requireClaimApprover(req, res, next) {
   req.session.flash = { error: 'Only the Head of Finance can approve expenses.' };
   res.redirect('/travel-expenses/' + req.params.id);
 }
-function canClaim(res) { return res.locals.user?.role === 'admin' || res.locals.hasPerm('expense_claim'); }
+function canClaim(res) { return res.locals.hasPerm('*') || res.locals.hasPerm('expense_claim'); }
 
 function requireClaimAccess(req, res, next) {
   if (canClaim(res)) return next();

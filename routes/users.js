@@ -1,4 +1,4 @@
-// User accounts (admin only): create, deactivate, reset password, activate.
+// User accounts (admin only): create, deactivate, reset password, activate, change position.
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { db, auditLog, nextEmployeeCode } = require('../db');
@@ -9,11 +9,11 @@ const router = express.Router();
 
 // ── Users (admin only) ────────────────────────────────────────────────────────
 router.get('/users', requireLogin, requireAdmin, (req, res) => {
-  const users = db.prepare(`SELECT u.id, u.username, u.full_name, u.role, u.is_hr_active, u.created_at, u.must_change_password,
+  const users = db.prepare(`SELECT u.id, u.username, u.full_name, u.role, u.position_code, u.is_hr_active, u.created_at, u.must_change_password,
       (u.pin_hash IS NOT NULL) AS has_pin, (u.locked_until IS NOT NULL AND u.locked_until > ?) AS locked,
       p.title AS position_title, p.level AS position_level
     FROM users u LEFT JOIN org_positions p ON p.code = u.position_code ORDER BY u.created_at`).all(new Date().toISOString());
-  res.render('users', { title: 'Users', users });
+  res.render('users', { title: 'Users', users, positions: org.formOptions() });
 });
 
 router.get('/users/new', requireLogin, requireAdmin, (req, res) => {
@@ -21,7 +21,7 @@ router.get('/users/new', requireLogin, requireAdmin, (req, res) => {
 });
 
 router.post('/users', requireLogin, requireAdmin, (req, res) => {
-  const { username, full_name, role, password, confirm, position_code } = req.body;
+  const { username, full_name, password, confirm, position_code } = req.body;
   const pos = org.positionByCode(position_code);
   if (!pos) {
     req.session.flash = { error: 'Choose the position this person will hold.' };
@@ -44,12 +44,11 @@ router.post('/users', requireLogin, requireAdmin, (req, res) => {
     return res.redirect('/users/new');
   }
   const hash = bcrypt.hashSync(password, 10);
-  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller','head_of_finance'];
-  const safeRole = allowedRoles.includes(role) ? role : 'sales';
   db.prepare(`INSERT INTO users (username, password_hash, full_name, role, employee_code, position_code, designation, department)
     VALUES (?,?,?,?,?,?,?,?)`)
-    .run(username.trim(), hash, full_name?.trim() || '', safeRole, nextEmployeeCode(), pos.code, pos.title, pos.section);
-  req.session.flash = { success: `User "${username.trim()}" created successfully.` };
+    .run(username.trim(), hash, full_name?.trim() || '', pos.default_role || 'employee',
+         nextEmployeeCode(), pos.code, pos.title, pos.section);
+  req.session.flash = { success: `User "${username.trim()}" created as ${pos.title}.` };
   res.redirect('/users');
 });
 
@@ -108,21 +107,24 @@ router.post('/users/:id/activate', requireLogin, requireAdmin, (req, res) => {
   res.redirect('/users');
 });
 
-router.post('/users/:id/change-role', requireLogin, requireAdmin, (req, res) => {
+// Change a user's position → their permissions follow automatically.
+router.post('/users/:id/change-position', requireLogin, requireAdmin, (req, res) => {
   const uid = +req.params.id;
   if (uid === req.session.userId) {
-    req.session.flash = { error: 'You cannot change your own role.' };
+    req.session.flash = { error: 'You cannot change your own position here — edit your profile instead.' };
     return res.redirect('/users');
   }
-  const u = db.prepare('SELECT username, full_name, role FROM users WHERE id = ?').get(uid);
+  const u = db.prepare('SELECT username, full_name, position_code FROM users WHERE id = ?').get(uid);
   if (!u) { req.session.flash = { error: 'User not found.' }; return res.redirect('/users'); }
-  const allowedRoles = ['admin','sales','office','manager','hr','service','staff','employee','accountant','accounts_manager','telecaller','head_of_finance'];
-  const { role } = req.body;
-  if (!allowedRoles.includes(role)) { req.session.flash = { error: 'Invalid role.' }; return res.redirect('/users'); }
+  const { position_code } = req.body;
+  const pos = org.positionByCode(position_code);
+  if (!pos) { req.session.flash = { error: 'Invalid position.' }; return res.redirect('/users'); }
   const name = u.full_name || u.username;
-  db.prepare('UPDATE users SET role=? WHERE id=?').run(role, uid);
-  auditLog(req.session.userId, 'user_role_changed', 'user', uid, `Changed role of "${name}" from ${u.role} to ${role}`);
-  req.session.flash = { success: `Role changed to "${role}" for ${name}. They will see the new dashboard on next page load.` };
+  db.prepare('UPDATE users SET position_code=?, role=?, designation=?, department=? WHERE id=?')
+    .run(pos.code, pos.default_role || 'employee', pos.title, pos.section, uid);
+  auditLog(req.session.userId, 'user_position_changed', 'user', uid,
+    `Changed position of "${name}" from ${u.position_code} to ${pos.code} (${pos.title})`);
+  req.session.flash = { success: `${name} is now ${pos.title}. Their access updates immediately.` };
   res.redirect('/users');
 });
 

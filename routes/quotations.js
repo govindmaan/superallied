@@ -72,7 +72,7 @@ function quotationCustomerIds(q) {
 
 // ── Quotations ────────────────────────────────────────────────────────────────
 router.get('/quotations', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const { status, q } = req.query;
   let sql = `SELECT qo.*, c.name as customer_name, m.display_name as machine_name, cu.full_name as cancelled_by_name
              FROM quotations qo
@@ -95,7 +95,7 @@ router.get('/quotations', requireLogin, requirePerm('quotations'), (req, res) =>
 });
 
 router.get('/quotations/new', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin      = res.locals.user?.role === 'admin';
+  const isAdmin      = res.locals.hasPerm('*');
   const machines     = db.prepare('SELECT * FROM machines WHERE active = 1 ORDER BY model_series, display_name').all();
   const customers    = isAdmin
     ? db.prepare('SELECT * FROM customers WHERE deleted_at IS NULL ORDER BY name').all()
@@ -148,7 +148,7 @@ router.post('/quotations', requireLogin, requirePerm('quotations'), (req, res) =
 });
 
 router.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const q = db.prepare(`
     SELECT qo.*, c.name as customer_name, c.phone as customer_phone,
            c.address as customer_address, c.city as customer_city,
@@ -175,7 +175,7 @@ router.get('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res
 });
 
 router.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin   = res.locals.user?.role === 'admin';
+  const isAdmin   = res.locals.hasPerm('*');
   const quotation = db.prepare('SELECT * FROM quotations WHERE id = ?').get(req.params.id);
   if (!quotation) return res.redirect('/quotations');
   if (!isAdmin && (quotation.user_id !== req.session.userId || quotation.cancelled_at)) return res.redirect('/quotations');
@@ -195,7 +195,7 @@ router.get('/quotations/:id/edit', requireLogin, requirePerm('quotations'), (req
 });
 
 router.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const existing = db.prepare('SELECT user_id, salesperson_id, cancelled_at FROM quotations WHERE id=?').get(req.params.id);
   if (!existing || existing.cancelled_at || (!isAdmin && existing.user_id !== req.session.userId)) {
     req.session.flash = { error: existing?.cancelled_at ? 'This quotation is cancelled.' : `You don't have permission to edit this quotation.` };
@@ -233,7 +233,7 @@ router.post('/quotations/:id', requireLogin, requirePerm('quotations'), (req, re
 });
 
 router.post('/quotations/:id/delete', requireLogin, requirePerm('quotations'), (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const existing = db.prepare('SELECT user_id, cancelled_at FROM quotations WHERE id=?').get(req.params.id);
   if (!existing || (!isAdmin && (existing.user_id !== req.session.userId || existing.cancelled_at))) {
     req.session.flash = { error: `You don't have permission to cancel this quotation.` };
@@ -252,7 +252,7 @@ router.post('/quotations/:id/restore', requireLogin, requireAdmin, (req, res) =>
 });
 
 router.get('/quotations/:id/pdf', requireLogin, requirePerm('quotations'), async (req, res) => {
-  const isAdmin = res.locals.user?.role === 'admin';
+  const isAdmin = res.locals.hasPerm('*');
   const q = db.prepare(`
     SELECT qo.*, c.name as customer_name, c.phone as customer_phone,
            c.address as customer_address, c.city as customer_city,
