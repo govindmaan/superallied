@@ -221,6 +221,13 @@ router.get('/', requireLogin, (req, res) => {
         myVisits, myComplaints, mySpareQuotes, teamService, formatINR });
     }
 
+    // ── Driver: attendance + expense only ──
+    if (emp.position_code === 'driver') {
+      const recentExpenses = db.prepare(`SELECT id, claim_date, purpose, total_amount, status
+        FROM travel_expenses WHERE user_id=? ORDER BY created_at DESC LIMIT 5`).all(uid);
+      return res.render('dashboard-driver', { title: 'Home', todayAtt, pendingLeaves, emp, today, monthClaim, recentExpenses, formatINR });
+    }
+
     // ── Operations department: parts & stock dashboard ──
     if (emp.position_section === 'Operations') {
       const lvl = emp.position_level || 9;
