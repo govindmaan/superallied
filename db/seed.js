@@ -59,6 +59,8 @@ function seed() {
     // ── Head of Finance: a focused oversight profile — only expense approval,
     // attendance, and route map / heatmap. No claiming, no other modules.
     ['head_of_finance','expense_approval'],['head_of_finance','attendance'],['head_of_finance','route_map'],
+    // ... and edits staff attendance / decides attendance requests (admin has '*')
+    ['head_of_finance','attendance_edit'],
   ];
 
   defaultPerms.forEach(([r,p]) => insertPerm.run(r,p));

@@ -1,0 +1,174 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/sidebar', { active: 'attendance-requests', user }) %>
+<%
+  const LABEL = { present: t('Present'), absent: t('Absent'), leave: t('Leave') };
+  const BADGE = { present: 'bg-success', absent: 'bg-danger', leave: 'bg-primary' };
+  const STATE = { pending: ['bg-warning text-dark', t('Pending')], approved: ['bg-success', t('Approved')], denied: ['bg-danger', t('Denied')], cancelled: ['bg-secondary', t('Cancelled')] };
+  const fmt = (d) => new Date(d + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const nowIs = (r) => r.marked ? LABEL[r.marked] : r.check_in_time ? t('Present') + ' (' + t('checked in') + ')' : t('No check-in');
+  const leaveSelect = (id, selected) => `<select name="leave_type_id" id="${id}" class="form-select"><option value="">${t('Choose leave type…')}</option>` +
+    leaveTypes.map(l => `<option value="${l.id}" ${String(l.id) === String(selected) ? 'selected' : ''}>${l.name}</option>`).join('') + '</select>';
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-calendar2-check me-2 text-danger"></i><%= t("Attendance Requests") %></h4>
+    <a href="/attendance" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("My Attendance") %></a>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <% if (canEdit) { %>
+  <!-- Waiting for a decision (Head of Finance / admin) -->
+  <div class="card border-0 shadow-sm mb-3" id="pending">
+    <div class="card-header bg-white fw-semibold d-flex align-items-center">
+      <i class="bi bi-hourglass-split me-2 text-warning"></i><%= t("Waiting for your decision") %>
+      <span class="badge bg-warning text-dark ms-2"><%= pending.length %></span>
+    </div>
+    <div class="list-group list-group-flush">
+      <% pending.forEach(r => { %>
+      <div class="list-group-item">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <div>
+            <div class="fw-semibold"><%= r.person %> <span class="text-muted small"><%= r.employee_code %></span></div>
+            <div class="small"><%= fmt(r.date) %> · <%= t("asks for") %> <span class="badge <%= BADGE[r.requested] %>"><%= LABEL[r.requested] %></span><% if (r.leave_name) { %> <span class="text-muted">(<%= r.leave_name %>)</span><% } %></div>
+            <div class="small text-muted"><%= t("Now") %>: <%= nowIs(r) %></div>
+            <div class="small mt-1"><i class="bi bi-chat-left-text me-1 text-muted"></i><%= r.reason %></div>
+          </div>
+        </div>
+        <form method="POST" action="/attendance/requests/<%= r.id %>/decide" class="d-flex flex-wrap gap-2 mt-2">
+          <input type="text" name="note" class="form-control form-control-sm" style="max-width:320px" placeholder="<%= t("Note (required to deny)") %>" aria-label="<%= t("Note") %>">
+          <button name="action" value="approve" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i><%= t("Approve") %></button>
+          <button name="action" value="deny" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg me-1"></i><%= t("Deny") %></button>
+        </form>
+      </div>
+      <% }) %>
+      <% if (!pending.length) { %><div class="list-group-item text-muted small py-3 text-center"><%= t("No requests waiting.") %></div><% } %>
+    </div>
+  </div>
+
+  <!-- Edit any staff member's day -->
+  <div class="card border-0 shadow-sm mb-3 border-start border-4 border-danger" id="edit">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-pencil-square me-2 text-danger"></i><%= t("Edit attendance") %></div>
+    <div class="card-body">
+      <form method="POST" action="/attendance/edit" class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold" for="editUser"><%= t("Employee") %></label>
+          <select name="user_id" id="editUser" class="form-select" required>
+            <option value=""><%= t("Choose employee…") %></option>
+            <% employees.forEach(e => { %><option value="<%= e.id %>" <%= e.id === edit.user ? 'selected' : '' %>><%= e.full_name || e.username %><%= e.employee_code ? ' · ' + e.employee_code : '' %></option><% }) %>
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small fw-semibold" for="editDate"><%= t("Date") %></label>
+          <input type="date" name="date" id="editDate" class="form-control" max="<%= todayStr %>" value="<%= edit.date %>" required>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small fw-semibold" for="editStatus"><%= t("Mark as") %></label>
+          <select name="status" id="editStatus" class="form-select" required data-leave="editLeaveWrap">
+            <option value="present"><%= t("Present") %></option>
+            <option value="absent"><%= t("Absent") %></option>
+            <option value="leave"><%= t("Leave") %></option>
+          </select>
+        </div>
+        <div class="col-md-3 d-none" id="editLeaveWrap">
+          <label class="form-label small fw-semibold" for="editLeave"><%= t("Leave type") %></label>
+          <%- leaveSelect('editLeave', '') %>
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold" for="editNote"><%= t("Reason for the change") %></label>
+          <input type="text" name="note" id="editNote" class="form-control" required maxlength="300">
+        </div>
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="small text-muted"><%= t("The employee is notified. Leave uses one day of their leave balance.") %></span>
+          <button class="btn btn-danger"><i class="bi bi-save me-1"></i><%= t("Save") %></button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- New request (everyone) -->
+  <div class="card border-0 shadow-sm mb-3" id="new">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-send me-2 text-danger"></i><%= t("Request an attendance change") %></div>
+    <div class="card-body">
+      <form method="POST" action="/attendance/requests" class="row g-2">
+        <div class="col-6 col-md-3">
+          <label class="form-label small fw-semibold" for="reqDate"><%= t("Date") %></label>
+          <input type="date" name="date" id="reqDate" class="form-control" min="<%= minDate %>" max="<%= todayStr %>" required>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small fw-semibold" for="reqStatus"><%= t("Mark me as") %></label>
+          <select name="requested" id="reqStatus" class="form-select" required data-leave="reqLeaveWrap">
+            <option value="present"><%= t("Present") %></option>
+            <option value="absent"><%= t("Absent") %></option>
+            <option value="leave"><%= t("Leave") %></option>
+          </select>
+        </div>
+        <div class="col-md-6 d-none" id="reqLeaveWrap">
+          <label class="form-label small fw-semibold" for="reqLeave"><%= t("Leave type") %></label>
+          <%- leaveSelect('reqLeave', '') %>
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold" for="reqReason"><%= t("Reason") %></label>
+          <textarea name="reason" id="reqReason" class="form-control" rows="2" required maxlength="500" placeholder="<%= t("e.g. Phone battery died, was at the customer site all day") %>"></textarea>
+        </div>
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="small text-muted"><%= t("Only for today or the last 30 days. Goes to the Head of Finance and admin.") %></span>
+          <button class="btn btn-danger"><i class="bi bi-send me-1"></i><%= t("Send request") %></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- My requests -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-list-check me-2 text-danger"></i><%= t("My requests") %></div>
+    <div class="list-group list-group-flush">
+      <% mine.forEach(r => { const st = STATE[r.status] || STATE.pending; %>
+      <div class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+          <div class="fw-semibold"><%= fmt(r.date) %> · <span class="badge <%= BADGE[r.requested] %>"><%= LABEL[r.requested] %></span><% if (r.leave_name) { %> <span class="small text-muted">(<%= r.leave_name %>)</span><% } %></div>
+          <div class="small text-muted"><%= r.reason %></div>
+          <% if (r.reviewer) { %><div class="small"><%= t("By") %> <%= r.reviewer %><%= r.review_note ? ': ' + r.review_note : '' %></div><% } %>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge <%= st[0] %>"><%= st[1] %></span>
+          <% if (r.status === 'pending') { %>
+          <form method="POST" action="/attendance/requests/<%= r.id %>/cancel" onsubmit="return confirm('<%= tjs(t("Cancel this request?")) %>')">
+            <button class="btn btn-sm btn-link text-muted p-0"><%= t("Cancel") %></button>
+          </form>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+      <% if (!mine.length) { %><div class="list-group-item text-muted small py-3 text-center"><%= t("No requests yet.") %></div><% } %>
+    </div>
+  </div>
+
+  <% if (canEdit && decided.length) { %>
+  <!-- Recent decisions -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-2 text-danger"></i><%= t("Recent decisions") %></div>
+    <div class="list-group list-group-flush">
+      <% decided.forEach(r => { const st = STATE[r.status]; %>
+      <div class="list-group-item d-flex flex-wrap justify-content-between gap-2 small">
+        <div><span class="fw-semibold"><%= r.person %></span> · <%= fmt(r.date) %> · <%= LABEL[r.requested] %>
+          <div class="text-muted"><%= t("By") %> <%= r.reviewer %><%= r.review_note ? ': ' + r.review_note : '' %></div></div>
+        <span class="badge <%= st[0] %> align-self-start"><%= st[1] %></span>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Show the leave type only when "Leave" is chosen, and require it then
+document.querySelectorAll('select[data-leave]').forEach(sel => {
+  const wrap = document.getElementById(sel.dataset.leave), lt = wrap.querySelector('select');
+  const sync = () => { const on = sel.value === 'leave'; wrap.classList.toggle('d-none', !on); lt.required = on; };
+  sel.addEventListener('change', sync); sync();
+});
+</script>
+</body></html>

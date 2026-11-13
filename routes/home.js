@@ -7,6 +7,7 @@ const { db, getSettings, calcQuotation, formatINR } = require('../db');
 const { requireLogin } = require('../lib/auth');
 const { UPLOADS_DIR } = require('../lib/assets');
 const { todayIST } = require('../lib/dates');
+const { presentSql } = require('../lib/attendance');
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ function adminDashboardData(locale = 'en-IN') {
 
   // Team today
   const staff = db.prepare("SELECT id, full_name, username FROM users WHERE is_hr_active=1 AND role!='admin' ORDER BY full_name").all();
-  const present = new Set(db.prepare('SELECT user_id FROM attendance WHERE date=? AND check_in_time IS NOT NULL').all(today).map(r => r.user_id));
+  const present = new Set(db.prepare(`SELECT user_id FROM attendance a WHERE date=? AND ${presentSql('a')}`).all(today).map(r => r.user_id));
   const team = {
     total: staff.length,
     present: staff.filter(u => present.has(u.id)).length,
@@ -132,7 +133,7 @@ router.get('/', requireLogin, (req, res) => {
     const pendingAmount   = db.prepare("SELECT COALESCE(SUM(total_claim),0) t FROM travel_expenses WHERE status='submitted'").get().t;
     const approvedToday   = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE status='approved' AND date(approved_at,'+330 minutes')=?").get(today).c;
     const att = db.prepare(`SELECT
-        SUM(CASE WHEN check_in_time IS NOT NULL THEN 1 ELSE 0 END) present,
+        SUM(CASE WHEN ${presentSql('attendance')} THEN 1 ELSE 0 END) present,
         SUM(CASE WHEN check_in_time IS NOT NULL AND check_out_time IS NULL THEN 1 ELSE 0 END) still_out
       FROM attendance WHERE date=?`).get(today);
     const staff = db.prepare("SELECT COUNT(*) c FROM users WHERE COALESCE(is_hr_active,1)=1 AND role NOT IN ('admin')").get().c;

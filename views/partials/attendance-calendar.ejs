@@ -20,10 +20,11 @@
       <div class="cal-grid">
         <% ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { %><div class="cal-dow"><%= d %></div><% }) %>
         <% for (let i = 0; i < cal.lead; i++) { %><div></div><% } %>
-        <% cal.cells.forEach(c => { const clickable = ['present','no-checkout'].includes(c.status); %>
+        <% cal.cells.forEach(c => { const clickable = c.marked || ['present','no-checkout'].includes(c.status); %>
         <<%= clickable ? 'button type="button"' : 'div' %> class="cal-day <%= c.status %><%= c.date === todayStr ? ' is-today' : '' %>"
           <% if (clickable) { %>onclick="openDay('<%= c.date %>')" aria-label="<%= c.date %> details"<% } %>>
           <span class="cal-num"><%= c.d %></span>
+          <% if (c.marked) { %><i class="bi bi-pencil-fill cal-mark" title="<%= t("Changed by Head of Finance / admin") %>"></i><% } %>
           <% if (c.km) { %><span class="cal-km"><%= c.km.toFixed(0) %> km</span><% } %>
         </<%= clickable ? 'button' : 'div' %>>
         <% }) %>
@@ -47,6 +48,8 @@
            align-items: center; justify-content: center; padding: 0; min-height: 42px; font: inherit; color: #adb5bd; }
 .cal-num { font-weight: 700; font-size: 14px; line-height: 1; }
 .cal-km  { font-size: 9px; margin-top: 2px; }
+.cal-day { position: relative; }
+.cal-mark { position: absolute; top: 3px; right: 4px; font-size: 8px; opacity: .7; }
 .cal-day.present     { background: #d1e7dd; border-color: #a3cfbb; color: #0f5132; }
 .cal-day.no-checkout { background: #fff3cd; border-color: #ffe69c; color: #664d03; }
 .cal-day.absent      { background: #f8d7da; border-color: #f1aeb5; color: #842029; }
@@ -82,6 +85,11 @@ function openDay(date) {
     if (a.check_in_time && a.check_out_time) {
       const hrs = ((new Date(a.check_out_time) - new Date(a.check_in_time)) / 3600000).toFixed(1);
       html += `<div class="small text-muted mt-2">${hrs} hours on duty · ${d.visits} site visit${d.visits === 1 ? '' : 's'}</div>`;
+    }
+    if (a.marked) {
+      const lbl = { present: T('Present'), absent: T('Absent'), leave: T('Leave') }[a.marked];
+      const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      html = `<div class="alert alert-info py-2 small"><i class="bi bi-pencil-fill me-1"></i>${T('Marked')} <strong>${lbl}</strong> ${T('by')} ${esc(a.marked_by_name)}${a.marked_note ? ' — ' + esc(a.marked_note) : ''}</div>` + html;
     }
     if (j) {
       html += `<hr><div class="fw-semibold mb-2">🏍 Bike: <span class="text-primary">${j.total_km != null ? Number(j.total_km).toFixed(1) + ' km' : 'journey not closed'}</span></div>

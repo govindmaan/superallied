@@ -12,7 +12,7 @@ router.get('/dashboard', (req, res) => {
   const today = new Date().toLocaleDateString('en-CA');
 
   const totalEmployees = db.prepare("SELECT COUNT(*) as c FROM users WHERE is_hr_active=1").get().c;
-  const presentToday   = db.prepare("SELECT COUNT(*) as c FROM attendance WHERE date=? AND check_in_time IS NOT NULL").get(today).c;
+  const presentToday   = db.prepare(`SELECT COUNT(*) as c FROM attendance a WHERE date=? AND ${require('../lib/attendance').presentSql('a')}`).get(today).c;
   const pendingLeaves  = db.prepare("SELECT COUNT(*) as c FROM leaves WHERE status='pending'").get().c;
   const thisMonthSalaries = db.prepare(
     "SELECT COUNT(*) as c FROM salary_records WHERE month=?").get(new Date().toLocaleDateString('en-CA').slice(0, 7)).c;

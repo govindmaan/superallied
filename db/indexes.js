@@ -53,6 +53,8 @@ const INDEXES = [
   "CREATE INDEX IF NOT EXISTS idx_complaints_assigned ON complaints(assigned_to);",
   "CREATE INDEX IF NOT EXISTS idx_complaint_visits ON complaint_visits(complaint_id);",
   "CREATE INDEX IF NOT EXISTS idx_complaint_visits_eng ON complaint_visits(engineer_id, visit_date);",
+  "CREATE INDEX IF NOT EXISTS idx_attreq_status ON attendance_requests(status);",
+  "CREATE INDEX IF NOT EXISTS idx_attreq_user ON attendance_requests(user_id, date);",
 ];
 
 function createIndexes() {

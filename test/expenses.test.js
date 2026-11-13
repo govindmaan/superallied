@@ -114,9 +114,9 @@ test('operations claims are not day-gated (paid on every expense)', async () => 
   assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'submitted'); // no gate
 });
 
-test('head_of_finance has a focused permission set (approval, attendance, route map)', () => {
+test('head_of_finance has a focused permission set (approval, attendance + editing it, route map)', () => {
   const p = getUserPermissions('head_of_finance').sort();
-  assert.deepEqual(p, ['attendance', 'expense_approval', 'route_map']);
+  assert.deepEqual(p, ['attendance', 'attendance_edit', 'expense_approval', 'route_map']);
   // and NOT the broad ones
   ['enquiries','quotations','customers','sold_machines','reports','expense_claim','hr_admin'].forEach(x =>
     assert.ok(!p.includes(x), 'should not have ' + x));

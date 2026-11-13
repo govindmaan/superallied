@@ -718,6 +718,24 @@ function createTables() {
       created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Attendance requests: a staff member asks for a day (last 30 days) to be marked
+  // present / absent / leave; the Head of Finance or an admin approves or denies.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS attendance_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id       INTEGER NOT NULL REFERENCES users(id),
+      date          DATE NOT NULL,
+      requested     TEXT NOT NULL,
+      leave_type_id INTEGER REFERENCES leave_types(id),
+      reason        TEXT DEFAULT '',
+      status        TEXT DEFAULT 'pending',
+      reviewed_by   INTEGER REFERENCES users(id),
+      reviewed_at   DATETIME,
+      review_note   TEXT DEFAULT '',
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 module.exports = { createTables };

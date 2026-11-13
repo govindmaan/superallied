@@ -6,6 +6,11 @@ module.exports = [
   {
     date: '2026-11-13',
     items: [
+      { commit: '', type: 'new', title: 'Attendance requests and corrections',
+        details: ['Anyone can ask for a day to be marked Present, Absent or Leave: Attendance → Request a change (or Support → Attendance Requests). Only for today or the last 30 days, with a reason.',
+                  'The request goes to the Head of Finance and admin, who approve or deny it (a reason is needed to deny). The person, the admins and the Head of Finance are notified at each step.',
+                  'The Head of Finance and admin can also edit any staff member\'s day directly: the pencil next to each name in Staff Attendance, or Edit attendance on the requests page. The person is notified.',
+                  'A day marked Leave uses one day of that leave balance. Changed days show a small pencil on the calendar, and tapping the day shows who changed it and why. Check-in photos are kept.'] },
       { commit: 'aa13c3a', type: 'improved', title: 'Attendance: location, meter photo and check-out rules',
         details: ['Check-in and check-out now need your location. If GPS is off, the app asks you to turn it on and try again.',
                   'Sales and service staff must enter the odometer reading and take a meter photo at check-in and check-out. Other staff can still skip it.',

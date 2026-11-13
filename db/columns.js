@@ -24,6 +24,15 @@ const COLUMNS = {
     ["handling_charges", "REAL DEFAULT 0"],
     ["transport_charges", "REAL DEFAULT 0"],
   ],
+  // Attendance set by the Head of Finance / admin (edit or approved request):
+  // 'present' | 'absent' | 'leave'; '' = from check-in as usual
+  attendance: [
+    ["marked", "TEXT DEFAULT ''"],
+    ["marked_by", "INTEGER REFERENCES users(id)"],
+    ["marked_at", "DATETIME"],
+    ["marked_note", "TEXT DEFAULT ''"],
+    ["marked_leave_id", "INTEGER REFERENCES leaves(id)"],
+  ],
   users: [
     ["pin_hash", "TEXT"],
     ["failed_logins", "INTEGER DEFAULT 0"],

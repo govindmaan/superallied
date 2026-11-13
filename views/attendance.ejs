@@ -3,7 +3,12 @@
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0 fw-bold"><i class="bi bi-calendar-check me-2 text-danger"></i><%= t("My Attendance") %></h4>
-    <small class="text-muted"><%= todayStr %></small>
+    <div class="d-flex align-items-center gap-2">
+      <% if (canEdit) { %>
+      <a href="/attendance/requests#pending" class="btn btn-sm <%= pendingRequests ? 'btn-warning' : 'btn-outline-secondary' %>"><i class="bi bi-hourglass-split me-1"></i><%= t("Requests") %><% if (pendingRequests) { %> <span class="badge bg-dark"><%= pendingRequests %></span><% } %></a>
+      <% } %>
+      <a href="/attendance/requests#new" class="btn btn-sm btn-outline-danger"><i class="bi bi-send me-1"></i><%= t("Request a change") %></a>
+    </div>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
@@ -56,6 +61,7 @@
               <th><%= t("Check In") %></th>
               <th><%= t("Check Out") %></th>
               <th><%= t("Status") %></th>
+              <% if (canEdit) { %><th></th><% } %>
             </tr>
           </thead>
           <tbody>
@@ -67,14 +73,16 @@
               <td class="small"><%= checkedIn ? new Date(r.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
               <td class="small"><%= checkedOut ? new Date(r.check_out_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
               <td>
-                <% if (checkedOut) { %><span class="badge bg-secondary"><%= t("Out") %></span>
+                <% if (r.marked) { %><span class="badge <%= {present:'bg-success',absent:'bg-danger',leave:'bg-primary'}[r.marked] %>" title="<%= r.marked_note %>"><%= t({present:'Present',absent:'Absent',leave:'Leave'}[r.marked]) %> <i class="bi bi-pencil-fill"></i></span>
+                <% } else if (checkedOut) { %><span class="badge bg-secondary"><%= t("Out") %></span>
                 <% } else if (checkedIn) { %><span class="badge bg-success"><%= t("In") %></span>
                 <% } else { %><span class="badge bg-danger bg-opacity-75"><%= t("Absent") %></span><% } %>
               </td>
+              <% if (canEdit) { %><td class="text-end"><a href="/attendance/requests?user=<%= r.id %>&date=<%= staffAttendance.date %>#edit" class="btn btn-sm btn-link p-0" title="<%= t("Edit attendance") %>" aria-label="<%= t("Edit attendance") %>"><i class="bi bi-pencil-square"></i></a></td><% } %>
             </tr>
             <% }) %>
             <% if (!staffAttendance.rows.length) { %>
-            <tr><td colspan="5" class="text-center text-muted py-3"><%= t("No staff records.") %></td></tr>
+            <tr><td colspan="<%= canEdit ? 6 : 5 %>" class="text-center text-muted py-3"><%= t("No staff records.") %></td></tr>
             <% } %>
           </tbody>
         </table>
