@@ -34,7 +34,7 @@ function bumpStage(enquiryId, targetStage) {
   }
 }
 
-function getEnquiries(user, filters = {}) {
+function getEnquiries(user, res, filters = {}) {
   const allAccess = canSeeAll(res);
   let sql = `SELECT e.*, u.full_name as assignee_name, cu.full_name as creator_name
     FROM enquiries e
@@ -77,7 +77,7 @@ router.get('/', (req, res) => {
   };
   const sort = SORTS[req.query.sort] ? req.query.sort : 'updated';
 
-  const { sql, params } = getEnquiries(user, { q, stage, status: status || undefined, assigned_to, district, machine, lead_source, from, to });
+  const { sql, params } = getEnquiries(user, res, { q, stage, status: status || undefined, assigned_to, district, machine, lead_source, from, to });
   const total = db.prepare(`SELECT COUNT(*) as c FROM (${sql})`).get(...params).c;
   const enquiries = db.prepare(`${sql} ORDER BY ${SORTS[sort]}, e.id DESC LIMIT ? OFFSET ?`).all(...params, perPage, (page - 1) * perPage);
 
@@ -170,7 +170,7 @@ router.get('/dashboard', (req, res) => {
 router.get('/export', (req, res) => {
   const user = res.locals.user;
   const { q = '', stage = '', status = '', assigned_to = '', district = '', machine = '', lead_source = '', from = '', to = '' } = req.query;
-  const { sql, params } = getEnquiries(user, { q, stage, status: status || undefined, assigned_to, district, machine, lead_source, from, to });
+  const { sql, params } = getEnquiries(user, res, { q, stage, status: status || undefined, assigned_to, district, machine, lead_source, from, to });
   const rows = db.prepare(`${sql} ORDER BY e.updated_at DESC LIMIT 5000`).all(...params);
 
   const data = [
