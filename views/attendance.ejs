@@ -107,9 +107,16 @@
           </div>
           <% } %>
         </div>
+        <% if (checkoutOpen) { %>
         <button class="btn btn-danger btn-lg px-5 fw-bold" onclick="startCapture('checkout')">
           <i class="bi bi-box-arrow-right me-2"></i><%= t("Check Out + End Journey") %>
         </button>
+        <% } else { %>
+        <button class="btn btn-outline-secondary btn-lg px-5 fw-bold" disabled>
+          <i class="bi bi-lock me-2"></i><%= t("Check Out + End Journey") %>
+        </button>
+        <div class="small text-muted mt-2"><i class="bi bi-clock me-1"></i><%= t("Check-out opens at 2:00 PM.") %></div>
+        <% } %>
       <% } else { %>
         <div class="row justify-content-center g-3">
           <div class="col-auto text-center">
@@ -162,6 +169,9 @@
         <div class="modal-body text-center pb-2">
           <video id="selfieVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
           <div id="gpsStatus" class="mt-2 small text-muted"><i class="bi bi-geo-alt me-1"></i><%= t("Getting location…") %></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2 d-none" id="gpsRetry" onclick="getLocation()">
+            <i class="bi bi-arrow-clockwise me-1"></i><%= t("Try location again") %>
+          </button>
           <div class="mt-3 d-flex gap-2 justify-content-center">
             <button class="btn btn-danger px-5 fw-bold" onclick="snapSelfie()" id="snapBtn" disabled>
               <i class="bi bi-camera-fill me-1"></i><%= t("Take Selfie & Continue") %>
@@ -183,7 +193,7 @@
           <h5 class="modal-title fw-bold" id="s3Title"><%= t("🏍 Journey Details") %></h5>
         </div>
         <div class="modal-body">
-          <div class="alert alert-success py-2 small" id="s3AttMsg"><%= t("✓ Attendance marked!") %></div>
+          <div class="alert alert-light border py-2 small" id="s3AttMsg"><%= t("✓ Selfie taken. Now the odometer.") %></div>
           <div class="mb-3">
             <label class="form-label fw-bold fs-6" id="s3KmLabel"><%= t("Starting KM (Odometer Reading)") %></label>
             <input type="number" id="kmInput" class="form-control form-control-lg text-center fw-bold"
@@ -193,9 +203,9 @@
           <div id="s3StartKmInfo" class="alert alert-info py-2 small d-none"></div>
           <div class="d-flex gap-2">
             <button class="btn btn-primary flex-grow-1 fw-bold" onclick="goToVehicleCamera()" id="vehiclePhotoBtn">
-              <i class="bi bi-camera-fill me-1"></i><%= t("Take Vehicle Photo") %>
+              <i class="bi bi-camera-fill me-1"></i><%= meterRequired ? t("Take Meter Photo") : t("Take Vehicle Photo") %>
             </button>
-            <button class="btn btn-outline-secondary" onclick="skipJourney()"><%= t("Skip") %></button>
+            <% if (!meterRequired) { %><button class="btn btn-outline-secondary" onclick="skipJourney()"><%= t("Skip") %></button><% } %>
           </div>
         </div>
       </div>
@@ -206,21 +216,21 @@
           <h5 class="modal-title fw-bold"><%= t("📷 Vehicle Photo") %></h5>
         </div>
         <div class="modal-body text-center pb-2">
-          <p class="text-muted small mb-2"><%= t("Point camera at your vehicle (odometer visible is better)") %></p>
+          <p class="text-muted small mb-2"><%= meterRequired ? t("Point the camera at the odometer so the reading is clear") : t("Point camera at your vehicle (odometer visible is better)") %></p>
           <video id="vehicleVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
           <div class="mt-3 d-flex gap-2 justify-content-center">
             <button class="btn btn-primary px-5 fw-bold" onclick="snapVehicle()" id="vehicleSnapBtn">
               <i class="bi bi-camera-fill me-1"></i><%= t("Snap Vehicle") %>
             </button>
           </div>
-          <button class="btn btn-link text-muted btn-sm mt-1" onclick="skipJourney()"><%= t("Skip vehicle photo") %></button>
+          <% if (!meterRequired) { %><button class="btn btn-link text-muted btn-sm mt-1" onclick="skipJourney()"><%= t("Skip vehicle photo") %></button><% } %>
         </div>
       </div>
 
       <!-- Step 5: Submitting journey -->
       <div id="s5" class="modal-step d-none text-center py-5">
         <div class="spinner-border text-primary mb-3"></div>
-        <p class="text-muted"><%= t("Saving journey details…") %></p>
+        <p class="text-muted"><%= t("Saving attendance…") %></p>
       </div>
 
       <!-- Step 6: Final success -->
@@ -248,122 +258,105 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const EMPLOYEE_NAME = '<%= (user.full_name || user.username).replace(/'/g, "\\'") %>';
+// Check-in / check-out: selfie → odometer (+ meter photo) → one save.
+// Location is required; sales and service must give the meter photo.
+const METER_REQUIRED = <%= meterRequired ? 'true' : 'false' %>;
 let _type, _selfieStream, _vehicleStream, _lat = null, _lng = null, _selfiePhoto, _vehiclePhoto;
 
 function showStep(n) {
   [1,2,3,4,5,6,7].forEach(i => document.getElementById('s'+i).classList.add('d-none'));
   document.getElementById('s'+n).classList.remove('d-none');
 }
+function fail(msg) { stopStreams(); showStep(7); document.getElementById('s7Msg').textContent = msg; }
+function stopStreams() {
+  [_selfieStream, _vehicleStream].forEach(s => { if (s) s.getTracks().forEach(t => t.stop()); });
+  _selfieStream = null; _vehicleStream = null;
+}
 
 async function startCapture(type) {
   _type = type;
   _lat = null; _lng = null; _selfiePhoto = null; _vehiclePhoto = null;
 
-  document.getElementById('s1Title').textContent = type === 'checkin' ? '📸 Check In — Take Selfie' : '📸 Check Out — Take Selfie';
-  document.getElementById('snapBtn').disabled = true;
-  document.getElementById('gpsStatus').innerHTML = '<i class="bi bi-geo-alt me-1"></i>Getting location…';
+  document.getElementById('s1Title').textContent = type === 'checkin' ? T('📸 Check In — Take Selfie') : T('📸 Check Out — Take Selfie');
   showStep(1);
   new bootstrap.Modal(document.getElementById('punchModal')).show();
 
-  // Start front camera for selfie
   try {
     _selfieStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }, audio: false
     });
     document.getElementById('selfieVideo').srcObject = _selfieStream;
   } catch(e) {
-    showStep(7);
-    document.getElementById('s7Msg').textContent = 'Camera not available: ' + e.message;
+    return fail(T('Camera not available') + ': ' + e.message);
+  }
+  getLocation();
+}
+
+// Location is required: the selfie button stays off until we have it
+function getLocation() {
+  const status = document.getElementById('gpsStatus'), retry = document.getElementById('gpsRetry'), snap = document.getElementById('snapBtn');
+  snap.disabled = true; retry.classList.add('d-none');
+  status.innerHTML = '<i class="bi bi-geo-alt me-1"></i>' + T('Getting location…');
+  if (!navigator.geolocation) {
+    status.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>' + T('This phone cannot share location. Attendance needs location.');
     return;
   }
-
-  // GPS in parallel
   navigator.geolocation.getCurrentPosition(pos => {
     _lat = pos.coords.latitude; _lng = pos.coords.longitude;
-    document.getElementById('gpsStatus').innerHTML =
-      '<i class="bi bi-geo-alt-fill text-success me-1"></i>' + _lat.toFixed(4) + ', ' + _lng.toFixed(4);
-    document.getElementById('snapBtn').disabled = false;
-  }, () => {
-    document.getElementById('gpsStatus').innerHTML = '<i class="bi bi-exclamation-triangle text-warning me-1"></i>No GPS — tap to continue';
-    document.getElementById('snapBtn').disabled = false;
-  }, { enableHighAccuracy: true, timeout: 10000 });
+    status.innerHTML = '<i class="bi bi-geo-alt-fill text-success me-1"></i>' + _lat.toFixed(4) + ', ' + _lng.toFixed(4);
+    snap.disabled = false;
+  }, err => {
+    status.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i>' +
+      (err.code === 1 ? T('Location permission is off. Allow location for this site, then try again.')
+                      : T('Could not get location. Turn on GPS / location and try again.'));
+    retry.classList.remove('d-none');
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
 
 async function snapSelfie() {
+  if (_lat === null || _lng === null) return getLocation();
   const video = document.getElementById('selfieVideo');
   const canvas = document.createElement('canvas'); canvas.width = 480; canvas.height = 480;
   canvas.getContext('2d').drawImage(video, 0, 0, 480, 480);
   _selfiePhoto = canvas.toDataURL('image/jpeg', 0.75);
-
   if (_selfieStream) { _selfieStream.getTracks().forEach(t => t.stop()); _selfieStream = null; }
-  showStep(2);
 
-  try {
-    // Upload selfie
-    const up = await fetch('/api/upload', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: _selfiePhoto, folder: 'attendance' })
-    }).then(r => r.json());
-
-    // Submit check-in or check-out
-    const resp = await fetch('/attendance/api/' + _type, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lat: _lat, lng: _lng, photo: up.path || '' })
-    }).then(r => r.json());
-
-    if (!resp.ok) { showStep(7); document.getElementById('s7Msg').textContent = resp.message; return; }
-
-    // Show journey step
-    const isCheckin = _type === 'checkin';
-    document.getElementById('s3Title').textContent = isCheckin ? '🏍 Journey Start' : '🏍 Journey End';
-    document.getElementById('s3AttMsg').textContent = isCheckin ? '✓ Checked in successfully!' : '✓ Checked out successfully!';
-    document.getElementById('s3KmLabel').textContent = isCheckin ? 'Starting KM (Odometer Reading)' : 'Ending KM (Odometer Reading)';
-    document.getElementById('s3KmHint').textContent = isCheckin ? 'What does your odometer show right now?' : 'What does your odometer show now?';
-    document.getElementById('kmInput').value = '';
-
-    // For checkout: fetch today's journey to show start km
-    if (!isCheckin) {
+  const isCheckin = _type === 'checkin';
+  document.getElementById('s3Title').textContent = isCheckin ? T('🏍 Journey Start') : T('🏍 Journey End');
+  document.getElementById('s3KmLabel').textContent = isCheckin ? T('Starting KM (Odometer Reading)') : T('Ending KM (Odometer Reading)');
+  document.getElementById('s3KmHint').textContent = isCheckin ? T('What does your odometer show right now?') : T('What does your odometer show now?');
+  document.getElementById('kmInput').value = '';
+  const info = document.getElementById('s3StartKmInfo'); info.classList.add('d-none');
+  if (!isCheckin) {
+    try {
       const j = await fetch('/expenses/journey/today').then(r => r.json());
-      if (j.start_km) {
-        const el = document.getElementById('s3StartKmInfo');
-        el.textContent = `Starting KM was: ${j.start_km}`;
-        el.classList.remove('d-none');
-      }
-    }
-
-    showStep(3);
-
-  } catch(e) {
-    showStep(7);
-    document.getElementById('s7Msg').textContent = 'Network error. Please try again.';
+      if (j.start_km) { info.textContent = T('Starting KM was') + ': ' + j.start_km; info.classList.remove('d-none'); }
+    } catch(e) {}
   }
+  showStep(3);
 }
 
 async function goToVehicleCamera() {
-  const km = parseFloat(document.getElementById('kmInput').value);
+  const input = document.getElementById('kmInput');
+  const km = parseFloat(input.value);
   if (!km || km <= 0) {
-    document.getElementById('kmInput').focus();
-    document.getElementById('kmInput').classList.add('is-invalid');
-    setTimeout(() => document.getElementById('kmInput').classList.remove('is-invalid'), 2000);
+    input.focus(); input.classList.add('is-invalid');
+    setTimeout(() => input.classList.remove('is-invalid'), 2000);
     return;
   }
-
   showStep(4);
   try {
     _vehicleStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
     });
-    document.getElementById('vehicleVideo').srcObject = _vehicleStream;
   } catch(e) {
-    // Try any camera
-    try {
-      _vehicleStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      document.getElementById('vehicleVideo').srcObject = _vehicleStream;
-    } catch(e2) {
-      await submitJourney(null); // submit without vehicle photo
+    try { _vehicleStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+    catch(e2) {
+      if (METER_REQUIRED) return fail(T('Camera not available') + ': ' + e2.message);
+      return submitAll(null);
     }
   }
+  document.getElementById('vehicleVideo').srcObject = _vehicleStream;
 }
 
 async function snapVehicle() {
@@ -372,53 +365,48 @@ async function snapVehicle() {
   canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
   _vehiclePhoto = canvas.toDataURL('image/jpeg', 0.8);
   if (_vehicleStream) { _vehicleStream.getTracks().forEach(t => t.stop()); _vehicleStream = null; }
-  await submitJourney(_vehiclePhoto);
+  await submitAll(_vehiclePhoto);
 }
 
 async function skipJourney() {
+  if (METER_REQUIRED) return;
   if (_vehicleStream) { _vehicleStream.getTracks().forEach(t => t.stop()); _vehicleStream = null; }
-  await submitJourney(null);
+  document.getElementById('kmInput').value = '';
+  await submitAll(null);
 }
 
-async function submitJourney(vehiclePhotoData) {
-  showStep(5);
+const upload = (data, folder) => fetch('/api/upload', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data, folder })
+}).then(r => r.json()).then(r => r.path || '');
+
+// One save: selfie, location, odometer and meter photo together
+async function submitAll(meterData) {
+  showStep(2);
   try {
     const km = parseFloat(document.getElementById('kmInput').value) || 0;
-    let vehiclePath = null;
+    const photo = await upload(_selfiePhoto, 'attendance');
+    const meter_photo = meterData ? await upload(meterData, 'expenses') : '';
+    if (METER_REQUIRED && !meter_photo) return fail(T('Meter photo could not be uploaded. Please try again.'));
 
-    if (vehiclePhotoData) {
-      const up = await fetch('/api/upload', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: vehiclePhotoData, folder: 'expenses' })
-      }).then(r => r.json());
-      vehiclePath = up.path || null;
-    }
-
-    const endpoint = _type === 'checkin' ? '/expenses/journey/start' : '/expenses/journey/end';
-    const resp = await fetch(endpoint, {
+    const resp = await fetch('/attendance/api/' + _type, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ km, photo: vehiclePath, lat: _lat, lng: _lng })
+      body: JSON.stringify({ lat: _lat, lng: _lng, photo, km: km || '', meter_photo })
     }).then(r => r.json());
+    if (!resp.ok) return fail(resp.message);
 
-    document.getElementById('s6Title').textContent = _type === 'checkin' ? '✅ Checked In!' : '✅ Checked Out!';
-    if (resp.totalKm !== undefined && parseFloat(resp.totalKm) > 0) {
-      document.getElementById('s6Msg').textContent = `Journey: ${resp.startKm} → ${resp.endKm} km (Total: ${resp.totalKm} km)`;
-    } else {
-      document.getElementById('s6Msg').textContent = _type === 'checkin' ? `Starting KM recorded: ${km}` : 'Journey recorded.';
-    }
+    document.getElementById('s6Title').textContent = _type === 'checkin' ? T('✅ Checked In!') : T('✅ Checked Out!');
+    const j = resp.journey;
+    document.getElementById('s6Msg').textContent =
+      j && parseFloat(j.totalKm) > 0 ? `${T('Journey:')} ${j.startKm} → ${j.endKm} km (${T('Total:')} ${j.totalKm} km)`
+      : km ? `${T('KM recorded:')} ${km}` : '';
     showStep(6);
-
   } catch(e) {
-    // Even if journey save fails, attendance was already saved — show partial success
-    document.getElementById('s6Title').textContent = _type === 'checkin' ? '✅ Checked In!' : '✅ Checked Out!';
-    document.getElementById('s6Msg').textContent = 'Attendance saved. Journey details could not be saved.';
-    showStep(6);
+    fail(T('Network error. Please try again.'));
   }
 }
 
 function closeModal() {
-  [_selfieStream, _vehicleStream].forEach(s => { if(s) s.getTracks().forEach(t=>t.stop()); });
-  _selfieStream = null; _vehicleStream = null;
+  stopStreams();
   bootstrap.Modal.getInstance(document.getElementById('punchModal'))?.hide();
   location.reload();
 }

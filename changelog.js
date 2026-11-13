@@ -4,6 +4,16 @@
 
 module.exports = [
   {
+    date: '2026-11-13',
+    items: [
+      { commit: '', type: 'improved', title: 'Attendance: location, meter photo and check-out rules',
+        details: ['Check-in and check-out now need your location. If GPS is off, the app asks you to turn it on and try again.',
+                  'Sales and service staff must enter the odometer reading and take a meter photo at check-in and check-out. Other staff can still skip it.',
+                  'Check-out opens at 2:00 PM.',
+                  'If you have not checked out, your phone gets a reminder at 5:45 PM, 6:00 PM and 6:15 PM (replaces the 7:00 PM reminder). Notifications must be turned on for that phone.'] },
+    ],
+  },
+  {
     date: '2026-11-09',
     items: [
       { commit: '', type: 'new', title: 'Organisation chart and approval routing',

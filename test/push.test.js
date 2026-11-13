@@ -1,5 +1,5 @@
 // Push notifications: devices, event pushes in the user's language, dead devices removed,
-// and the 9:00 / 19:00 attendance reminders (India time, once a day, right people only).
+// and the 9:00 check-in / 17:45, 18:00, 18:15 check-out attendance reminders (India time, once a day, right people only).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { setupDb } = require('./helpers');
@@ -67,11 +67,33 @@ test('9:00 check-in reminder goes once, only to staff not yet checked in and not
   assert.equal(sent.length, 0);
 });
 
-test('19:00 check-out reminder goes to those checked in and not out, in their language', async () => {
+test('check-out reminders at 17:45, 18:00 and 18:15 go only to those still not checked out', async () => {
   sent.length = 0;
-  await reminders.runDue(ist('19:00'));
+  assert.deepEqual(await reminders.runDue(ist('17:44')), []);
+  await reminders.runDue(ist('17:45'));
   const titles = Object.fromEntries(sent.map(s => [s.endpoint.split('/').pop(), s.title]));
-  assert.deepEqual(titles, { r1: 'Time to check out', r3: 'चेक आउट का समय' });
+  assert.deepEqual(titles, { r1: 'Check-out is mandatory', r3: 'चेक आउट करना ज़रूरी है' });
+  assert.ok(sent.every(s => s.tag === 'checkout' && s.url === '/attendance'));
+
+  // r1 checks out before 18:00 → only r3 is reminded again
+  db.prepare("UPDATE attendance SET check_out_time='2026-11-11 12:25:00' WHERE user_id=? AND date=?").run(early, DAY);
+  sent.length = 0;
+  const at6 = await reminders.runDue(ist('18:00'));
+  assert.deepEqual(at6.map(r => r.key), ['checkout1800']);
+  assert.deepEqual(sent.map(s => s.endpoint.split('/').pop()), ['r3']);
+
+  sent.length = 0;
+  await reminders.runDue(ist('18:15'));
+  assert.deepEqual(sent.map(s => s.title), ['आख़िरी रिमाइंडर: अभी चेक आउट करें']);
+  sent.length = 0;
+  assert.deepEqual(await reminders.runDue(ist('18:16')), []);   // each goes once
+});
+
+test('after a restart only the latest missed check-out reminder goes, never a burst', async () => {
+  const D2 = '2026-11-12';
+  db.prepare("INSERT INTO attendance (user_id, date, check_in_time) VALUES (?, ?, '2026-11-12 03:30:00')").run(hindi, D2);
+  const ran = await reminders.runDue(ist('18:20', D2));
+  assert.deepEqual(ran.map(r => r.key), ['checkout1815']);
 });
 
 test('no reminders on Sunday, or long after the time (server was down)', async () => {

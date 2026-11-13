@@ -1,46 +1,17 @@
 const express = require('express');
 const router  = express.Router();
 const { db, today }  = require('../db');
+const { saveJourneyStart, saveJourneyEnd } = require('../lib/attendance');
 
-// ── Save journey start (called immediately after check-in) ────────────────────
+// Journey start / end are normally saved with check-in / check-out
+// (routes/attendance.js); these stay for older pages still open on phones.
 router.post('/journey/start', (req, res) => {
-  const { km, photo, lat, lng } = req.body;
-  const uid  = req.session.userId;
-  const date = today();
-  const now  = new Date().toISOString();
-
-  db.prepare(`INSERT OR REPLACE INTO expense_journeys
-    (user_id, date, start_km, start_photo, start_lat, start_lng, start_time)
-    VALUES (?,?,?,?,?,?,?)`)
-    .run(uid, date, parseFloat(km)||0, photo||null, lat||null, lng||null, now);
-
+  saveJourneyStart(req.session.userId, today(), req.body);
   res.json({ ok: true });
 });
 
-// ── Save journey end (called immediately after check-out) ─────────────────────
 router.post('/journey/end', (req, res) => {
-  const { km, photo, lat, lng } = req.body;
-  const uid    = req.session.userId;
-  const date   = today();
-  const now    = new Date().toISOString();
-  const endKm  = parseFloat(km) || 0;
-
-  const j = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=?').get(uid, date);
-  const totalKm = Math.max(0, endKm - (j?.start_km || 0));
-
-  if (j) {
-    db.prepare(`UPDATE expense_journeys
-      SET end_km=?, end_photo=?, end_lat=?, end_lng=?, end_time=?, total_km=?
-      WHERE id=?`)
-      .run(endKm, photo||null, lat||null, lng||null, now, totalKm, j.id);
-  } else {
-    db.prepare(`INSERT INTO expense_journeys
-      (user_id, date, end_km, end_photo, end_lat, end_lng, end_time, total_km)
-      VALUES (?,?,?,?,?,?,?,?)`)
-      .run(uid, date, endKm, photo||null, lat||null, lng||null, now, totalKm);
-  }
-
-  res.json({ ok: true, totalKm: totalKm.toFixed(1), startKm: j?.start_km || 0, endKm });
+  res.json({ ok: true, ...saveJourneyEnd(req.session.userId, today(), req.body) });
 });
 
 // ── Get today's journey (to show existing km on check-out) ────────────────────

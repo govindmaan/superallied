@@ -3,6 +3,7 @@ const path    = require('path');
 const fs      = require('fs');
 const router  = express.Router();
 const { db, createNotification, today } = require('../db');
+const rules = require('../lib/attendance');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function savePhoto(base64, folder, uploadsDir) {
@@ -59,7 +60,8 @@ router.get('/', (req, res) => {
   }
 
   res.render('attendance', { title: 'My Attendance', todayRec, todayJourney, history, stats, todayStr: todayR,
-    cal: monthCalendar(uid, req.query.m, todayR), staffAttendance });
+    cal: monthCalendar(uid, req.query.m, todayR), staffAttendance,
+    checkoutOpen: rules.checkoutOpen(), meterRequired: rules.needsMeter(res.locals.user?.role) });
 });
 
 // Month calendar: present / absent / leave / off (Sunday) for one user
@@ -117,51 +119,68 @@ router.get('/api/day/:date', (req, res) => {
 router.post('/api/checkin', (req, res) => {
   const uid    = req.session.userId;
   const todayR = today();
-  const { lat, lng, photo } = req.body;
+  const { photo } = req.body;
+
+  const existing = db.prepare('SELECT id, check_in_time FROM attendance WHERE user_id=? AND date=?').get(uid, todayR);
+  if (existing?.check_in_time) {
+    return res.json({ ok: false, message: 'Already checked in today.' });
+  }
+  const loc = rules.location(req.body.lat, req.body.lng);
+  if (!loc) return res.json({ ok: false, message: 'Location is required. Turn on GPS / location and try again.' });
+  const m = rules.meter(req.body);
+  if (rules.needsMeter(res.locals.user?.role) && (!m.km || !m.photo)) {
+    return res.json({ ok: false, message: 'Odometer reading and meter photo are required.' });
+  }
+  const { lat, lng } = loc;
 
   // photo is already uploaded via /api/upload — use path directly
   const photoPath = (photo && photo.startsWith('/uploads/')) ? photo : savePhoto(photo, 'attendance', res.app.locals.UPLOADS_DIR);
 
-  const existing = db.prepare('SELECT id, check_in_time FROM attendance WHERE user_id=? AND date=?').get(uid, todayR);
-
-  if (existing?.check_in_time) {
-    return res.json({ ok: false, message: 'Already checked in today.' });
-  }
-
   const now = new Date().toISOString();
   if (existing) {
     db.prepare(`UPDATE attendance SET check_in_time=?, check_in_lat=?, check_in_lng=?, check_in_photo=? WHERE id=?`)
-      .run(now, lat||null, lng||null, photoPath, existing.id);
+      .run(now, lat, lng, photoPath, existing.id);
   } else {
     db.prepare(`INSERT INTO attendance (user_id,date,check_in_time,check_in_lat,check_in_lng,check_in_photo)
                 VALUES (?,?,?,?,?,?)`)
-      .run(uid, todayR, now, lat||null, lng||null, photoPath);
+      .run(uid, todayR, now, lat, lng, photoPath);
   }
-  res.json({ ok: true, time: now });
+  if (m.km) rules.saveJourneyStart(uid, todayR, { km: m.km, photo: m.photo, lat, lng });
+  res.json({ ok: true, time: now, km: m.km });
 });
 
 // ── API: check-out ────────────────────────────────────────────────────────────
 router.post('/api/checkout', (req, res) => {
   const uid    = req.session.userId;
   const todayR = today();
-  const { lat, lng, photo } = req.body;
-
-  const photoPath = (photo && photo.startsWith('/uploads/')) ? photo : savePhoto(photo, 'attendance', res.app.locals.UPLOADS_DIR);
+  const { photo } = req.body;
 
   const rec = db.prepare('SELECT * FROM attendance WHERE user_id=? AND date=?').get(uid, todayR);
-
   if (!rec?.check_in_time) {
     return res.json({ ok: false, message: 'You have not checked in today.' });
   }
   if (rec.check_out_time) {
     return res.json({ ok: false, message: 'Already checked out today.' });
   }
+  if (!rules.checkoutOpen()) {
+    return res.json({ ok: false, message: 'Check-out opens at 2:00 PM.' });
+  }
+  const loc = rules.location(req.body.lat, req.body.lng);
+  if (!loc) return res.json({ ok: false, message: 'Location is required. Turn on GPS / location and try again.' });
+  const m = rules.meter(req.body);
+  if (rules.needsMeter(res.locals.user?.role) && (!m.km || !m.photo)) {
+    return res.json({ ok: false, message: 'Odometer reading and meter photo are required.' });
+  }
+  const { lat, lng } = loc;
+
+  const photoPath = (photo && photo.startsWith('/uploads/')) ? photo : savePhoto(photo, 'attendance', res.app.locals.UPLOADS_DIR);
 
   const now = new Date().toISOString();
   db.prepare(`UPDATE attendance SET check_out_time=?, check_out_lat=?, check_out_lng=?, check_out_photo=? WHERE id=?`)
-    .run(now, lat||null, lng||null, photoPath, rec.id);
+    .run(now, lat, lng, photoPath, rec.id);
 
-  res.json({ ok: true, time: now });
+  const journey = m.km ? rules.saveJourneyEnd(uid, todayR, { km: m.km, photo: m.photo, lat, lng }) : null;
+  res.json({ ok: true, time: now, journey });
 });
 
 // Shared with HR → Employee Attendance
