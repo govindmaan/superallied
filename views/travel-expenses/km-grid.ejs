@@ -1,0 +1,155 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'km-grid', user }) %>
+<%
+  const STATUS = { draft: 'bg-secondary', submitted: 'bg-warning text-dark', approved: 'bg-success', rejected: 'bg-danger' };
+  const dayName = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const val = (n) => n > 0 ? n : '';
+%>
+<div class="main-content">
+  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-speedometer me-2 text-danger"></i><%= t("Correct KM") %></h4>
+      <div class="small text-muted"><%= t("Fix wrong start / end readings. Claims and weekly bills are recalculated and the employee is notified.") %></div>
+    </div>
+    <a href="/travel-expenses/bills" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-text me-1"></i><%= t("Weekly Travel Reports") %></a>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.info)    { %><div class="alert alert-info alert-dismissible"><%= flash.info %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <!-- View: one employee's week, or everyone on one day -->
+  <ul class="nav nav-pills mb-3 gap-1">
+    <li class="nav-item"><a class="nav-link py-1 px-3 <%= mode === 'employee' ? 'active bg-danger' : 'text-dark border' %>" href="/travel-expenses/km-grid?mode=employee"><i class="bi bi-person me-1"></i><%= t("By employee") %></a></li>
+    <li class="nav-item"><a class="nav-link py-1 px-3 <%= mode === 'day' ? 'active bg-danger' : 'text-dark border' %>" href="/travel-expenses/km-grid?mode=day"><i class="bi bi-calendar-day me-1"></i><%= t("By day") %></a></li>
+  </ul>
+
+  <form method="GET" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="mode" value="<%= mode %>">
+    <% if (mode === 'employee') { %>
+    <div class="col-12 col-md-5">
+      <label class="form-label small mb-1" for="gUser"><%= t("Employee") %></label>
+      <select name="user" id="gUser" class="form-select" onchange="this.form.submit()">
+        <option value=""><%= t("Choose employee…") %></option>
+        <% let lastField = null; people.forEach(p => { const field = ['Sales','Service'].includes(p.section); if (field !== lastField) { if (lastField !== null) { %></optgroup><% } %><optgroup label="<%= field ? t('Sales and Service') : t('Others') %>"><% lastField = field; } %>
+        <option value="<%= p.id %>" <%= emp && emp.id === p.id ? 'selected' : '' %>><%= p.full_name || p.username %><%= p.employee_code ? ' · ' + p.employee_code : '' %></option>
+        <% }); if (lastField !== null) { %></optgroup><% } %>
+      </select>
+    </div>
+    <div class="col-12 col-md-7">
+      <label class="form-label small mb-1"><%= t("Week") %></label>
+      <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-secondary" href="?mode=employee&user=<%= emp ? emp.id : '' %>&week=<%= addDay(week.start, -7) %>" aria-label="<%= t("Previous week") %>"><i class="bi bi-chevron-left"></i></a>
+        <span class="fw-semibold text-nowrap"><%= fmtD(weekMon(week.start)) %> – <%= fmtD(week.end) %></span>
+        <% if (addDay(week.start, 7) <= todayStr) { %><a class="btn btn-outline-secondary" href="?mode=employee&user=<%= emp ? emp.id : '' %>&week=<%= addDay(week.start, 7) %>" aria-label="<%= t("Next week") %>"><i class="bi bi-chevron-right"></i></a><% } %>
+        <input type="date" name="week" class="form-control" style="max-width:170px" value="<%= weekMon(week.start) %>" max="<%= todayStr %>" onchange="this.form.submit()" aria-label="<%= t("Week") %>">
+      </div>
+    </div>
+    <% } else { %>
+    <div class="col-12 col-md-6">
+      <label class="form-label small mb-1" for="gDate"><%= t("Date") %></label>
+      <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-secondary" href="?mode=day&date=<%= addDay(date, -1) %>" aria-label="<%= t("Previous day") %>"><i class="bi bi-chevron-left"></i></a>
+        <input type="date" name="date" id="gDate" class="form-control" style="max-width:170px" value="<%= date %>" max="<%= todayStr %>" onchange="this.form.submit()">
+        <% if (date < todayStr) { %><a class="btn btn-outline-secondary" href="?mode=day&date=<%= addDay(date, 1) %>" aria-label="<%= t("Next day") %>"><i class="bi bi-chevron-right"></i></a><% } %>
+        <span class="fw-semibold"><%= dayName(date) %></span>
+      </div>
+    </div>
+    <% } %>
+  </form>
+
+  <% if (mode === 'employee' && !emp) { %>
+  <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">
+    <i class="bi bi-person fs-1 d-block mb-2"></i><%= t("Choose an employee to see and correct their week's km.") %>
+  </div></div>
+  <% } else { %>
+  <form method="POST" action="/travel-expenses/km-grid" id="kmForm">
+    <input type="hidden" name="back" value="<%= back %>">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="list-group list-group-flush">
+        <% rows.forEach(r => { const flagged = r.km !== null && r.claims.length && Math.abs(r.claimKm - r.km) > 0.5; %>
+        <div class="list-group-item <%= r.locked ? 'bg-light' : '' %> km-row" data-rate="<%= rate ?? '' %>">
+          <div class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+              <div class="fw-semibold"><%= mode === 'employee' ? dayName(r.date) : r.label %></div>
+              <div class="small">
+                <% r.claims.forEach(c => { %><a href="/travel-expenses/<%= c.id %>" class="badge <%= STATUS[c.status] %> text-decoration-none me-1"><%= c.expense_number %> · <%= t(c.status) %></a><% }) %>
+                <% if (!r.claims.length) { %><span class="text-muted"><%= t("No claim") %></span><% } %>
+                <% if (r.locked) { %><span class="badge text-bg-secondary"><i class="bi bi-lock-fill"></i> <%= t("Approved") %></span><% } %>
+              </div>
+            </div>
+            <% if (r.locked) { %>
+            <div class="col-8 col-md-6 small"><%= t("Meter") %>: <%= r.j.start_km > 0 ? r.j.start_km : '—' %> → <%= r.j.end_km > 0 ? r.j.end_km : '—' %></div>
+            <% } else { %>
+            <input type="hidden" name="uid" value="<%= r.uid %>">
+            <input type="hidden" name="date" value="<%= r.date %>">
+            <input type="hidden" name="orig_start" value="<%= val(r.j.start_km) %>">
+            <input type="hidden" name="orig_end" value="<%= val(r.j.end_km) %>">
+            <div class="col-4 col-md-2">
+              <label class="form-label small mb-0 text-muted"><%= t("Start km") %></label>
+              <input type="number" step="0.1" min="0" name="start_km" class="form-control km-start" value="<%= val(r.j.start_km) %>" inputmode="decimal">
+            </div>
+            <div class="col-4 col-md-2">
+              <label class="form-label small mb-0 text-muted"><%= t("End km") %></label>
+              <input type="number" step="0.1" min="0" name="end_km" class="form-control km-end" value="<%= val(r.j.end_km) %>" inputmode="decimal">
+            </div>
+            <div class="col-4 col-md-2 small">
+              <div class="text-muted"><%= t("Km") %></div>
+              <div class="fw-bold km-total"><%= r.km !== null ? r.km.toFixed(0) : '—' %></div>
+            </div>
+            <% } %>
+            <div class="col-4 col-md-3 text-md-end small">
+              <% if (r.j.start_photo) { %><a href="<%= r.j.start_photo %>" target="_blank" class="me-2" title="<%= t("Start odometer") %>"><i class="bi bi-image"></i> <%= t("Start") %></a><% } %>
+              <% if (r.j.end_photo) { %><a href="<%= r.j.end_photo %>" target="_blank" title="<%= t("End odometer") %>"><i class="bi bi-image-fill"></i> <%= t("End") %></a><% } %>
+              <% if (!r.j.start_photo && !r.j.end_photo) { %><span class="text-muted"><%= t("No photo") %></span><% } %>
+              <% if (flagged) { %><div class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> <%= t("Claimed") %> <%= r.claimKm.toFixed(0) %> <%= t("km") %></div><% } %>
+              <% if (r.j.end_auto) { %><div class="text-warning-emphasis"><%= t("End km from next day's start") %></div><% } %>
+              <% if (r.j.edit_note) { %><div class="text-muted"><i class="bi bi-pencil"></i> <%= r.j.edit_note %></div><% } %>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+        <% if (!rows.length) { %><div class="list-group-item text-center text-muted py-4"><%= t("No km recorded.") %></div><% } %>
+      </div>
+    </div>
+
+    <% if (rows.some(r => !r.locked)) { %>
+    <div class="card border-0 shadow-sm sticky-bottom">
+      <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <input type="text" name="note" class="form-control" style="max-width:420px" maxlength="300" placeholder="<%= t("Reason for the change (required)") %>" aria-label="<%= t("Reason for the change") %>">
+        <button class="btn btn-danger"><i class="bi bi-save me-1"></i><%= t("Save changes") %> <span class="badge bg-light text-dark" id="changedCount">0</span></button>
+      </div>
+    </div>
+    <% } %>
+  </form>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Live km per row, highlight changed rows, count them
+function refresh() {
+  let changed = 0;
+  document.querySelectorAll('.km-row').forEach(row => {
+    const s = row.querySelector('.km-start'), e = row.querySelector('.km-end');
+    if (!s) return;
+    const os = row.querySelector('[name=orig_start]').value, oe = row.querySelector('[name=orig_end]').value;
+    const sv = parseFloat(s.value), ev = parseFloat(e.value), out = row.querySelector('.km-total');
+    const bad = sv >= 0 && ev >= 0 && ev < sv;
+    out.textContent = sv >= 0 && ev >= 0 && !bad ? (ev - sv).toFixed(0) : '—';
+    e.classList.toggle('is-invalid', bad);
+    const isChanged = s.value.trim() !== os.trim() || e.value.trim() !== oe.trim();
+    row.classList.toggle('bg-warning-subtle', isChanged);
+    if (isChanged) changed++;
+  });
+  const c = document.getElementById('changedCount'); if (c) c.textContent = changed;
+  return changed;
+}
+document.querySelectorAll('.km-start, .km-end').forEach(i => i.addEventListener('input', refresh));
+document.getElementById('kmForm')?.addEventListener('submit', (ev) => {
+  if (document.querySelector('.km-end.is-invalid')) { ev.preventDefault(); alert(T('Ending km cannot be less than starting km.')); return; }
+  if (!refresh()) { ev.preventDefault(); alert(T('Nothing was changed.')); return; }
+  if (!ev.target.note.value.trim()) { ev.preventDefault(); ev.target.note.focus(); alert(T('Write the reason for the change.')); }
+});
+refresh();
+</script>
+</body></html>

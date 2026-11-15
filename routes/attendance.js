@@ -262,7 +262,8 @@ router.get('/km', requireStaffView, (req, res) => {
     ORDER BY km DESC, u.full_name`).all(from, to, from, to, from, to, from, to, from, to);
   const totals = rows.reduce((t, r) => ({ km: t.km + r.km, claimed: t.claimed + r.claimed_km, riders: t.riders + (r.km > 0 ? 1 : 0), incomplete: t.incomplete + r.incomplete }),
     { km: 0, claimed: 0, riders: 0, incomplete: 0 });
-  res.render('attendance-km', { title: 'Bike KM Summary', rows, totals, from, to, todayStr });
+  res.render('attendance-km', { title: 'Bike KM Summary', rows, totals, from, to, todayStr,
+    canCorrect: !!(res.locals.hasPerm('*') || res.locals.hasPerm('expense_approval')) });
 });
 
 // ── Attendance requests and corrections ───────────────────────────────────────

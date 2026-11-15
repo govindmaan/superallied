@@ -92,18 +92,28 @@ function autoClaims() {
       AND NOT EXISTS (SELECT 1 FROM travel_expenses te WHERE te.user_id=j.user_id AND te.date=j.date)`).all(TA_AUTO_START)
     .filter(j => isLocked(j.date) && ['Sales', 'Service'].includes(sectionOf(j.user_id)))
     .filter(j => !db.prepare('SELECT 1 FROM ta_bills WHERE user_id=? AND week_start=?').get(j.user_id, weekOf(j.date).start));
-  days.forEach(j => {
-    const department = sectionOf(j.user_id), vehicle = ta.vehicleOf(j.user_id);
-    const c = recalc({ start_odo: j.start_km, end_odo: j.end_km, travel_type: vehicle, department });
-    const vn = db.prepare('SELECT vehicle_number FROM users WHERE id=?').get(j.user_id)?.vehicle_number || '';
-    const at = weekOf(j.date).lockAt.toISOString().replace('T', ' ').slice(0, 19);
-    const r = db.prepare(`INSERT INTO travel_expenses (expense_number,user_id,date,travel_type,vehicle_number,purpose,start_odo,end_odo,
-        distance_km,rate_per_km,travel_amount,total_claim,remarks,department,status,submitted_at,auto)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,1)`)
-      .run(nextExpenseNumber(), j.user_id, j.date, vehicle, vn, 'Field travel', j.start_km, j.end_km,
-        c.distance_km, c.rate_per_km, c.travel_amount, c.total_claim, 'Added from meter readings at the weekly close', department, at);
-    auditLog(j.user_id, 'expense_auto_created', 'travel_expenses', r.lastInsertRowid, `${j.date}: ${c.distance_km} km`);
-  });
+  days.forEach(addAutoClaim);
+}
+// After a km correction on a closed week: a sales / service day that now has km
+// but no claim gets one, so it is counted in the weekly bill
+function claimAfterCorrection(uid, date) {
+  if (date < TA_AUTO_START || !isLocked(date) || !['Sales', 'Service'].includes(sectionOf(uid))) return;
+  const j = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=? AND total_km > 0').get(uid, date);
+  if (!j || db.prepare('SELECT 1 FROM travel_expenses WHERE user_id=? AND date=?').get(uid, date)) return;
+  addAutoClaim(j);
+  ta.refreshBill(uid, date);
+}
+function addAutoClaim(j) {
+  const department = sectionOf(j.user_id), vehicle = ta.vehicleOf(j.user_id);
+  const c = recalc({ start_odo: j.start_km, end_odo: j.end_km, travel_type: vehicle, department });
+  const vn = db.prepare('SELECT vehicle_number FROM users WHERE id=?').get(j.user_id)?.vehicle_number || '';
+  const at = weekOf(j.date).lockAt.toISOString().replace('T', ' ').slice(0, 19);
+  const r = db.prepare(`INSERT INTO travel_expenses (expense_number,user_id,date,travel_type,vehicle_number,purpose,start_odo,end_odo,
+      distance_km,rate_per_km,travel_amount,total_claim,remarks,department,status,submitted_at,auto)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,1)`)
+    .run(nextExpenseNumber(), j.user_id, j.date, vehicle, vn, 'Field travel', j.start_km, j.end_km,
+      c.distance_km, c.rate_per_km, c.travel_amount, c.total_claim, 'Added from meter readings at the weekly close', department, at);
+  auditLog(j.user_id, 'expense_auto_created', 'travel_expenses', r.lastInsertRowid, `${j.date}: ${c.distance_km} km`);
 }
 
 // Lock every week whose deadline has passed: add missing claims from the meter,
@@ -543,9 +553,74 @@ router.get('/km/:uid/:date', requireApprover, (req, res) => {
 });
 router.post('/km/:uid/:date', requireApprover, (req, res) => {
   const r = ta.editKm(+req.params.uid, req.params.date, req.body, req.session.userId);
+  if (r.ok) claimAfterCorrection(+req.params.uid, req.params.date);
   req.session.flash = r.ok ? { success: 'Km updated. The claim and the weekly bill are recalculated.' } : { error: r.message };
   const back = typeof req.body.back === 'string' && req.body.back.startsWith('/') ? req.body.back : '';
   res.redirect(r.ok && back ? back : `/travel-expenses/km/${+req.params.uid}/${req.params.date}${back ? '?back=' + encodeURIComponent(back) : ''}`);
+});
+
+// ── Correct KM: many days at once ─────────────────────────────────────────────
+// Head of Finance / admin fix wrong readings either for one employee across a week
+// (Mon–Sat) or for everyone on one date. Approved days are shown but locked.
+const addDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+function kmRow(uid, date) {
+  const j = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=?').get(uid, date) || {};
+  const claims = db.prepare('SELECT id, expense_number, status, distance_km, total_claim FROM travel_expenses WHERE user_id=? AND date=? ORDER BY id').all(uid, date);
+  const bill = db.prepare('SELECT status FROM ta_bills WHERE user_id=? AND ? BETWEEN week_start AND week_end').get(uid, date);
+  const locked = bill?.status === 'approved' || claims.some(c => c.status === 'approved');
+  const km = j.start_km > 0 && j.end_km > 0 ? j.end_km - j.start_km : null;
+  return { date, j, claims, locked, km, claimKm: claims.filter(c => c.status !== 'rejected').reduce((a, c) => a + c.distance_km, 0) };
+}
+
+router.get('/km-grid', requireApprover, (req, res) => {
+  const mode = req.query.mode === 'day' ? 'day' : 'employee';
+  const isD = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+  const people = db.prepare(`SELECT u.id, u.full_name, u.username, u.employee_code, p.section
+    FROM users u LEFT JOIN org_positions p ON p.code=u.position_code
+    WHERE COALESCE(u.is_hr_active,1)=1 ORDER BY CASE WHEN p.section IN ('Sales','Service') THEN 0 ELSE 1 END, u.full_name`).all();
+  let rows = [], emp = null, week = null, date = null;
+  if (mode === 'employee') {
+    emp = people.find(p => p.id === +req.query.user) || null;
+    week = weekOf(isD(req.query.week) ? req.query.week : today());
+    if (emp) {
+      for (let d = week.start; d <= week.end; d = addDay(d, 1)) {
+        const r = kmRow(emp.id, d);
+        if (new Date(d + 'T00:00:00Z').getUTCDay() === 0 && !r.j.start_km && !r.j.end_km && !r.claims.length) continue;   // quiet Sunday
+        rows.push({ ...r, uid: emp.id, label: d });
+      }
+    }
+  } else {
+    date = isD(req.query.date) && req.query.date <= today() ? req.query.date : today();
+    people.forEach(p => {
+      const r = kmRow(p.id, date);
+      if (r.j.start_km || r.j.end_km || r.claims.length || ['Sales', 'Service'].includes(p.section)) rows.push({ ...r, uid: p.id, label: p.full_name || p.username });
+    });
+  }
+  res.render('travel-expenses/km-grid', { title: 'Correct KM', mode, people, emp, week, date, rows, fmtD, weekMon, addDay, todayStr: today(),
+    rate: emp ? ta.rateOfUser(emp.id) : null, back: req.originalUrl });
+});
+
+router.post('/km-grid', requireApprover, (req, res) => {
+  const arr = (v) => Array.isArray(v) ? v : (v === undefined ? [] : [v]);
+  const uids = arr(req.body.uid), dates = arr(req.body.date), starts = arr(req.body.start_km), ends = arr(req.body.end_km);
+  const oStarts = arr(req.body.orig_start), oEnds = arr(req.body.orig_end);
+  const note = String(req.body.note || '').trim();
+  const back = typeof req.body.back === 'string' && req.body.back.startsWith('/travel-expenses/km-grid') ? req.body.back : '/travel-expenses/km-grid';
+  const changed = uids.map((u, i) => ({ uid: +u, date: dates[i], start_km: starts[i], end_km: ends[i] }))
+    .filter((r, i) => String(r.start_km).trim() !== String(oStarts[i]).trim() || String(r.end_km).trim() !== String(oEnds[i]).trim());
+  if (!changed.length) { req.session.flash = { info: 'Nothing was changed.' }; return res.redirect(back); }
+  if (!note) { req.session.flash = { error: 'Write the reason for the change.' }; return res.redirect(back); }
+  const errors = [];
+  let saved = 0;
+  changed.forEach(r => {
+    const out = ta.editKm(r.uid, r.date, { start_km: r.start_km, end_km: r.end_km, note }, req.session.userId);
+    if (out.ok) { saved++; claimAfterCorrection(r.uid, r.date); }
+    else { const u = db.prepare('SELECT full_name, username FROM users WHERE id=?').get(r.uid); errors.push(`${u?.full_name || u?.username} ${fmtD(r.date)}: ${req.t ? req.t(out.message) : out.message}`); }
+  });
+  req.session.flash = errors.length
+    ? { error: (saved ? `${saved} saved. ` : '') + 'Not saved — ' + errors.join('; ') }
+    : { success: saved === 1 ? '1 day updated. Claims and weekly bills are recalculated.' : `${saved} days updated. Claims and weekly bills are recalculated.` };
+  res.redirect(back);
 });
 
 router.get('/bills/:id', (req, res) => {

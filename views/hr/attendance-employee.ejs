@@ -43,6 +43,7 @@
       <span class="small text-muted text-nowrap">₹<%= rate %><%= t("/km") %></span>
     </form>
     <% } %>
+    <% if (canEdit) { %><a href="/travel-expenses/km-grid?mode=employee&user=<%= emp.id %>" class="btn btn-sm btn-outline-danger"><i class="bi bi-speedometer me-1"></i><%= t("Correct KM") %></a><% } %>
     <% if (canRouteMap) { %><a href="/route-map?user=<%= emp.id %>" class="btn btn-sm btn-outline-danger ms-auto"><i class="bi bi-map me-1"></i><%= t("Route map") %></a><% } %>
   </div>
   <%- include('../partials/attendance-calendar', { cal, todayStr, monthUrl: `${base}?user=${emp.id}&m=`, dayUrl: `${base}/${emp.id}/day/` }) %>

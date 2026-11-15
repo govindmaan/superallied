@@ -60,6 +60,7 @@
             <td class="text-end text-nowrap">
               <a href="/attendance/staff?user=<%= r.id %>&m=<%= monthOf %>" class="btn btn-sm btn-link p-0" title="<%= t("Photos, location and km by day") %>" aria-label="<%= t("Photos, location and km by day") %>"><i class="bi bi-calendar3"></i></a>
               <a href="/travel-expenses/queue?status=all&user=<%= r.id %>&m=<%= monthOf %>" class="btn btn-sm btn-link p-0 ms-2" title="<%= t("Expense claims") %>" aria-label="<%= t("Expense claims") %>"><i class="bi bi-receipt"></i></a>
+              <% if (canCorrect) { %><a href="/travel-expenses/km-grid?mode=employee&user=<%= r.id %>&week=<%= to %>" class="btn btn-sm btn-link p-0 ms-2" title="<%= t("Correct KM") %>" aria-label="<%= t("Correct KM") %>"><i class="bi bi-speedometer"></i></a><% } %>
             </td>
           </tr>
           <% }) %>

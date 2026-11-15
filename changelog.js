@@ -6,6 +6,11 @@ module.exports = [
   {
     date: '2026-11-15',
     items: [
+      { commit: '', type: 'new', title: 'Correct KM: fix many days at once',
+        details: ['Head of Finance and admin: Expenses → Correct KM. View one employee\'s week (Monday to Saturday) or everyone on one date, with each day\'s start and end km and the meter photos.',
+                  'Change any number of readings, write one reason and save. Changed rows are highlighted; the km updates as you type.',
+                  'Claims and weekly bills are recalculated and each employee is notified. A day added to a closed week gets its claim added to that week\'s bill.',
+                  'Approved weeks are shown but locked. Also reachable from a weekly report, Bike KM Summary and Employee Attendance.'] },
       { commit: '', type: 'improved', title: 'Travel allowance: km from the meter, weekly report on Sunday',
         details: ['Rates per km: two-wheeler ₹3 for sales and ₹2.5 for service; four-wheeler ₹5. Each person\'s vehicle is set once in their profile; the Head of Finance can change it on Employee Attendance, and rates on Expense Rate Config.',
                   'Yesterday\'s ending km is today\'s starting km: at check-in the start reading is already filled in, so you only check it and take the meter photo. If you forgot to check out, today\'s start reading closes yesterday.',

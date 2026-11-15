@@ -101,6 +101,7 @@
         { href: '/travel-expenses/my',          icon: 'bi-receipt-cutoff',    label: t('My Travel Expenses'),  show: can('expense_claim'),                    keys: ['travel-expenses'] },
         { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: can('expense_approval') ? t('Weekly Travel Reports') : t('TA Bills'), show: can('expense_claim') || can('expense_approval') },
         { href: '/travel-expenses/queue',       icon: 'bi-check2-square',     label: t('Expense Approvals'),   show: can('expense_approval') },
+        { href: '/travel-expenses/km-grid',     icon: 'bi-speedometer',       label: t('Correct KM'),          show: can('expense_approval'), keys: ['km-grid'] },
         { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',           label: t('Expense Rate Config'), show: isMgr || can('expense_approval') },
       ]},
       { label: t('HR Admin'), items: [

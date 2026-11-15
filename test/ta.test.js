@@ -156,3 +156,55 @@ test('the claim form is filled in from the meter and the profile vehicle', async
   assert.match(html, /name="end_odo"[^>]*value="535"/);
   assert.match(html, /data-rate="2.5"/);
 });
+
+// ── Correct KM page: many days, by employee or by day ─────────────────────────
+test('Correct KM: one employee\'s week and everyone on a day; approved days are locked', async () => {
+  // week of 8–14 Nov for the service person (not approved)
+  att.saveJourneyStart(svcP, '2026-11-09', { km: 300, photo: '/uploads/j/1.jpg' });
+  att.saveJourneyEnd(svcP, '2026-11-09', { km: 330, photo: '/uploads/j/2.jpg' });
+  att.saveJourneyStart(svcP, '2026-11-10', { km: 330, photo: '/uploads/j/3.jpg' });
+  att.saveJourneyEnd(svcP, '2026-11-10', { km: 3600, photo: '/uploads/j/4.jpg' });   // typo: 3600 for 360
+  let html = await (await get(`/travel-expenses/km-grid?mode=employee&user=${svcP}&week=2026-11-10`, hof)).text();
+  assert.match(html, /name="end_km"[^>]*value="3600"/);
+  html = await (await get('/travel-expenses/km-grid?mode=day&date=2026-11-04', hof)).text();
+  assert.match(html, /ta_sales/);
+  assert.match(html, /bi-lock-fill/);                  // the sales week (1–7 Nov) is approved
+  assert.equal((await get('/travel-expenses/km-grid', salesP)).status, 302);
+});
+
+test('Correct KM: saves only changed rows, needs a reason, reports rows it could not save', async () => {
+  const row = (date, s, e, os, oe) => ({ uid: svcP, date, start_km: s, end_km: e, orig_start: os, orig_end: oe });
+  const form = (rows, note) => {
+    const p = new URLSearchParams();
+    rows.forEach(r => Object.entries(r).forEach(([k, v]) => p.append(k, v)));
+    p.append('note', note); p.append('back', '/travel-expenses/km-grid?mode=employee');
+    return fetch(base + '/travel-expenses/km-grid', { method: 'POST', redirect: 'manual', headers: { 'x-user': hof, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p });
+  };
+  // no reason → nothing saved
+  await form([row('2026-11-10', '330', '360', '330', '3600')], '');
+  assert.equal(day(svcP, '2026-11-10').end_km, 3600);
+  // with a reason: the changed row is saved, the unchanged one is left alone
+  const before9 = day(svcP, '2026-11-09');
+  const r = await form([row('2026-11-09', '300', '330', '300', '330'), row('2026-11-10', '330', '360', '330', '3600')], 'Typed an extra zero');
+  assert.equal(r.status, 302);
+  assert.equal(day(svcP, '2026-11-10').total_km, 30);
+  assert.equal(day(svcP, '2026-11-10').edit_note, 'Typed an extra zero');
+  assert.equal(day(svcP, '2026-11-09').edited_by, before9.edited_by);
+  // end below start is refused for that row only
+  await form([row('2026-11-09', '300', '250', '300', '330')], 'oops');
+  assert.equal(day(svcP, '2026-11-09').end_km, 330);
+});
+
+test('a correction on a closed week adds the missing claim to the weekly bill', async () => {
+  // service person: 9 and 10 Nov are in the closed week of 8–14 Nov (from TA_AUTO_START); the close already ran
+  te.closeLockedWeeks();
+  const bill = () => db.prepare("SELECT * FROM ta_bills WHERE user_id=? AND week_start='2026-11-08'").get(svcP);
+  const before = bill();
+  assert.ok(before, 'bill exists');
+  // 12 Nov had nothing: HoF enters the readings
+  const p = new URLSearchParams({ uid: svcP, date: '2026-11-12', start_km: '360', end_km: '400', orig_start: '', orig_end: '', note: 'Readings from photo on WhatsApp' });
+  await fetch(base + '/travel-expenses/km-grid', { method: 'POST', redirect: 'manual', headers: { 'x-user': hof, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p });
+  const c = db.prepare("SELECT distance_km, rate_per_km, total_claim, auto FROM travel_expenses WHERE user_id=? AND date='2026-11-12'").get(svcP);
+  assert.deepEqual({ ...c }, { distance_km: 40, rate_per_km: 2.5, total_claim: 100, auto: 1 });
+  assert.equal(bill().total_amount, before.total_amount + 100);
+});
