@@ -13,8 +13,8 @@ function canApproveClaim(res) { return isApprover(res); }
 // selfies (attendance) and the start / end odometer photos (expense_journeys).
 // Sales claims are only payable on a complete day; other departments aren't gated.
 function dayProof(userId, date) {
-  const att = db.prepare('SELECT check_in_time, check_in_photo, check_out_time, check_out_photo FROM attendance WHERE user_id=? AND date=?').get(userId, date) || {};
-  const j   = db.prepare('SELECT start_km, start_photo, end_km, end_photo, total_km FROM expense_journeys WHERE user_id=? AND date=?').get(userId, date) || {};
+  const att = db.prepare('SELECT check_in_time, check_in_photo, check_in_lat, check_in_lng, check_out_time, check_out_photo, check_out_lat, check_out_lng FROM attendance WHERE user_id=? AND date=?').get(userId, date) || {};
+  const j   = db.prepare('SELECT start_km, start_photo, start_lat, start_lng, end_km, end_photo, end_lat, end_lng, total_km FROM expense_journeys WHERE user_id=? AND date=?').get(userId, date) || {};
   const missing = [];
   if (!att.check_in_photo)  missing.push('check-in selfie');
   if (!j.start_photo)       missing.push('start-of-day odometer photo');
@@ -324,12 +324,35 @@ router.get('/my', requireClaimAccess, (req, res) => {
 });
 
 // ── Approval queue (must be registered before the generic /:id route below) ──
+// Head of Finance / admin: every claim, by status (pending first), employee and month
+const QUEUE_TABS = ['submitted', 'approved', 'rejected', 'all'];
 router.get('/queue', requireApprover, (req, res) => {
-  const rows = db.prepare(`SELECT te.*, u.full_name, u.employee_code
-    FROM travel_expenses te JOIN users u ON u.id=te.user_id
-    WHERE te.status='submitted' ORDER BY te.submitted_at ASC`).all();
-  res.render('travel-expenses/queue', { title: 'Expense Approvals', rows });
+  const status = QUEUE_TABS.includes(req.query.status) ? req.query.status : 'submitted';
+  const user = +req.query.user || 0;
+  const month = /^\d{4}-\d{2}$/.test(req.query.m || '') ? req.query.m : '';
+  const where = ["te.status != 'draft'"], params = [];
+  if (status !== 'all') { where.push('te.status=?'); params.push(status); }
+  if (user) { where.push('te.user_id=?'); params.push(user); }
+  if (month) { where.push('te.date LIKE ?'); params.push(month + '%'); }
+  const rows = db.prepare(`SELECT te.*, u.full_name, u.employee_code, COALESCE(a.full_name, a.username) AS approver_name
+    FROM travel_expenses te JOIN users u ON u.id=te.user_id LEFT JOIN users a ON a.id=te.approved_by
+    WHERE ${where.join(' AND ')}
+    ORDER BY ${status === 'submitted' ? 'te.submitted_at ASC' : 'te.date DESC, te.id DESC'} LIMIT 500`).all(...params);
+  // tab counts follow the employee / month filters
+  const cw = ["status != 'draft'"], cp = [];
+  if (user) { cw.push('user_id=?'); cp.push(user); }
+  if (month) { cw.push('date LIKE ?'); cp.push(month + '%'); }
+  const counts = { all: 0 };
+  db.prepare(`SELECT status, COUNT(*) c FROM travel_expenses WHERE ${cw.join(' AND ')} GROUP BY status`).all(...cp)
+    .forEach(r => { counts[r.status] = r.c; counts.all += r.c; });
+  const totals = { km: rows.reduce((a, r) => a + (r.distance_km || 0), 0), amount: rows.reduce((a, r) => a + (r.total_claim || 0), 0) };
+  const employees = db.prepare(`SELECT DISTINCT u.id, u.full_name, u.username FROM users u JOIN travel_expenses te ON te.user_id=u.id
+    WHERE te.status != 'draft' ORDER BY u.full_name`).all();
+  res.render('travel-expenses/queue', { title: 'Expense Approvals', rows, counts, totals, employees,
+    filter: { status, user, month }, back: req.originalUrl });
 });
+// After approve / reject from the list, go back to the same filtered list
+const backTo = (req, fallback) => (typeof req.body.back === 'string' && req.body.back.startsWith('/travel-expenses/queue')) ? req.body.back : fallback;
 
 // ── Rate configuration — also registered before /:id (two segments is safe,
 // but keeping it here for readability alongside /queue) ──────────────────────
@@ -413,13 +436,15 @@ router.get('/bills/:id/pdf', async (req, res) => {
 });
 
 // ── Detail (generic :id — must stay below every literal-segment route above) ─
-router.get('/:id', requireClaimAccess, (req, res) => {
+router.get('/:id', (req, res) => {
+  // claimants open their own; the Head of Finance / admin open anyone's
+  if (!canClaim(res) && !isApprover(res)) { req.session.flash = { error: `You don't have permission to access Travel Expenses.` }; return res.redirect('/'); }
   const expense = db.prepare('SELECT * FROM travel_expenses WHERE id=?').get(req.params.id);
-  if (!expense) { req.session.flash = { error: 'Expense not found.' }; return res.redirect('/travel-expenses/my'); }
+  if (!expense) { req.session.flash = { error: 'Expense not found.' }; return res.redirect(isApprover(res) ? '/travel-expenses/queue' : '/travel-expenses/my'); }
   const isOwner = expense.user_id === req.session.userId;
   if (!isOwner && !isApprover(res)) {
     req.session.flash = { error: `You don't have permission to view this expense.` };
-    return res.redirect('/travel-expenses/my');
+    return res.redirect(canClaim(res) ? '/travel-expenses/my' : '/');
   }
 
   const owner = db.prepare('SELECT full_name, employee_code, mobile FROM users WHERE id=?').get(expense.user_id);
@@ -437,7 +462,7 @@ router.get('/:id', requireClaimAccess, (req, res) => {
 
 router.post('/:id/approve', requireClaimApprover, (req, res) => {
   const expense = db.prepare('SELECT * FROM travel_expenses WHERE id=?').get(req.params.id);
-  if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect('/travel-expenses/queue'); }
+  if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect(backTo(req, '/travel-expenses/queue')); }
 
   db.prepare(`UPDATE travel_expenses SET status='approved', approved_by=?, approved_at=CURRENT_TIMESTAMP, approval_remarks=? WHERE id=?`)
     .run(req.session.userId, req.body.comment||'', expense.id);
@@ -446,12 +471,12 @@ router.post('/:id/approve', requireClaimApprover, (req, res) => {
     `Your travel expense claim of ₹${expense.total_claim.toFixed(0)} has been approved.`, 'expense', '/travel-expenses/' + expense.id);
 
   req.session.flash = { success: `${expense.expense_number} approved.` };
-  res.redirect('/travel-expenses/queue');
+  res.redirect(backTo(req, '/travel-expenses/queue'));
 });
 
 router.post('/:id/reject', requireClaimApprover, (req, res) => {
   const expense = db.prepare('SELECT * FROM travel_expenses WHERE id=?').get(req.params.id);
-  if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect('/travel-expenses/queue'); }
+  if (!expense || expense.status !== 'submitted') { req.session.flash = { error: 'This expense is not pending approval.' }; return res.redirect(backTo(req, '/travel-expenses/queue')); }
 
   db.prepare(`UPDATE travel_expenses SET status='rejected', approved_by=?, approved_at=CURRENT_TIMESTAMP, approval_remarks=? WHERE id=?`)
     .run(req.session.userId, req.body.comment||'', expense.id);
@@ -460,7 +485,7 @@ router.post('/:id/reject', requireClaimApprover, (req, res) => {
     req.body.comment || 'Your travel expense claim was rejected.', 'expense', '/travel-expenses/' + expense.id);
 
   req.session.flash = { success: `${expense.expense_number} rejected.` };
-  res.redirect('/travel-expenses/queue');
+  res.redirect(backTo(req, '/travel-expenses/queue'));
 });
 
 module.exports = router;

@@ -18,7 +18,8 @@
   <!-- Staff attendance overview (HoF / Admin) -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <span class="fw-semibold"><i class="bi bi-people me-2 text-danger"></i><%= t("Staff Attendance") %></span>
+      <span class="fw-semibold"><i class="bi bi-people me-2 text-danger"></i><%= t("Staff Attendance") %>
+        <% if (canViewStaff) { %><a href="/attendance/km" class="btn btn-sm btn-link py-0"><i class="bi bi-speedometer2 me-1"></i><%= t("Bike KM Summary") %></a><% } %></span>
       <form method="GET" action="/attendance" class="d-flex align-items-center gap-2 mb-0">
         <input type="date" name="date" class="form-control form-control-sm" style="width:150px"
                value="<%= staffAttendance.date %>" max="<%= todayStr %>"
@@ -60,8 +61,9 @@
               <th class="d-none d-md-table-cell"><%= t("Position") %></th>
               <th><%= t("Check In") %></th>
               <th><%= t("Check Out") %></th>
+              <th class="text-end"><%= t("km") %></th>
               <th><%= t("Status") %></th>
-              <% if (canEdit) { %><th></th><% } %>
+              <% if (canEdit || canViewStaff) { %><th></th><% } %>
             </tr>
           </thead>
           <tbody>
@@ -70,19 +72,24 @@
             <tr>
               <td class="fw-semibold"><%= r.full_name || r.employee_code || '—' %></td>
               <td class="small text-muted d-none d-md-table-cell"><%= r.position_title || '—' %></td>
-              <td class="small"><%= checkedIn ? new Date(r.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+              <td class="small text-nowrap"><%= checkedIn ? new Date(r.check_in_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %>
+                <% if (r.check_in_lat) { %><a href="https://maps.google.com/?q=<%= r.check_in_lat %>,<%= r.check_in_lng %>" target="_blank" rel="noopener" title="<%= t("Check-in location") %>" aria-label="<%= t("Check-in location") %>"><i class="bi bi-geo-alt-fill text-danger"></i></a><% } %></td>
               <td class="small"><%= checkedOut ? new Date(r.check_out_time).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'}) : '—' %></td>
+              <td class="small text-end num"><%= r.total_km ? Number(r.total_km).toFixed(0) : (r.start_km && !r.end_km ? '…' : '—') %></td>
               <td>
                 <% if (r.marked) { %><span class="badge <%= {present:'bg-success',absent:'bg-danger',leave:'bg-primary'}[r.marked] %>" title="<%= r.marked_note %>"><%= t({present:'Present',absent:'Absent',leave:'Leave'}[r.marked]) %> <i class="bi bi-pencil-fill"></i></span>
                 <% } else if (checkedOut) { %><span class="badge bg-secondary"><%= t("Out") %></span>
                 <% } else if (checkedIn) { %><span class="badge bg-success"><%= t("In") %></span>
                 <% } else { %><span class="badge bg-danger bg-opacity-75"><%= t("Absent") %></span><% } %>
               </td>
-              <% if (canEdit) { %><td class="text-end"><a href="/attendance/requests?user=<%= r.id %>&date=<%= staffAttendance.date %>#edit" class="btn btn-sm btn-link p-0" title="<%= t("Edit attendance") %>" aria-label="<%= t("Edit attendance") %>"><i class="bi bi-pencil-square"></i></a></td><% } %>
+              <% if (canEdit || canViewStaff) { %><td class="text-end text-nowrap">
+                <% if (canViewStaff) { %><a href="/attendance/staff?user=<%= r.id %>&m=<%= staffAttendance.date.slice(0, 7) %>" class="btn btn-sm btn-link p-0" title="<%= t("Photos, location and km by day") %>" aria-label="<%= t("Photos, location and km by day") %>"><i class="bi bi-images"></i></a><% } %>
+                <% if (canEdit) { %><a href="/attendance/requests?user=<%= r.id %>&date=<%= staffAttendance.date %>#edit" class="btn btn-sm btn-link p-0 ms-2" title="<%= t("Edit attendance") %>" aria-label="<%= t("Edit attendance") %>"><i class="bi bi-pencil-square"></i></a><% } %>
+              </td><% } %>
             </tr>
             <% }) %>
             <% if (!staffAttendance.rows.length) { %>
-            <tr><td colspan="<%= canEdit ? 6 : 5 %>" class="text-center text-muted py-3"><%= t("No staff records.") %></td></tr>
+            <tr><td colspan="<%= canEdit || canViewStaff ? 7 : 6 %>" class="text-center text-muted py-3"><%= t("No staff records.") %></td></tr>
             <% } %>
           </tbody>
         </table>

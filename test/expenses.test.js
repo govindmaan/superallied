@@ -39,6 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use('/travel-expenses', require('../routes/travel-expenses'));
+app.use('/attendance', require('../routes/attendance'));
 
 let base, server;
 test.before(() => new Promise(r => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; r(); }); }));
@@ -120,4 +121,57 @@ test('head_of_finance has a focused permission set (approval, attendance + editi
   // and NOT the broad ones
   ['enquiries','quotations','customers','sold_machines','reports','expense_claim','hr_admin'].forEach(x =>
     assert.ok(!p.includes(x), 'should not have ' + x));
+});
+
+// ── Head of Finance / admin oversight ─────────────────────────────────────────
+const get = (u, who) => fetch(base + u, { redirect: 'manual', headers: { 'x-user': who.id || who } });
+
+test('the Head of Finance can open any claim (they cannot submit claims themselves)', async () => {
+  const e = db.prepare("SELECT id, expense_number FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(users.sales.id);
+  const r = await get(`/travel-expenses/${e.id}`, hof);
+  assert.equal(r.status, 200);
+  assert.match(await r.text(), new RegExp(e.expense_number));
+  // another salesperson still cannot
+  const other = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role) VALUES ('sales_x','x','Sales X','sales')").run().lastInsertRowid);
+  assert.equal((await get(`/travel-expenses/${e.id}`, other)).status, 302);
+});
+
+test('the approvals list shows pending, approved, rejected and all, with filters', async () => {
+  const approved = db.prepare("SELECT expense_number FROM travel_expenses WHERE status='approved' LIMIT 1").get().expense_number;
+  let html = await (await get('/travel-expenses/queue?status=approved', hof)).text();
+  assert.match(html, new RegExp(approved));
+  html = await (await get(`/travel-expenses/queue?status=all&user=${users.sales.id}`, hof)).text();
+  assert.match(html, new RegExp(approved));
+  html = await (await get('/travel-expenses/queue?status=rejected', hof)).text();
+  assert.ok(!html.includes(approved));
+  assert.equal((await get('/travel-expenses/queue', users.sales)).status, 302);
+});
+
+test('rejecting from the list keeps the reason and returns to the same list', async () => {
+  db.prepare(`INSERT INTO travel_expenses (expense_number, user_id, date, travel_type, distance_km, total_claim, status, submitted_at)
+    VALUES ('TE-TEST-1', ?, ?, 'Own Two Wheeler', 20, 100, 'submitted', CURRENT_TIMESTAMP)`).run(users.sales.id, today);
+  const id = db.prepare("SELECT id FROM travel_expenses WHERE expense_number='TE-TEST-1'").get().id;
+  const back = `/travel-expenses/queue?status=submitted&user=${users.sales.id}`;
+  const r = await post(`/travel-expenses/${id}/reject`, { id: hof }, { comment: 'Odometer photo is blurred', back });
+  assert.equal(r.headers.get('location'), back);
+  const row = db.prepare('SELECT status, approval_remarks FROM travel_expenses WHERE id=?').get(id);
+  assert.deepEqual({ ...row }, { status: 'rejected', approval_remarks: 'Odometer photo is blurred' });
+  // a back link pointing elsewhere is ignored
+  db.prepare("UPDATE travel_expenses SET status='submitted' WHERE id=?").run(id);
+  const r2 = await post(`/travel-expenses/${id}/approve`, { id: hof }, { back: 'https://evil.example/' });
+  assert.equal(r2.headers.get('location'), '/travel-expenses/queue');
+});
+
+test('the Head of Finance sees staff photos / location by day and the bike km summary', async () => {
+  const r = await get(`/attendance/staff?user=${users.sales.id}`, hof);
+  assert.equal(r.status, 200);
+  const day = await (await get(`/attendance/staff/${users.sales.id}/day/${today}`, hof)).json();
+  assert.equal(day.att.check_in_photo, '/uploads/a/in.jpg');
+  assert.equal(day.journey.total_km, 100);
+  const km = await (await get(`/attendance/km?from=${today}&to=${today}`, hof)).text();
+  assert.match(km, /Bike KM Summary/);
+  assert.match(km, /sales1/);
+  // field staff cannot
+  assert.equal((await get('/attendance/km', users.sales)).status, 302);
+  assert.equal((await get(`/attendance/staff/${users.manager.id}/day/${today}`, users.sales)).status, 302);
 });

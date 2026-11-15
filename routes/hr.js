@@ -249,15 +249,10 @@ router.get('/attendance', (req, res) => {
 
 // ── Admin: one employee's month — present/absent calendar, check-in/out photos & location
 const attendanceRoutes = require('./attendance');
+// Moved to /attendance/staff, which the Head of Finance can also open
 router.get('/attendance/employee', (req, res) => {
-  const employees = db.prepare("SELECT id, full_name, username, employee_code, designation FROM users WHERE is_hr_active=1 ORDER BY full_name").all();
-  const emp = employees.find(e => e.id === +req.query.user) || null;
-  const todayStr = new Date().toLocaleDateString('en-CA');
-  res.render('hr/attendance-employee', {
-    title: emp ? `Attendance — ${emp.full_name || emp.username}` : 'Employee Attendance',
-    employees, emp, todayStr,
-    cal: emp ? attendanceRoutes.monthCalendar(emp.id, req.query.m, todayStr) : null,
-  });
+  const q = req.originalUrl.indexOf('?');
+  res.redirect('/attendance/staff' + (q >= 0 ? req.originalUrl.slice(q) : ''));
 });
 
 router.get('/attendance/employee/:uid/day/:date', (req, res) => {

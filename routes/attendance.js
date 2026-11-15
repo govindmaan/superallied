@@ -43,10 +43,12 @@ router.get('/', (req, res) => {
       date: dateFilter,
       rows: db.prepare(`
         SELECT u.id, u.full_name, u.employee_code, p.title AS position_title, p.section,
-               a.check_in_time, a.check_out_time, a.check_in_lat, a.check_in_lng, a.marked, a.marked_note
+               a.check_in_time, a.check_out_time, a.check_in_lat, a.check_in_lng, a.marked, a.marked_note,
+               j.total_km, j.start_km, j.end_km
         FROM users u
         LEFT JOIN org_positions p ON p.code = u.position_code
         LEFT JOIN attendance a ON a.user_id = u.id AND a.date = ?
+        LEFT JOIN expense_journeys j ON j.user_id = u.id AND j.date = a.date
         WHERE u.is_hr_active = 1 AND u.id != ?
         ORDER BY p.section, u.full_name
       `).all(dateFilter, uid),
@@ -61,7 +63,7 @@ router.get('/', (req, res) => {
   }
 
   res.render('attendance', { title: 'My Attendance', todayRec, todayJourney, history, stats, todayStr: todayR,
-    cal: monthCalendar(uid, req.query.m, todayR), staffAttendance, canEdit: rules.canEdit(res),
+    cal: monthCalendar(uid, req.query.m, todayR), staffAttendance, canEdit: rules.canEdit(res), canViewStaff: canViewStaff(res),
     pendingRequests: rules.canEdit(res) ? db.prepare("SELECT COUNT(*) c FROM attendance_requests WHERE status='pending'").get().c : 0,
     checkoutOpen: rules.checkoutOpen(), meterRequired: rules.needsMeter(res.locals.user?.role) });
 });
@@ -186,6 +188,61 @@ router.post('/api/checkout', (req, res) => {
 
   const journey = m.km ? rules.saveJourneyEnd(uid, todayR, { km: m.km, photo: m.photo, lat, lng }) : null;
   res.json({ ok: true, time: now, journey });
+});
+
+// ── Staff oversight: Head of Finance, admin and HR managers ───────────────────
+// One employee's month (present / absent, check-in and check-out selfies with GPS,
+// odometer photos and bike km), and a bike km summary for everyone.
+const canViewStaff = (res) => rules.canEdit(res) || !!res.locals.hasPerm?.('hr_admin');
+function requireStaffView(req, res, next) {
+  if (canViewStaff(res)) return next();
+  req.session.flash = { error: 'Only the Head of Finance, HR or an admin can see staff attendance.' };
+  res.redirect('/attendance');
+}
+const activeStaff = () => db.prepare(`SELECT u.id, u.full_name, u.username, u.employee_code, u.designation
+  FROM users u WHERE COALESCE(u.is_hr_active,1)=1 ORDER BY u.full_name`).all();
+
+router.get('/staff', requireStaffView, (req, res) => {
+  const employees = activeStaff();
+  const emp = employees.find(e => e.id === +req.query.user) || null;
+  const todayStr = rules.istDate();
+  res.render('hr/attendance-employee', {
+    title: emp ? `Attendance — ${emp.full_name || emp.username}` : 'Employee Attendance',
+    employees, emp, todayStr, base: '/attendance/staff',
+    canRouteMap: !!(res.locals.hasPerm('*') || res.locals.user?.role === 'head_of_finance'),
+    cal: emp ? monthCalendar(emp.id, req.query.m, todayStr) : null,
+  });
+});
+
+router.get('/staff/:uid/day/:date', requireStaffView, (req, res) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) return res.status(400).json({ error: 'Bad date' });
+  const u = db.prepare('SELECT id FROM users WHERE id=?').get(+req.params.uid);
+  if (!u) return res.status(404).json({ error: 'Employee not found' });
+  res.json(dayDetail(u.id, req.params.date));
+});
+
+// Bike km per person for a period: odometer km against km claimed in travel expenses
+router.get('/km', requireStaffView, (req, res) => {
+  const todayStr = rules.istDate();
+  const ok = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+  let to = ok(req.query.to) ? req.query.to : todayStr;
+  let from = ok(req.query.from) ? req.query.from : to.slice(0, 7) + '-01';
+  if (from > to) [from, to] = [to, from];
+  const rows = db.prepare(`
+    SELECT u.id, u.full_name, u.username, u.employee_code, p.title AS position_title, p.section,
+      (SELECT COUNT(*) FROM attendance a WHERE a.user_id=u.id AND a.date BETWEEN ? AND ? AND ${rules.presentSql('a')}) AS present_days,
+      (SELECT COALESCE(SUM(j.total_km),0) FROM expense_journeys j WHERE j.user_id=u.id AND j.date BETWEEN ? AND ?) AS km,
+      (SELECT COUNT(*) FROM expense_journeys j WHERE j.user_id=u.id AND j.date BETWEEN ? AND ? AND j.total_km > 0) AS km_days,
+      (SELECT COUNT(*) FROM expense_journeys j WHERE j.user_id=u.id AND j.date BETWEEN ? AND ?
+         AND (COALESCE(j.start_photo,'')='' OR COALESCE(j.end_photo,'')='' OR j.end_km IS NULL)) AS incomplete,
+      (SELECT COALESCE(SUM(te.distance_km),0) FROM travel_expenses te WHERE te.user_id=u.id AND te.date BETWEEN ? AND ?
+         AND te.status IN ('submitted','approved')) AS claimed_km
+    FROM users u LEFT JOIN org_positions p ON p.code = u.position_code
+    WHERE COALESCE(u.is_hr_active,1)=1
+    ORDER BY km DESC, u.full_name`).all(from, to, from, to, from, to, from, to, from, to);
+  const totals = rows.reduce((t, r) => ({ km: t.km + r.km, claimed: t.claimed + r.claimed_km, riders: t.riders + (r.km > 0 ? 1 : 0), incomplete: t.incomplete + r.incomplete }),
+    { km: 0, claimed: 0, riders: 0, incomplete: 0 });
+  res.render('attendance-km', { title: 'Bike KM Summary', rows, totals, from, to, todayStr });
 });
 
 // ── Attendance requests and corrections ───────────────────────────────────────

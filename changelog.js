@@ -4,6 +4,18 @@
 
 module.exports = [
   {
+    date: '2026-11-15',
+    items: [
+      { commit: '', type: 'improved', title: 'Head of Finance and admin: expenses, bike km, photos and location',
+        details: ['Expense Approvals now has tabs for Pending, Approved, Rejected and All, with filters for employee and month and the total km and amount.',
+                  'Approve or reject straight from the list, or open a claim to check it first. Rejecting asks for a reason, which the employee sees.',
+                  'The Head of Finance can now open any claim. Before this, tapping Review sent them back to the home page.',
+                  'A claim\'s Day proof now has location links next to the selfies and meter photos.',
+                  'New Bike KM Summary: odometer km, days present and km claimed in expenses for each person and period. Red means more km was claimed than the odometer shows.',
+                  'Employee Attendance (also open to the Head of Finance) shows each person\'s month. Tap a day for check-in and check-out selfies, location and meter photos. The staff list on Attendance also shows each person\'s km and a map pin.'] },
+    ],
+  },
+  {
     date: '2026-11-13',
     items: [
       { commit: '', type: 'new', title: 'Attendance requests and corrections',

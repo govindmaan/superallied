@@ -1,36 +1,94 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
+<%
+  const TABS = [['submitted', t('Pending')], ['approved', t('Approved')], ['rejected', t('Rejected')], ['all', t('All')]];
+  const BADGE = { submitted: 'bg-warning text-dark', approved: 'bg-success', rejected: 'bg-danger' };
+  const LABEL = { submitted: t('Pending'), approved: t('Approved'), rejected: t('Rejected') };
+  const q = (over) => { const p = { status: filter.status, user: filter.user || '', m: filter.month, ...over };
+    return '/travel-expenses/queue?' + Object.entries(p).filter(([, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&'); };
+  const inr = (n) => '₹' + Math.round(n || 0).toLocaleString('en-IN');
+%>
 <div class="main-content">
   <div class="page-header d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0 fw-bold"><i class="bi bi-check2-square me-2 text-danger"></i><%= t("Expense Approvals") %></h4>
-    <span class="badge bg-warning text-dark fs-6"><%= rows.length %> <%= t("pending") %></span>
+    <a href="/attendance/km" class="btn btn-sm btn-outline-secondary"><i class="bi bi-speedometer2 me-1"></i><%= t("Bike KM Summary") %></a>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
+  <!-- Status tabs -->
+  <ul class="nav nav-pills mb-3 gap-1 flex-nowrap overflow-auto">
+    <% TABS.forEach(([k, label]) => { %>
+    <li class="nav-item"><a class="nav-link py-1 px-3 <%= filter.status === k ? 'active bg-danger' : 'text-dark border' %>" href="<%= q({ status: k }) %>">
+      <%= label %> <span class="badge <%= filter.status === k ? 'bg-light text-dark' : 'bg-secondary' %>"><%= counts[k] || 0 %></span></a></li>
+    <% }) %>
+  </ul>
+
+  <!-- Filters -->
+  <form method="GET" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="status" value="<%= filter.status %>">
+    <div class="col-7 col-md-4">
+      <label class="form-label small mb-1" for="fUser"><%= t("Employee") %></label>
+      <select name="user" id="fUser" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value=""><%= t("All employees") %></option>
+        <% employees.forEach(e => { %><option value="<%= e.id %>" <%= e.id === filter.user ? 'selected' : '' %>><%= e.full_name || e.username %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-5 col-md-3">
+      <label class="form-label small mb-1" for="fMonth"><%= t("Month") %></label>
+      <input type="month" name="m" id="fMonth" class="form-control form-control-sm" value="<%= filter.month %>" onchange="this.form.submit()">
+    </div>
+    <% if (filter.user || filter.month) { %><div class="col-auto"><a href="<%= q({ user: '', m: '' }) %>" class="btn btn-sm btn-link"><%= t("Clear") %></a></div><% } %>
+    <div class="col-12 col-md text-md-end small text-muted">
+      <%= rows.length %> <%= t("claims") %> · <%= totals.km.toFixed(0) %> <%= t("km") %> · <strong class="text-dark"><%= inr(totals.amount) %></strong>
+    </div>
+  </form>
+
   <div class="card border-0 shadow-sm">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th><%= t("Expense #") %></th><th><%= t("Employee") %></th><th><%= t("Date") %></th><th><%= t("Type") %></th><th><%= t("Distance") %></th><th><%= t("Total Claim") %></th><th><%= t("Submitted") %></th><th></th></tr></thead>
-        <tbody>
-          <% rows.forEach(x => { %>
-          <tr>
-            <td class="font-monospace small"><%= x.expense_number %></td>
-            <td class="fw-semibold small"><%= x.full_name %> <span class="text-muted"><%= x.employee_code||'' %></span></td>
-            <td class="small"><%= x.date %></td>
-            <td class="small"><%= x.travel_type %></td>
-            <td class="small"><%= x.distance_km.toFixed(1) %> <%= t("km") %></td>
-            <td class="fw-semibold">₹<%= x.total_claim.toFixed(0) %></td>
-            <td class="small text-muted"><%= x.submitted_at ? new Date(x.submitted_at).toLocaleDateString(locale) : '—' %></td>
-            <td class="text-end"><a href="/travel-expenses/<%= x.id %>" class="btn btn-sm btn-danger"><%= t("Review") %></a></td>
-          </tr>
-          <% }) %>
-          <% if (!rows.length) { %><tr><td colspan="8" class="text-center text-muted py-4"><%= t("Nothing pending approval.") %></td></tr><% } %>
-        </tbody>
-      </table>
+    <div class="list-group list-group-flush">
+      <% rows.forEach(x => { %>
+      <div class="list-group-item">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <a href="/travel-expenses/<%= x.id %>" class="text-decoration-none text-dark flex-grow-1" style="min-width:220px">
+            <div class="fw-semibold"><%= x.full_name %> <span class="text-muted small"><%= x.employee_code || '' %></span></div>
+            <div class="small text-muted"><span class="font-monospace"><%= x.expense_number %></span> · <%= x.date %> · <%= x.travel_type %> · <%= (x.distance_km || 0).toFixed(1) %> <%= t("km") %></div>
+            <% if (x.status !== 'submitted' && x.approver_name) { %><div class="small"><%= LABEL[x.status] %> <%= t("by") %> <%= x.approver_name %><%= x.approval_remarks ? ': ' + x.approval_remarks : '' %></div><% } %>
+          </a>
+          <div class="text-end">
+            <div class="fw-bold"><%= inr(x.total_claim) %></div>
+            <span class="badge <%= BADGE[x.status] || 'bg-secondary' %>"><%= LABEL[x.status] || x.status %></span>
+          </div>
+        </div>
+        <% if (x.status === 'submitted') { %>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <a href="/travel-expenses/<%= x.id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye me-1"></i><%= t("Review") %></a>
+          <form method="POST" action="/travel-expenses/<%= x.id %>/approve" class="d-inline">
+            <input type="hidden" name="back" value="<%= back %>">
+            <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i><%= t("Approve") %></button>
+          </form>
+          <form method="POST" action="/travel-expenses/<%= x.id %>/reject" class="d-inline" onsubmit="return askReason(this)">
+            <input type="hidden" name="back" value="<%= back %>">
+            <input type="hidden" name="comment" value="">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg me-1"></i><%= t("Reject") %></button>
+          </form>
+        </div>
+        <% } %>
+      </div>
+      <% }) %>
+      <% if (!rows.length) { %><div class="list-group-item text-center text-muted py-4"><%= filter.status === 'submitted' ? t("Nothing pending approval.") : t("No claims found.") %></div><% } %>
     </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Rejecting needs a reason, which the employee sees
+function askReason(form) {
+  const r = prompt(T('Reason for rejecting this claim:'));
+  if (r === null) return false;
+  if (!r.trim()) { alert(T('Please write the reason.')); return false; }
+  form.comment.value = r.trim();
+  return true;
+}
+</script>
 </body></html>
