@@ -123,6 +123,38 @@ function migrate() {
     });
     db.prepare("INSERT INTO settings (key, value) VALUES ('migr_ta_bill_status_v1', ?)").run(`${approved} of ${bills.length} marked approved`);
   }
+
+  // One-time (owner's request, 15 Nov 2026): start travel expenses afresh under the
+  // new weekly system. Deletes every claim (all statuses) with its receipts and visit
+  // links, every weekly TA bill and every TA payment entry. Meter km readings and
+  // attendance are kept. A full copy of the database is saved to backups/ first
+  // (listed on the Backup page, restorable); if that copy fails nothing is deleted.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_clear_travel_v1'").get()) {
+    const count = (t) => db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
+    const tables = ['travel_payments', 'expense_visit_links', 'expense_documents', 'travel_expenses', 'ta_bills'];
+    const before = Object.fromEntries(tables.map(t => [t, count(t)]));
+    const any = Object.values(before).some(n => n > 0);
+    let backup = '';
+    try {
+      if (any) {
+        const fs = require('fs'), path = require('path');
+        const dir = path.join(path.dirname(process.env.DB_PATH || path.join(__dirname, '..', 'data', 'quotation.db')), 'backups');
+        fs.mkdirSync(dir, { recursive: true });
+        backup = path.join(dir, `pre-clear-travel-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.db`);
+        db.prepare('VACUUM INTO ?').run(backup);
+        db.exec('BEGIN');
+        tables.forEach(t => db.prepare(`DELETE FROM ${t}`).run());
+        db.exec('COMMIT');
+      }
+      const summary = `${any ? 'Deleted' : 'Nothing to delete'}: ${tables.map(t => `${t} ${before[t]}`).join(', ')}${backup ? ' · backup ' + require('path').basename(backup) : ''}`;
+      db.prepare("INSERT INTO settings (key, value) VALUES ('migr_clear_travel_v1', ?)").run(summary);
+      try { db.prepare("INSERT INTO audit_log (user_id, action, entity, entity_id, details) VALUES (NULL, 'travel_expenses_cleared', 'travel_expenses', '', ?)").run(summary); } catch (_) {}
+      if (any) console.log('Travel expenses cleared. ' + summary);
+    } catch (e) {
+      try { db.exec('ROLLBACK'); } catch (_) {}
+      console.error('Travel expense clear skipped (nothing deleted):', e.message);
+    }
+  }
 }
 
 module.exports = { migrate };

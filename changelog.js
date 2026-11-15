@@ -6,6 +6,10 @@ module.exports = [
   {
     date: '2026-11-15',
     items: [
+      { commit: '', type: 'removed', title: 'Travel expenses start afresh',
+        details: ['All earlier travel expense claims (draft, submitted, approved and rejected), weekly TA bills and TA payment entries were cleared, so everyone starts clean under the new weekly system.',
+                  'Daily meter km readings, meter photos and attendance are kept.',
+                  'A full copy of the data from before the clear is saved on the Backup page (file name starts with pre-clear-travel).'] },
       { commit: '', type: 'new', title: 'Correct KM: fix many days at once',
         details: ['Head of Finance and admin: Expenses → Correct KM. View one employee\'s week (Monday to Saturday) or everyone on one date, with each day\'s start and end km and the meter photos.',
                   'Change any number of readings, write one reason and save. Changed rows are highlighted; the km updates as you type.',
