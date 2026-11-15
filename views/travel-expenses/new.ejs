@@ -23,18 +23,15 @@
             <div class="row g-2">
               <div class="col-md-4">
                 <label class="form-label fw-semibold"><%= t("Date") %></label>
-                <input type="date" name="date" class="form-control" value="<%= expense ? expense.date : todayStr %>">
+                <input type="date" name="date" class="form-control" value="<%= expense ? expense.date : todayStr %>" max="<%= today %>"
+                  <% if (!expense) { %>onchange="location.href='/travel-expenses/new?date=' + this.value"<% } %>>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold"><%= t("Travel Type") %></label>
-                <select name="travel_type" id="travelType" class="form-select">
-                  <% rates.forEach(r => { %>
-                  <option value="<%= r.vehicle_type %>" data-rate="<%= r.rate_per_km %>"
-                    <%= (expense ? expense.travel_type : user.vehicle_type) === r.vehicle_type ? 'selected' : '' %>>
-                    <%= r.vehicle_type %> (₹<%= r.rate_per_km %><%= t("/km)") %>
-                  </option>
-                  <% }) %>
+                <select id="travelType" class="form-select" disabled>
+                  <option value="<%= vehicle %>" data-rate="<%= rate %>" selected><%= t(vehicle) %> (₹<%= rate %><%= t("/km)") %></option>
                 </select>
+                <small class="text-muted"><%= t("From your profile. Ask HR / Head of Finance to change it.") %></small>
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold"><%= t("Vehicle Number") %></label>
@@ -67,12 +64,14 @@
               <div class="col-md-6">
                 <label class="form-label fw-semibold"><%= t("Starting Odometer (km)") %></label>
                 <input type="number" step="0.1" name="start_odo" id="startOdo" class="form-control"
-                  value="<%= expense ? expense.start_odo : (journey?.start_km || '') %>">
+                  value="<%= expense ? expense.start_odo : (prefill.start || '') %>">
+                <% if (!expense && prefill.startFrom) { %><small class="text-muted"><%= t(prefill.startFrom) %></small><% } %>
               </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold"><%= t("Ending Odometer (km)") %></label>
                 <input type="number" step="0.1" name="end_odo" id="endOdo" class="form-control"
-                  value="<%= expense ? expense.end_odo : (journey?.end_km || '') %>">
+                  value="<%= expense ? expense.end_odo : (prefill.end || '') %>">
+                <% if (!expense && prefill.end) { %><small class="text-muted"><%= t("From your check-out meter reading") %></small><% } %>
               </div>
             </div>
             <div class="alert alert-info py-2 mt-3 mb-0 small" id="distancePreview"><%= t("Distance: — km · Travel Amount: —") %></div>

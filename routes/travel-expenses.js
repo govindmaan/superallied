@@ -4,6 +4,7 @@ const router  = express.Router();
 const { db, auditLog, createNotification, nextExpenseNumber, numberToWords, today } = require('../db');
 const { financeApproverIds, sectionOf } = require('../lib/org');
 const { analyzeImage } = require('../services/expenseImageAnalyzer');
+const ta = require('../lib/ta');
 
 // Every department's expenses are approved by the Head of Finance (and admin).
 function isApprover(res) { return res.locals.hasPerm('*') || res.locals.hasPerm('expense_approval'); }
@@ -44,43 +45,72 @@ function requireApprover(req, res, next) {
 // Fuel/toll/parking/other capture is deferred to a later phase; the claim is
 // travel (distance × rate) only for now. The columns stay in the schema so
 // re-enabling them later doesn't need a migration.
-function recalc({ start_odo, end_odo, travel_type }) {
+// Rate comes from the person's vehicle (profile) and department: two-wheeler
+// sales ₹3, service ₹2.5; four-wheeler ₹5 (lib/ta.js).
+function recalc({ start_odo, end_odo, travel_type, department }) {
   const s = parseFloat(start_odo) || 0;
   const e = parseFloat(end_odo) || 0;
   const distance_km = Math.max(0, e - s);
-  const rateRow = db.prepare('SELECT rate_per_km FROM expense_rates WHERE vehicle_type=?').get(travel_type);
-  const rate_per_km = rateRow ? rateRow.rate_per_km : 0;
+  const rate_per_km = ta.rateFor(travel_type, department);
   const travel_amount = Math.round(distance_km * rate_per_km * 100) / 100;
   return { distance_km, rate_per_km, travel_amount, total_claim: travel_amount };
 }
 
 // ── Weekly lock & TA bill ─────────────────────────────────────────────────────
-// A week runs Sunday–Saturday (a Sunday trip belongs to the Mon–Sat week after it).
-// Trips can be added, edited and submitted until Saturday 8:00 pm India time.
-// At that point the week locks: unsubmitted trips are submitted automatically and
-// a Travelling Allowance bill is prepared. Trips are still approved one by one.
+// A week is Monday–Saturday (a Sunday trip belongs to the week after it).
+// Trips can be added, edited and submitted until Sunday 10:00 am India time.
+// Then the week closes: sales / service days with meter km but no claim get one
+// automatically, unsubmitted trips are submitted, a Travelling Allowance bill is
+// prepared per person, and the weekly report goes to the person, the Head of
+// Finance and admins. The Head of Finance / admin approve or reject the week.
 const TA_POLICY_START = process.env.TA_POLICY_START || '2026-10-18';   // first week the lock applies to
 
 function weekOf(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z'), dow = d.getUTCDay();
   const start = new Date(d.getTime() - dow * 86400000).toISOString().slice(0, 10);
   const end   = new Date(d.getTime() + (6 - dow) * 86400000).toISOString().slice(0, 10);
-  return { start, end, lockAt: new Date(`${end}T20:00:00+05:30`) };
+  const sunday = new Date(d.getTime() + (7 - dow) * 86400000).toISOString().slice(0, 10);
+  return { start, end, lockAt: new Date(`${sunday}T10:00:00+05:30`) };
 }
 function isLocked(dateStr) {
   return !!dateStr && dateStr >= TA_POLICY_START && Date.now() >= weekOf(dateStr).lockAt.getTime();
 }
 const fmtD = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'UTC' });
-const lockedMsg = d => `The week of ${fmtD(weekOf(d).start)}–${fmtD(weekOf(d).end)} closed on Saturday 8:00 pm and can no longer be changed.`;
+const lockedMsg = d => `The week of ${fmtD(weekOf(d).start)}–${fmtD(weekOf(d).end)} closed on Sunday 10:00 am and can no longer be changed.`;
+// Days with meter km become claims automatically from this week on (earlier weeks are left as they were)
+const TA_AUTO_START = process.env.TA_AUTO_START || '2026-11-15';
 
 function nextBillNo(year) {
   const n = db.prepare("SELECT COUNT(*) AS c FROM ta_bills WHERE bill_no LIKE ?").get(`TA-${year}-%`).c;
   return `TA-${year}-${String(n + 1).padStart(4, '0')}`;
 }
 
-// Lock every week whose deadline has passed: auto-submit its drafts, then
-// prepare one TA bill per person for that week. Safe to run any number of times.
+// Sales / service days with meter km and no claim get one at the weekly close
+function autoClaims() {
+  const days = db.prepare(`SELECT j.* FROM expense_journeys j
+    WHERE j.date >= ? AND j.total_km > 0
+      AND NOT EXISTS (SELECT 1 FROM travel_expenses te WHERE te.user_id=j.user_id AND te.date=j.date)`).all(TA_AUTO_START)
+    .filter(j => isLocked(j.date) && ['Sales', 'Service'].includes(sectionOf(j.user_id)))
+    .filter(j => !db.prepare('SELECT 1 FROM ta_bills WHERE user_id=? AND week_start=?').get(j.user_id, weekOf(j.date).start));
+  days.forEach(j => {
+    const department = sectionOf(j.user_id), vehicle = ta.vehicleOf(j.user_id);
+    const c = recalc({ start_odo: j.start_km, end_odo: j.end_km, travel_type: vehicle, department });
+    const vn = db.prepare('SELECT vehicle_number FROM users WHERE id=?').get(j.user_id)?.vehicle_number || '';
+    const at = weekOf(j.date).lockAt.toISOString().replace('T', ' ').slice(0, 19);
+    const r = db.prepare(`INSERT INTO travel_expenses (expense_number,user_id,date,travel_type,vehicle_number,purpose,start_odo,end_odo,
+        distance_km,rate_per_km,travel_amount,total_claim,remarks,department,status,submitted_at,auto)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'submitted',?,1)`)
+      .run(nextExpenseNumber(), j.user_id, j.date, vehicle, vn, 'Field travel', j.start_km, j.end_km,
+        c.distance_km, c.rate_per_km, c.travel_amount, c.total_claim, 'Added from meter readings at the weekly close', department, at);
+    auditLog(j.user_id, 'expense_auto_created', 'travel_expenses', r.lastInsertRowid, `${j.date}: ${c.distance_km} km`);
+  });
+}
+
+// Lock every week whose deadline has passed: add missing claims from the meter,
+// auto-submit drafts, prepare one TA bill per person, then send the weekly report.
+// Safe to run any number of times.
 function closeLockedWeeks() {
+  autoClaims();
   const drafts = db.prepare("SELECT * FROM travel_expenses WHERE status='draft' AND date >= ?").all(TA_POLICY_START).filter(x => isLocked(x.date));
   drafts.forEach(x => {
     const at = weekOf(x.date).lockAt.toISOString().replace('T', ' ').slice(0, 19);
@@ -94,34 +124,62 @@ function closeLockedWeeks() {
     const w = weekOf(r.date);
     weeks.set(`${r.user_id}|${w.start}`, { user_id: r.user_id, ...w });
   });
+  const fresh = new Map();   // week start → new bills, for the report
   for (const w of weeks.values()) {
     if (db.prepare('SELECT 1 FROM ta_bills WHERE user_id=? AND week_start=?').get(w.user_id, w.start)) continue;
     const t = db.prepare(`SELECT COUNT(*) AS trips, COALESCE(SUM(distance_km),0) AS km, COALESCE(SUM(total_claim),0) AS amount
       FROM travel_expenses WHERE user_id=? AND date BETWEEN ? AND ? AND status != 'rejected'`).get(w.user_id, w.start, w.end);
     const billNo = nextBillNo(w.end.slice(0, 4));
-    const r = db.prepare('INSERT INTO ta_bills (bill_no, user_id, week_start, week_end, trips, total_km, total_amount) VALUES (?,?,?,?,?,?,?)')
+    const r = db.prepare("INSERT INTO ta_bills (bill_no, user_id, week_start, week_end, trips, total_km, total_amount, status) VALUES (?,?,?,?,?,?,?,'pending')")
       .run(billNo, w.user_id, w.start, w.end, t.trips, t.km, t.amount);
-    createNotification(w.user_id, `TA Bill ready — ${billNo}`,
-      `Week ${fmtD(w.start)}–${fmtD(w.end)}: ${t.km.toFixed(0)} km, ₹${t.amount.toFixed(0)}.`, 'expense', '/travel-expenses/bills/' + r.lastInsertRowid);
+    createNotification(w.user_id, 'Weekly travel report',
+      `${fmtD(weekMon(w.start))}–${fmtD(w.end)}: ${t.km.toFixed(0)} km, ₹${t.amount.toFixed(0)} (${billNo}). Waiting for Head of Finance approval.`,
+      'expense', '/travel-expenses/bills/' + r.lastInsertRowid);
+    if (!fresh.has(w.start)) fresh.set(w.start, { end: w.end, people: 0, km: 0, amount: 0 });
+    const f = fresh.get(w.start); f.people++; f.km += t.km; f.amount += t.amount;
+  }
+  // One summary per week to the Head of Finance and admins
+  for (const [start, f] of fresh) {
+    require('../lib/attendance').editorIds().forEach(id => createNotification(id, 'Weekly travel report',
+      `${fmtD(weekMon(start))}–${fmtD(f.end)}: ${f.people} people, ${f.km.toFixed(0)} km, ₹${f.amount.toFixed(0)}. Review and approve each week.`,
+      'expense', '/travel-expenses/bills?week=' + start));
   }
 }
-// Run on every travel-expense request and every 10 minutes, so bills appear on time
+const weekMon = (start) => new Date(Date.parse(start + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+
+router.closeLockedWeeks = closeLockedWeeks;   // for tests
+router.weekOf = weekOf;
+// Run on every travel-expense request and every minute, so the Sunday 10:00 report is on time
 router.use((req, res, next) => { try { closeLockedWeeks(); } catch (e) { console.error('TA weekly lock:', e.message); } next(); });
-setInterval(() => { try { closeLockedWeeks(); } catch (e) { console.error('TA weekly lock:', e.message); } }, 10 * 60000).unref();
+setInterval(() => { try { closeLockedWeeks(); } catch (e) { console.error('TA weekly lock:', e.message); } }, 60000).unref();
 
 router.get('/', (req, res) => res.redirect('/travel-expenses/my'));
 
 // ── New expense form ──────────────────────────────────────────────────────────
+// Start / end km filled in from the day's meter readings (start falls back to the last reading)
+function prefillKm(uid, date) {
+  const j = db.prepare('SELECT start_km, end_km FROM expense_journeys WHERE user_id=? AND date=?').get(uid, date) || {};
+  const p = { start: j.start_km > 0 ? j.start_km : '', end: j.end_km > 0 ? j.end_km : '', startFrom: '' };
+  if (p.start) p.startFrom = 'From your check-in meter reading';
+  else { const last = ta.lastKm(uid, date); if (last) { p.start = last.km; p.startFrom = `Your last reading (${fmtD(last.date)})`; } }
+  return p;
+}
+const formLocals = (uid, date) => {
+  const vehicle = ta.vehicleOf(uid);
+  return { vehicle, rate: ta.rateFor(vehicle, sectionOf(uid)), today: today(),
+    user: db.prepare('SELECT * FROM users WHERE id=?').get(uid),
+    todaysVisits: db.prepare("SELECT * FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(uid, date) };
+};
+
 router.get('/new', requireClaimAccess, (req, res) => {
   const uid = req.session.userId;
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
-  const journey = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=?').get(uid, today());
-  const rates = db.prepare('SELECT * FROM expense_rates ORDER BY vehicle_type').all();
-  const todaysVisits = db.prepare("SELECT * FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(uid, today());
-
+  let date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') && req.query.date <= today() ? req.query.date : today();
+  if (isLocked(date)) { req.session.flash = { error: lockedMsg(date) }; date = today(); }
+  const existing = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? AND date=? AND status IN ('draft','rejected')").get(uid, date);
+  if (existing) return res.redirect(`/travel-expenses/${existing.id}/edit`);
   res.render('travel-expenses/new', {
     title: 'New Travel Expense', expense: null, docs: [], linkedVisitIds: [],
-    user, journey, rates, todaysVisits, todayStr: today(),
+    ...formLocals(uid, date), prefill: prefillKm(uid, date), todayStr: date,
   });
 });
 
@@ -135,23 +193,21 @@ router.get('/:id/edit', requireClaimAccess, (req, res) => {
     return res.redirect('/travel-expenses/' + expense.id);
   }
   if (isLocked(expense.date)) { req.session.flash = { error: lockedMsg(expense.date) }; return res.redirect('/travel-expenses/' + expense.id); }
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
-  const journey = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=?').get(uid, expense.date);
-  const rates = db.prepare('SELECT * FROM expense_rates ORDER BY vehicle_type').all();
-  const todaysVisits = db.prepare("SELECT * FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(uid, expense.date);
   const docs = db.prepare('SELECT * FROM expense_documents WHERE expense_id=? ORDER BY uploaded_at').all(expense.id);
   const linkedVisitIds = db.prepare('SELECT visit_id FROM expense_visit_links WHERE expense_id=?').all(expense.id).map(r => r.visit_id);
 
   res.render('travel-expenses/new', {
     title: 'Edit Travel Expense', expense, docs, linkedVisitIds,
-    user, journey, rates, todaysVisits, todayStr: expense.date,
+    ...formLocals(uid, expense.date), prefill: {}, todayStr: expense.date,
   });
 });
 
 // ── Create / update (always saved as draft) ───────────────────────────────────
 router.post('/', requireClaimAccess, (req, res) => {
   const uid = req.session.userId;
-  const { id, date, travel_type, purpose, start_odo, end_odo, remarks, visit_ids } = req.body;
+  const { id, date, purpose, start_odo, end_odo, remarks, visit_ids } = req.body;
+  const travel_type = ta.vehicleOf(uid);   // from the profile, never from the form
+  const department = sectionOf(uid);
 
   const tripDate = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : today();
   if (isLocked(tripDate)) {
@@ -170,7 +226,7 @@ router.post('/', requireClaimAccess, (req, res) => {
   // or drift trip-to-trip.
   const profileVehicleNumber = db.prepare('SELECT vehicle_number FROM users WHERE id=?').get(uid)?.vehicle_number || '';
 
-  const { distance_km, rate_per_km, travel_amount, total_claim } = recalc({ start_odo: s, end_odo: e, travel_type });
+  const { distance_km, rate_per_km, travel_amount, total_claim } = recalc({ start_odo: s, end_odo: e, travel_type, department });
 
   let expenseId = id ? +id : null;
 
@@ -315,7 +371,7 @@ router.get('/my', requireClaimAccess, (req, res) => {
   });
 
   const wk = weekOf(today());
-  const week = { start: fmtD(wk.start), end: fmtD(wk.end), lockAt: wk.lockAt.toISOString(),
+  const week = { start: fmtD(weekMon(wk.start)), end: fmtD(wk.end), lockAt: wk.lockAt.toISOString(),
                  ...db.prepare(`SELECT COUNT(*) AS trips, COALESCE(SUM(distance_km),0) AS km, COALESCE(SUM(total_claim),0) AS amount,
                    SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) AS drafts
                    FROM travel_expenses WHERE user_id=? AND date BETWEEN ? AND ?`).get(uid, wk.start, wk.end) };
@@ -356,23 +412,27 @@ const backTo = (req, fallback) => (typeof req.body.back === 'string' && req.body
 
 // ── Rate configuration — also registered before /:id (two segments is safe,
 // but keeping it here for readability alongside /queue) ──────────────────────
+const canSetRates = (res) => isApprover(res) || ['admin', 'manager'].includes(res.locals.user?.role);
 router.get('/admin/rates', (req, res) => {
-  const role = res.locals.user?.role;
-  if (role !== 'admin' && role !== 'manager') { req.session.flash = { error: 'Admin or Manager access required.' }; return res.redirect('/'); }
+  if (!canSetRates(res)) { req.session.flash = { error: 'Admin, Manager or Head of Finance access required.' }; return res.redirect('/'); }
   const rates = db.prepare('SELECT * FROM expense_rates ORDER BY vehicle_type').all();
-  res.render('travel-expenses/rates', { title: 'Expense Rate Configuration', rates });
+  const taRates = db.prepare("SELECT * FROM ta_rates ORDER BY department, CASE vehicle_type WHEN 'Own Two Wheeler' THEN 1 WHEN 'Own Four Wheeler' THEN 2 ELSE 3 END").all();
+  res.render('travel-expenses/rates', { title: 'Expense Rate Configuration', rates, taRates });
 });
 
 router.post('/admin/rates', (req, res) => {
-  const role = res.locals.user?.role;
-  if (role !== 'admin' && role !== 'manager') { req.session.flash = { error: 'Admin or Manager access required.' }; return res.redirect('/'); }
-  const { vehicle_type, rate_per_km } = req.body;
-  const types = Array.isArray(vehicle_type) ? vehicle_type : [vehicle_type];
+  if (!canSetRates(res)) { req.session.flash = { error: 'Admin, Manager or Head of Finance access required.' }; return res.redirect('/'); }
+  const { vehicle_type, rate_per_km, ta_id, ta_rate } = req.body;
+  const types = Array.isArray(vehicle_type) ? vehicle_type : (vehicle_type ? [vehicle_type] : []);
   const rateVals = Array.isArray(rate_per_km) ? rate_per_km : [rate_per_km];
   types.forEach((vt, i) => {
     db.prepare('UPDATE expense_rates SET rate_per_km=?, updated_by=?, updated_at=CURRENT_TIMESTAMP WHERE vehicle_type=?')
       .run(parseFloat(rateVals[i])||0, req.session.userId, vt);
   });
+  const taIds = Array.isArray(ta_id) ? ta_id : (ta_id ? [ta_id] : []);
+  const taVals = Array.isArray(ta_rate) ? ta_rate : [ta_rate];
+  taIds.forEach((id, i) => db.prepare('UPDATE ta_rates SET rate_per_km=?, updated_by=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')
+    .run(parseFloat(taVals[i]) || 0, req.session.userId, +id));
   auditLog(req.session.userId, 'expense_rates_updated', 'expense_rates', '', JSON.stringify(req.body));
   req.session.flash = { success: 'Reimbursement rates updated.' };
   res.redirect('/travel-expenses/admin/rates');
@@ -389,32 +449,109 @@ function billData(req, res) {
   const counted  = trips.filter(t => t.status !== 'rejected');
   const approved = trips.filter(t => t.status === 'approved');
   const payments = db.prepare('SELECT * FROM travel_payments WHERE ta_bill_id=? ORDER BY paid_on').all(bill.id);
+  // Day by day: meter readings and photos next to the claims, with anything worth a look
+  const service = sectionOf(bill.user_id) === 'Service';
+  const days = [];
+  for (let d = bill.week_start; d <= bill.week_end; d = new Date(Date.parse(d + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)) {
+    const j = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=?').get(bill.user_id, d);
+    const dayTrips = trips.filter(t => t.date === d);
+    if (!j && !dayTrips.length && new Date(d + 'T00:00:00Z').getUTCDay() === 0) continue;   // quiet Sunday
+    const flags = [];
+    if (j && !j.start_photo) flags.push('No start meter photo');
+    if (j && j.end_km > 0 && !j.end_photo && !j.end_auto) flags.push('No end meter photo');
+    if (j?.end_auto) flags.push('End km from next day\'s start');
+    if (j?.edited_by) flags.push('Km corrected');
+    if (dayTrips.some(t => t.auto)) flags.push('Added from meter');
+    if (j && j.start_km > 0 && !(j.end_km > 0)) flags.push('No end km');
+    if (service && dayTrips.length && !db.prepare('SELECT 1 FROM complaint_visits WHERE engineer_id=? AND visit_date=?').get(bill.user_id, d)) flags.push('No complaint visit');
+    const meterKm = j && j.start_km > 0 && j.end_km > 0 ? j.end_km - j.start_km : null;
+    if (meterKm !== null && dayTrips.length && Math.abs(dayTrips.reduce((a, t) => a + (t.status === 'rejected' ? 0 : t.distance_km), 0) - meterKm) > 0.5) flags.push('Claim km differs from meter');
+    days.push({ date: d, j, trips: dayTrips, flags, meterKm });
+  }
+  const decider = bill.decided_by ? db.prepare('SELECT full_name, username FROM users WHERE id=?').get(bill.decided_by) : null;
   return {
-    bill, trips, payments,
+    bill, trips, payments, days, decider,
     totals: {
       paid: payments.reduce((a, p) => a + p.amount, 0),
       km: counted.reduce((a, t) => a + t.distance_km, 0), amount: counted.reduce((a, t) => a + t.total_claim, 0),
       approved: approved.reduce((a, t) => a + t.total_claim, 0),
       pending: trips.filter(t => t.status === 'submitted').length, rejected: trips.length - counted.length,
     },
-    period: `${fmtD(bill.week_start)} – ${fmtD(bill.week_end)} ${bill.week_end.slice(0, 4)}`,
+    period: `${fmtD(weekMon(bill.week_start))} – ${fmtD(bill.week_end)} ${bill.week_end.slice(0, 4)}`,
   };
 }
 
 router.get('/bills', (req, res) => {
   if (!canClaim(res) && !isApprover(res)) { req.session.flash = { error: `You don't have permission to view TA bills.` }; return res.redirect('/'); }
   const all = isApprover(res);
+  const week = /^\d{4}-\d{2}-\d{2}$/.test(req.query.week || '') ? req.query.week : '';
+  const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : '';
+  const where = [], params = [];
+  if (!all) { where.push('b.user_id = ?'); params.push(req.session.userId); }
+  if (week) { where.push('b.week_start = ?'); params.push(week); }
+  if (status) { where.push('b.status = ?'); params.push(status); }
   const bills = db.prepare(`SELECT b.*, u.full_name FROM ta_bills b JOIN users u ON u.id = b.user_id
-    ${all ? '' : 'WHERE b.user_id = ?'} ORDER BY b.week_start DESC, u.full_name`).all(...(all ? [] : [req.session.userId]));
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ORDER BY CASE b.status WHEN 'pending' THEN 0 ELSE 1 END, b.week_start DESC, u.full_name`).all(...params);
+  const weeks = db.prepare(`SELECT week_start, week_end, COUNT(*) n, SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) pending
+    FROM ta_bills ${all ? '' : 'WHERE user_id = ?'} GROUP BY week_start ORDER BY week_start DESC LIMIT 12`).all(...(all ? [] : [req.session.userId]));
   const wk = weekOf(today());
-  res.render('travel-expenses/bills', { title: 'TA Bills', bills, all, fmtD,
-    current: { start: fmtD(wk.start), end: fmtD(wk.end), lockAt: wk.lockAt.toISOString() } });
+  res.render('travel-expenses/bills', { title: 'TA Bills', bills, all, fmtD, weekMon, weeks, filter: { week, status },
+    current: { start: fmtD(weekMon(wk.start)), end: fmtD(wk.end), lockAt: wk.lockAt.toISOString() } });
+});
+
+// Head of Finance / admin: approve or reject a person's whole week
+router.post('/bills/:id/decide', (req, res) => {
+  if (!isApprover(res)) { req.session.flash = { error: 'Only the Head of Finance or an admin can approve a week.' }; return res.redirect('/travel-expenses/bills'); }
+  const bill = db.prepare('SELECT * FROM ta_bills WHERE id=?').get(req.params.id);
+  if (!bill) { req.session.flash = { error: 'TA bill not found.' }; return res.redirect('/travel-expenses/bills'); }
+  const action = req.body.action, note = String(req.body.note || '').trim(), uid = req.session.userId;
+  if (bill.status === 'approved') { req.session.flash = { error: 'This week is already approved.' }; return res.redirect('/travel-expenses/bills/' + bill.id); }
+  if (action === 'reject' && !note) { req.session.flash = { error: 'Write why the week is rejected.' }; return res.redirect('/travel-expenses/bills/' + bill.id); }
+  if (!['approve', 'reject'].includes(action)) return res.redirect('/travel-expenses/bills/' + bill.id);
+  if (action === 'approve') {
+    db.prepare(`UPDATE travel_expenses SET status='approved', approved_by=?, approved_at=CURRENT_TIMESTAMP, approval_remarks=?
+      WHERE user_id=? AND date BETWEEN ? AND ? AND status IN ('draft','submitted')`).run(uid, note || 'Week approved', bill.user_id, bill.week_start, bill.week_end);
+  } else {
+    db.prepare(`UPDATE travel_expenses SET status='rejected', approved_by=?, approved_at=CURRENT_TIMESTAMP, approval_remarks=?
+      WHERE user_id=? AND date BETWEEN ? AND ? AND status IN ('draft','submitted')`).run(uid, note, bill.user_id, bill.week_start, bill.week_end);
+  }
+  const status = action === 'approve' ? 'approved' : 'rejected';
+  db.prepare('UPDATE ta_bills SET status=?, decided_by=?, decided_at=CURRENT_TIMESTAMP, decision_note=? WHERE id=?').run(status, uid, note, bill.id);
+  ta.refreshBill(bill.user_id, bill.week_start);
+  const b = db.prepare('SELECT * FROM ta_bills WHERE id=?').get(bill.id);
+  auditLog(uid, 'ta_week_' + status, 'ta_bills', bill.id, note);
+  createNotification(bill.user_id, status === 'approved' ? 'Weekly travel approved' : 'Weekly travel rejected',
+    `${fmtD(weekMon(bill.week_start))}–${fmtD(bill.week_end)}: ${b.total_km.toFixed(0)} km, ₹${b.total_amount.toFixed(0)}${note ? '. ' + note : ''}`,
+    'expense', '/travel-expenses/bills/' + bill.id);
+  req.session.flash = { success: status === 'approved' ? 'Week approved.' : 'Week rejected.' };
+  res.redirect(typeof req.body.back === 'string' && req.body.back.startsWith('/travel-expenses/bills') ? req.body.back : '/travel-expenses/bills/' + bill.id);
+});
+
+// Head of Finance / admin: correct a person's start / end km for a day
+router.get('/km/:uid/:date', requireApprover, (req, res) => {
+  const emp = db.prepare('SELECT id, full_name, username, employee_code, vehicle_type FROM users WHERE id=?').get(+req.params.uid);
+  if (!emp || !/^\d{4}-\d{2}-\d{2}$/.test(req.params.date)) { req.session.flash = { error: 'Employee not found.' }; return res.redirect('/travel-expenses/bills'); }
+  const date = req.params.date;
+  const j = db.prepare('SELECT j.*, COALESCE(e.full_name, e.username) AS edited_by_name FROM expense_journeys j LEFT JOIN users e ON e.id=j.edited_by WHERE j.user_id=? AND j.date=?').get(emp.id, date);
+  const prev = db.prepare('SELECT date, end_km, start_km FROM expense_journeys WHERE user_id=? AND date<? ORDER BY date DESC LIMIT 1').get(emp.id, date);
+  const next = db.prepare('SELECT date, start_km FROM expense_journeys WHERE user_id=? AND date>? ORDER BY date LIMIT 1').get(emp.id, date);
+  const claim = db.prepare('SELECT * FROM travel_expenses WHERE user_id=? AND date=? ORDER BY id LIMIT 1').get(emp.id, date);
+  const bill = db.prepare('SELECT * FROM ta_bills WHERE user_id=? AND ? BETWEEN week_start AND week_end').get(emp.id, date);
+  res.render('travel-expenses/km-edit', { title: 'Correct km', emp, date, j, prev, next, claim, bill, fmtD,
+    rate: ta.rateOfUser(emp.id), vehicle: ta.vehicleOf(emp.id), back: typeof req.query.back === 'string' && req.query.back.startsWith('/') ? req.query.back : '' });
+});
+router.post('/km/:uid/:date', requireApprover, (req, res) => {
+  const r = ta.editKm(+req.params.uid, req.params.date, req.body, req.session.userId);
+  req.session.flash = r.ok ? { success: 'Km updated. The claim and the weekly bill are recalculated.' } : { error: r.message };
+  const back = typeof req.body.back === 'string' && req.body.back.startsWith('/') ? req.body.back : '';
+  res.redirect(r.ok && back ? back : `/travel-expenses/km/${+req.params.uid}/${req.params.date}${back ? '?back=' + encodeURIComponent(back) : ''}`);
 });
 
 router.get('/bills/:id', (req, res) => {
   const data = billData(req, res);
   if (!data) { req.session.flash = { error: 'TA bill not found.' }; return res.redirect('/travel-expenses/bills'); }
-  res.render('travel-expenses/bill', { title: data.bill.bill_no, ...data, fmtD });
+  res.render('travel-expenses/bill', { title: data.bill.bill_no, ...data, fmtD, weekMon, isApprover: isApprover(res), back: req.originalUrl });
 });
 
 router.get('/bills/:id/pdf', async (req, res) => {

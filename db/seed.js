@@ -10,6 +10,11 @@ function seed() {
   const insertRate = db.prepare('INSERT OR IGNORE INTO expense_rates (vehicle_type, rate_per_km) VALUES (?,?)');
   [['Own Two Wheeler', 3], ['Own Four Wheeler', 5], ['Company Vehicle', 0]]
     .forEach(r => insertRate.run(...r));
+  // Sales and Service rates (two-wheeler differs: sales ₹3, service ₹2.5)
+  const insertTaRate = db.prepare('INSERT OR IGNORE INTO ta_rates (vehicle_type, department, rate_per_km) VALUES (?,?,?)');
+  [['Own Two Wheeler', 'Sales', 3], ['Own Two Wheeler', 'Service', 2.5], ['Own Four Wheeler', 'Sales', 5], ['Own Four Wheeler', 'Service', 5],
+   ['Company Vehicle', 'Sales', 0], ['Company Vehicle', 'Service', 0]]
+    .forEach(r => insertTaRate.run(...r));
 
   // Seed leave types (only CL and SL active by default)
   const insertLT = db.prepare('INSERT OR IGNORE INTO leave_types (code, name, days_per_year, carry_forward, is_active) VALUES (?,?,?,?,?)');

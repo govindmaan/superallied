@@ -1,40 +1,66 @@
 <%- include('../partials/head', { title }) %>
 <%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
+<%
+  const BILL = { pending: ['bg-warning text-dark', t('Waiting for approval')], approved: ['bg-success', t('Approved')], rejected: ['bg-danger', t('Rejected')] };
+  const q = (over) => { const p = { week: filter.week, status: filter.status, ...over };
+    const s = Object.entries(p).filter(([, v]) => v).map(([k, v]) => k + '=' + v).join('&'); return '/travel-expenses/bills' + (s ? '?' + s : ''); };
+  const inr = (n) => '₹' + Math.round(n || 0).toLocaleString('en-IN');
+  const totals = bills.reduce((t, b) => ({ km: t.km + b.total_km, amount: t.amount + b.total_amount }), { km: 0, amount: 0 });
+%>
 <div class="main-content">
-  <div class="page-header d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-danger"></i><%= t("TA Bills") %></h4>
-    <a href="/travel-expenses/my" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("My Travel Expenses") %></a>
+  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-danger"></i><%= all ? t("Weekly Travel Reports") : t("My Weekly Travel Reports") %></h4>
+    <div class="d-flex gap-2">
+      <% if (all) { %><a href="/travel-expenses/admin/rates" class="btn btn-sm btn-outline-secondary"><i class="bi bi-sliders me-1"></i><%= t("Rates") %></a><% } %>
+      <% if (!all) { %><a href="/travel-expenses/my" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("My Travel Expenses") %></a><% } %>
+    </div>
   </div>
 
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
   <div class="alert alert-light border small">
-    <i class="bi bi-clock me-1"></i><%= t("A Travelling Allowance bill is prepared for each week (Sunday–Saturday) at") %> <strong><%= t("Saturday 8:00 pm") %></strong><%= t(". The current week,") %> <%= current.start %> – <%= current.end %><%= t(", closes this Saturday.") %>
+    <i class="bi bi-clock me-1"></i><%= t("Each week runs Monday to Saturday. It closes on Sunday at 10:00 am: the weekly report is prepared and sent to the employee, the Head of Finance and admin.") %>
+    <%= t("This week") %>: <strong><%= current.start %> – <%= current.end %></strong>.
   </div>
 
+  <% if (all) { %>
+  <form method="GET" class="row g-2 align-items-end mb-3">
+    <div class="col-7 col-md-4">
+      <label class="form-label small mb-1" for="fWeek"><%= t("Week") %></label>
+      <select name="week" id="fWeek" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value=""><%= t("All weeks") %></option>
+        <% weeks.forEach(w => { %><option value="<%= w.week_start %>" <%= w.week_start === filter.week ? 'selected' : '' %>><%= fmtD(weekMon(w.week_start)) %> – <%= fmtD(w.week_end) %><%= w.pending ? ' · ' + w.pending + ' ' + t('waiting') : '' %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-5 col-md-3">
+      <label class="form-label small mb-1" for="fStatus"><%= t("Status") %></label>
+      <select name="status" id="fStatus" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value=""><%= t("All") %></option>
+        <option value="pending" <%= filter.status === 'pending' ? 'selected' : '' %>><%= t("Waiting for approval") %></option>
+        <option value="approved" <%= filter.status === 'approved' ? 'selected' : '' %>><%= t("Approved") %></option>
+        <option value="rejected" <%= filter.status === 'rejected' ? 'selected' : '' %>><%= t("Rejected") %></option>
+      </select>
+    </div>
+    <div class="col-12 col-md text-md-end small text-muted"><%= bills.length %> <%= t("people") %> · <%= totals.km.toFixed(0) %> <%= t("km") %> · <strong class="text-dark"><%= inr(totals.amount) %></strong></div>
+  </form>
+  <% } %>
+
   <div class="card border-0 shadow-sm">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
-        <thead class="table-light"><tr><th><%= t("Bill No.") %></th><% if (all) { %><th><%= t("Employee") %></th><% } %><th><%= t("Week") %></th><th class="text-end"><%= t("Trips") %></th><th class="text-end"><%= t("Distance") %></th><th class="text-end"><%= t("Amount") %></th><th></th></tr></thead>
-        <tbody>
-          <% bills.forEach(b => { %>
-          <tr>
-            <td><a href="/travel-expenses/bills/<%= b.id %>" class="fw-semibold text-decoration-none font-monospace"><%= b.bill_no %></a></td>
-            <% if (all) { %><td><%= b.full_name %></td><% } %>
-            <td class="small"><%= fmtD(b.week_start) %> – <%= fmtD(b.week_end) %> <%= b.week_end.slice(0, 4) %></td>
-            <td class="text-end"><%= b.trips %></td>
-            <td class="text-end"><%= b.total_km.toFixed(0) %> <%= t("km") %></td>
-            <td class="text-end fw-semibold">₹<%= b.total_amount.toLocaleString('en-IN', { maximumFractionDigits: 0 }) %></td>
-            <td class="text-end text-nowrap">
-              <a href="/travel-expenses/bills/<%= b.id %>" class="btn btn-sm btn-outline-secondary" title="<%= t("View") %>"><i class="bi bi-eye"></i></a>
-              <a href="/travel-expenses/bills/<%= b.id %>/pdf" class="btn btn-sm btn-danger" title="<%= t("Download PDF") %>"><i class="bi bi-file-pdf"></i></a>
-            </td>
-          </tr>
-          <% }) %>
-          <% if (!bills.length) { %><tr><td colspan="<%= all ? 7 : 6 %>" class="text-center text-muted py-4"><%= t("No TA bills yet. The first one is prepared after Saturday 8:00 pm.") %></td></tr><% } %>
-        </tbody>
-      </table>
+    <div class="list-group list-group-flush">
+      <% bills.forEach(b => { const st = BILL[b.status] || BILL.pending; %>
+      <a href="/travel-expenses/bills/<%= b.id %>" class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2">
+        <div>
+          <div class="fw-semibold"><%= all ? b.full_name : fmtD(weekMon(b.week_start)) + ' – ' + fmtD(b.week_end) %></div>
+          <div class="small text-muted"><span class="font-monospace"><%= b.bill_no %></span><% if (all) { %> · <%= fmtD(weekMon(b.week_start)) %> – <%= fmtD(b.week_end) %><% } %> · <%= b.trips %> <%= t("days") %> · <%= b.total_km.toFixed(0) %> <%= t("km") %></div>
+        </div>
+        <div class="text-end">
+          <div class="fw-bold"><%= inr(b.total_amount) %></div>
+          <span class="badge <%= st[0] %>"><%= st[1] %></span>
+        </div>
+      </a>
+      <% }) %>
+      <% if (!bills.length) { %><div class="list-group-item text-center text-muted py-4"><%= t("No weekly reports yet. The first one is prepared on Sunday at 10:00 am.") %></div><% } %>
     </div>
   </div>
 </div>

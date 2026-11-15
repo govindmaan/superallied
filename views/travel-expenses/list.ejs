@@ -12,12 +12,12 @@
   <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
   <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
 
-  <!-- This week: open until Saturday 8 pm -->
+  <!-- This week: open until Sunday 10 am -->
   <div class="card border-0 shadow-sm mb-3 week-card">
     <div class="card-body d-flex flex-wrap align-items-center gap-3">
       <div class="flex-grow-1">
         <div class="fw-semibold"><%= t("This week ·") %> <%= week.start %> – <%= week.end %></div>
-        <div class="small text-muted"><%= t("Add, edit and submit until") %> <strong><%= t("Saturday 8:00 pm") %></strong> · <span id="weekLeft"></span></div>
+        <div class="small text-muted"><%= t("Add, edit and submit until") %> <strong><%= t("Sunday 10:00 am") %></strong> · <span id="weekLeft"></span></div>
         <% if (week.drafts) { %><div class="small text-warning-emphasis mt-1"><i class="bi bi-info-circle me-1"></i><%= week.drafts %> <%= t("unsubmitted trip") %><%= week.drafts === 1 ? '' : 's' %> <%= t("— submitted automatically at the deadline.") %></div><% } %>
       </div>
       <div class="text-center"><div class="small text-muted"><%= t("Trips") %></div><div class="fw-bold fs-5"><%= week.trips %></div></div>

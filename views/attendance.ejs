@@ -342,7 +342,17 @@ async function snapSelfie() {
   document.getElementById('s3KmHint').textContent = isCheckin ? T('What does your odometer show right now?') : T('What does your odometer show now?');
   document.getElementById('kmInput').value = '';
   const info = document.getElementById('s3StartKmInfo'); info.classList.add('d-none');
-  if (!isCheckin) {
+  if (isCheckin) {
+    // yesterday's end km is today's start km: fill it in, they only check it and take the photo
+    try {
+      const last = await fetch('/attendance/api/last-km').then(r => r.json());
+      if (last.km) {
+        document.getElementById('kmInput').value = last.km;
+        info.textContent = T('Filled in from your last reading. Change it only if the meter shows a different number.');
+        info.classList.remove('d-none');
+      }
+    } catch(e) {}
+  } else {
     try {
       const j = await fetch('/expenses/journey/today').then(r => r.json());
       if (j.start_km) { info.textContent = T('Starting KM was') + ': ' + j.start_km; info.classList.remove('d-none'); }

@@ -110,6 +110,19 @@ function migrate() {
       if (placed) console.log(`Organisation chart: placed ${placed} of ${people.length} people from their app role.`);
     } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} console.error('Organisation chart placement failed:', e.message); }
   }
+
+  // One-time: TA bills made before weekly approval existed. A bill whose trips were
+  // all decided one by one is marked approved; one with trips still waiting stays pending.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_ta_bill_status_v1'").get()) {
+    const bills = db.prepare('SELECT id, user_id, week_start, week_end FROM ta_bills').all();
+    let approved = 0;
+    bills.forEach(b => {
+      const waiting = db.prepare("SELECT COUNT(*) c FROM travel_expenses WHERE user_id=? AND date BETWEEN ? AND ? AND status IN ('draft','submitted')")
+        .get(b.user_id, b.week_start, b.week_end).c;
+      if (!waiting) { db.prepare("UPDATE ta_bills SET status='approved', decision_note='Approved trip by trip (before weekly approval)' WHERE id=?").run(b.id); approved++; }
+    });
+    db.prepare("INSERT INTO settings (key, value) VALUES ('migr_ta_bill_status_v1', ?)").run(`${approved} of ${bills.length} marked approved`);
+  }
 }
 
 module.exports = { migrate };

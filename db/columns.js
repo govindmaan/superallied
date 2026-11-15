@@ -62,6 +62,22 @@ const COLUMNS = {
   travel_expenses: [
     // The claimant's department (org section) at submit time, for routing/reporting
     ["department", "TEXT DEFAULT ''"],
+    // 1 = added automatically from the meter readings when the week closed
+    ["auto", "INTEGER DEFAULT 0"],
+  ],
+  // Odometer days: end km filled from the next day's start, or corrected by HoF / admin
+  expense_journeys: [
+    ["end_auto", "INTEGER DEFAULT 0"],
+    ["edited_by", "INTEGER REFERENCES users(id)"],
+    ["edited_at", "DATETIME"],
+    ["edit_note", "TEXT DEFAULT ''"],
+  ],
+  // Weekly TA bill: the Head of Finance / admin approve or reject the whole week
+  ta_bills: [
+    ["status", "TEXT DEFAULT 'pending'"],
+    ["decided_by", "INTEGER REFERENCES users(id)"],
+    ["decided_at", "DATETIME"],
+    ["decision_note", "TEXT DEFAULT ''"],
   ],
   spare_quotations: [
     ["show_discount", "INTEGER DEFAULT 0"],

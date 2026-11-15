@@ -1,0 +1,77 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'travel-expenses', user }) %>
+<% const dayName = new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); %>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-speedometer me-2 text-danger"></i><%= t("Correct km") %></h4>
+      <small class="text-muted"><%= emp.full_name || emp.username %> · <%= dayName %></small>
+    </div>
+    <a href="<%= back || '/travel-expenses/bills' %>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success"><%= flash.success %></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger"><%= flash.error %></div><% } %>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <form method="POST" action="/travel-expenses/km/<%= emp.id %>/<%= date %>" class="row g-2">
+            <input type="hidden" name="back" value="<%= back %>">
+            <div class="col-6">
+              <label class="form-label fw-semibold" for="startKm"><%= t("Starting km") %></label>
+              <input type="number" step="0.1" min="0" name="start_km" id="startKm" class="form-control form-control-lg" value="<%= j?.start_km > 0 ? j.start_km : '' %>">
+              <% if (prev) { %><div class="small text-muted"><%= t("Previous day end") %> (<%= fmtD(prev.date) %>): <strong><%= prev.end_km > 0 ? prev.end_km : '—' %></strong></div><% } %>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold" for="endKm"><%= t("Ending km") %></label>
+              <input type="number" step="0.1" min="0" name="end_km" id="endKm" class="form-control form-control-lg" value="<%= j?.end_km > 0 ? j.end_km : '' %>">
+              <% if (next) { %><div class="small text-muted"><%= t("Next day start") %> (<%= fmtD(next.date) %>): <strong><%= next.start_km > 0 ? next.start_km : '—' %></strong></div><% } %>
+            </div>
+            <div class="col-12"><div class="alert alert-info py-2 small mb-0" id="preview"></div></div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="note"><%= t("Reason for the change") %></label>
+              <input type="text" name="note" id="note" class="form-control" required maxlength="300" placeholder="<%= t("e.g. Meter photo shows 12530, typed 12350") %>">
+            </div>
+            <div class="col-12 d-flex justify-content-between align-items-center">
+              <span class="small text-muted"><%= t("The employee is notified. The day's claim and the weekly bill are recalculated.") %></span>
+              <button class="btn btn-danger"><i class="bi bi-save me-1"></i><%= t("Save") %></button>
+            </div>
+          </form>
+          <% if (j?.edited_by_name) { %><div class="small text-muted mt-2"><i class="bi bi-pencil me-1"></i><%= t("Last corrected by") %> <%= j.edited_by_name %>: <%= j.edit_note %></div><% } %>
+          <% if (j?.end_auto) { %><div class="small text-warning-emphasis mt-1"><i class="bi bi-info-circle me-1"></i><%= t("End km was taken from the next day's start reading.") %></div><% } %>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold"><%= t("Meter photos") %></div>
+        <div class="card-body row g-2">
+          <% [['Start odometer', j?.start_photo], ['End odometer', j?.end_photo]].forEach(([label, src]) => { %>
+          <div class="col-6 text-center">
+            <% if (src) { %><a href="<%= src %>" target="_blank"><img src="<%= src %>" alt="<%= t(label) %>" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px"></a>
+            <% } else { %><div class="border rounded d-flex align-items-center justify-content-center text-muted small" style="aspect-ratio:4/3"><%= t("No photo") %></div><% } %>
+            <div class="small mt-1"><%= t(label) %></div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% if (claim) { %><div class="small text-muted mt-2"><%= t("Claim") %>: <a href="/travel-expenses/<%= claim.id %>"><%= claim.expense_number %></a> · <%= t(claim.status) %></div><% } %>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const RATE = <%= rate %>;
+function preview() {
+  const s = parseFloat(document.getElementById('startKm').value), e = parseFloat(document.getElementById('endKm').value);
+  const el = document.getElementById('preview');
+  if (s >= 0 && e >= s) { const km = e - s; el.className = 'alert alert-info py-2 small mb-0'; el.textContent = `${km.toFixed(1)} km × ₹${RATE} = ₹${Math.round(km * RATE)}`; }
+  else if (e < s) { el.className = 'alert alert-danger py-2 small mb-0'; el.textContent = T('Ending km cannot be less than starting km.'); }
+  else el.textContent = '—';
+}
+['startKm', 'endKm'].forEach(id => document.getElementById(id).addEventListener('input', preview));
+preview();
+</script>
+</body></html>

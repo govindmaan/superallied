@@ -99,9 +99,9 @@
       { label: t('Expenses'), items: [
         { href: '/travel-expenses/new',         icon: 'bi-truck',             label: t('New Travel Expense'),  show: can('expense_claim') },
         { href: '/travel-expenses/my',          icon: 'bi-receipt-cutoff',    label: t('My Travel Expenses'),  show: can('expense_claim'),                    keys: ['travel-expenses'] },
-        { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: t('TA Bills'),            show: can('expense_claim') || can('expense_approval') },
+        { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: can('expense_approval') ? t('Weekly Travel Reports') : t('TA Bills'), show: can('expense_claim') || can('expense_approval') },
         { href: '/travel-expenses/queue',       icon: 'bi-check2-square',     label: t('Expense Approvals'),   show: can('expense_approval') },
-        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',           label: t('Expense Rate Config'), show: isMgr },
+        { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',           label: t('Expense Rate Config'), show: isMgr || can('expense_approval') },
       ]},
       { label: t('HR Admin'), items: [
         { href: '/hr/dashboard',           icon: 'bi-grid-fill',          label: t('HR Dashboard'),         show: can('hr_admin'),                        keys: ['hr'] },

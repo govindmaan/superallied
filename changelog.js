@@ -6,6 +6,12 @@ module.exports = [
   {
     date: '2026-11-15',
     items: [
+      { commit: '', type: 'improved', title: 'Travel allowance: km from the meter, weekly report on Sunday',
+        details: ['Rates per km: two-wheeler ₹3 for sales and ₹2.5 for service; four-wheeler ₹5. Each person\'s vehicle is set once in their profile; the Head of Finance can change it on Employee Attendance, and rates on Expense Rate Config.',
+                  'Yesterday\'s ending km is today\'s starting km: at check-in the start reading is already filled in, so you only check it and take the meter photo. If you forgot to check out, today\'s start reading closes yesterday.',
+                  'The travel expense form fills in the day\'s start and end km and your rate. Check it and submit.',
+                  'Each week runs Monday to Saturday and closes on Sunday at 10:00 am. Sales and service days with meter km but no claim get one automatically. The weekly report goes to you, the Head of Finance and admin.',
+                  'The Head of Finance or admin approve or reject the whole week (Weekly Travel Reports). Days to check are marked in yellow, and they can correct any day\'s start or end km; the amount is recalculated and you are notified.'] },
       { commit: '', type: 'improved', title: 'Head of Finance and admin: expenses, bike km, photos and location',
         details: ['Expense Approvals now has tabs for Pending, Approved, Rejected and All, with filters for employee and month and the total km and amount.',
                   'Approve or reject straight from the list, or open a claim to check it first. Rejecting asks for a reason, which the employee sees.',

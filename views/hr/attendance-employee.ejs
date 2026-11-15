@@ -34,6 +34,15 @@
     <div class="fw-semibold"><%= emp.full_name || emp.username %></div>
     <% if (emp.employee_code) { %><span class="badge bg-light text-dark border font-monospace"><%= emp.employee_code %></span><% } %>
     <% if (emp.designation) { %><span class="small text-muted"><%= emp.designation %></span><% } %>
+    <% if (canEdit) { %>
+    <form method="POST" action="/attendance/staff/<%= emp.id %>/vehicle" class="d-flex align-items-center gap-1">
+      <label class="small text-muted" for="veh"><%= t("Vehicle") %></label>
+      <select name="vehicle_type" id="veh" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+        <% vehicles.forEach(v => { %><option value="<%= v %>" <%= v === vehicle ? 'selected' : '' %>><%= t(v) %></option><% }) %>
+      </select>
+      <span class="small text-muted text-nowrap">₹<%= rate %><%= t("/km") %></span>
+    </form>
+    <% } %>
     <% if (canRouteMap) { %><a href="/route-map?user=<%= emp.id %>" class="btn btn-sm btn-outline-danger ms-auto"><i class="bi bi-map me-1"></i><%= t("Route map") %></a><% } %>
   </div>
   <%- include('../partials/attendance-calendar', { cal, todayStr, monthUrl: `${base}?user=${emp.id}&m=`, dayUrl: `${base}/${emp.id}/day/` }) %>

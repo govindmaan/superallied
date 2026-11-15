@@ -264,6 +264,18 @@ function createTables() {
   )`);
 
   db.exec(`
+    -- Rate per km by vehicle and department (Sales / Service); other departments
+    -- use expense_rates (by vehicle only)
+    CREATE TABLE IF NOT EXISTS ta_rates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vehicle_type TEXT NOT NULL,
+      department   TEXT NOT NULL,
+      rate_per_km  REAL NOT NULL DEFAULT 0,
+      updated_by   INTEGER REFERENCES users(id),
+      updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(vehicle_type, department)
+    );
+
     CREATE TABLE IF NOT EXISTS expense_rates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       vehicle_type TEXT UNIQUE NOT NULL,
