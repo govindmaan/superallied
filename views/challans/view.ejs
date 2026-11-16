@@ -1,0 +1,141 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'challans', user }) %>
+<%
+  const fmt = (v) => { const d = dbTime(v); return d ? d.toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; };
+  const cancelled = c.status === 'cancelled';
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-truck me-2 text-primary"></i><%= t("Delivery Challan") %> <span class="font-monospace"><%= c.challan_no %></span></h4>
+      <small class="text-muted"><%= c.challan_date %> · <%= t("from quotation") %> <a href="/spare-quotations/<%= c.quotation_id %>" class="font-monospace"><%= c.quotation_no %></a></small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/challans/<%= c.id %>/pdf" target="_blank" class="btn btn-sm btn-danger"><i class="bi bi-file-pdf me-1"></i><%= t("Challan PDF") %></a>
+      <a href="/challans/<%= c.id %>/slip" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-seam me-1"></i><%= t("Dispatch Slip") %></a>
+      <a href="/challans" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
+    </div>
+  </div>
+
+  <% if (flash && flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash && flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <% if (cancelled) { %>
+  <div class="alert alert-danger small"><i class="bi bi-x-octagon-fill me-2"></i><b><%= t("Cancelled") %></b> — <%= c.cancel_reason %>
+    <span class="text-muted ms-2"><%= c.cancelled_by_name || '' %> · <%= fmt(c.cancelled_at) %></span></div>
+  <% } %>
+
+  <!-- Progress: created → dispatched → invoiced -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body small">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="text-muted"><i class="bi bi-check-circle-fill text-success me-1"></i><%= t("Challan created") %></div>
+          <div class="fw-semibold"><%= c.created_by_name || '—' %></div><div class="text-muted"><%= fmt(c.created_at) %></div>
+          <% if (c.remarks) { %><div class="mt-1"><%= c.remarks %></div><% } %>
+        </div>
+        <div class="col-md-4">
+          <% if (c.dispatched_at) { %>
+            <div class="text-muted"><i class="bi bi-check-circle-fill text-success me-1"></i><%= t("Dispatched") %></div>
+            <div class="fw-semibold"><%= c.dispatched_by_name || '—' %></div><div class="text-muted"><%= fmt(c.dispatched_at) %></div>
+            <% if (c.dispatch_notes) { %><div class="mt-1"><%= c.dispatch_notes %></div><% } %>
+          <% } else { %>
+            <div class="text-muted"><i class="bi bi-hourglass-split text-warning me-1"></i><%= t("Waiting for dispatch") %></div>
+            <% if (canDispatch && !cancelled) { %><a href="/challans/<%= c.id %>/slip" class="btn btn-sm btn-outline-success mt-1"><%= t("Open dispatch slip") %></a><% } %>
+          <% } %>
+        </div>
+        <div class="col-md-4">
+          <% if (c.invoiced_at) { %>
+            <div class="text-muted"><i class="bi bi-check-circle-fill text-success me-1"></i><%= t("Invoiced in Tally") %></div>
+            <div class="fw-semibold font-monospace"><%= c.invoice_no %></div>
+            <div class="text-muted"><%= c.invoice_date %> · <%= c.invoiced_by_name || '' %></div>
+          <% } else { %>
+            <div class="text-muted"><i class="bi bi-hourglass-split text-secondary me-1"></i><%= t("Not invoiced yet") %></div>
+          <% } %>
+          <% if (canInvoice && !cancelled) { %>
+          <form method="post" action="/challans/<%= c.id %>/invoice" class="d-flex flex-wrap gap-1 mt-2">
+            <input name="invoice_no" class="form-control form-control-sm" style="max-width:150px" placeholder="<%= t("Tally invoice no.") %>" value="<%= c.invoice_no || '' %>" required>
+            <input type="date" name="invoice_date" class="form-control form-control-sm" style="max-width:150px" value="<%= c.invoice_date || '' %>">
+            <button class="btn btn-sm btn-success"><%= c.invoiced_at ? t("Update") : t("Save") %></button>
+          </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold small"><%= t("Customer & Machine") %></div>
+        <div class="card-body small">
+          <dl class="row mb-0">
+            <dt class="col-5 text-muted"><%= t("Customer") %></dt><dd class="col-7 fw-semibold"><%= c.customer_name %></dd>
+            <dt class="col-5 text-muted"><%= t("Address") %></dt><dd class="col-7"><%= c.customer_address || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("GST") %></dt><dd class="col-7 font-monospace"><%= c.customer_gstin || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Contact") %></dt><dd class="col-7"><%= c.contact_person || '—' %> <%= c.mobile || '' %></dd>
+            <dt class="col-5 text-muted"><%= t("Machine No") %></dt><dd class="col-7 font-monospace"><%= c.machine_no || '—' %></dd>
+            <dt class="col-5 text-muted"><%= t("Place of Supply") %></dt><dd class="col-7"><%= c.place_of_supply || '—' %></dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold small"><%= t("Agreed Price") %></div>
+        <div class="card-body small">
+          <dl class="row mb-0">
+            <dt class="col-6 text-muted"><%= t("Total Basic:") %></dt><dd class="col-6 text-end">₹<%= formatINR(c.total_basic) %></dd>
+            <% if (c.tax_mode === 'IGST') { %>
+            <dt class="col-6 text-muted"><%= t("Total IGST:") %></dt><dd class="col-6 text-end">₹<%= formatINR(c.total_gst) %></dd>
+            <% } else { %>
+            <dt class="col-6 text-muted"><%= t("Total CGST:") %></dt><dd class="col-6 text-end">₹<%= formatINR(c.total_gst / 2) %></dd>
+            <dt class="col-6 text-muted"><%= t("Total SGST:") %></dt><dd class="col-6 text-end">₹<%= formatINR(c.total_gst / 2) %></dd>
+            <% } %>
+            <% if (c.roundoff_amount) { %><dt class="col-6 text-muted"><%= t("Round Off:") %></dt><dd class="col-6 text-end">₹<%= formatINR(c.roundoff_amount) %></dd><% } %>
+            <dt class="col-6 fw-bold"><%= t("Grand Total:") %></dt><dd class="col-6 text-end fw-bold fs-6">₹<%= formatINR(c.grand_total) %></dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold small"><%= items.length %> <%= t("Spare Parts") %></div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered mb-0 small">
+        <thead class="table-light"><tr>
+          <th>#</th><th><%= t("Part No") %></th><th><%= t("Description") %></th><th><%= t("HSN") %></th>
+          <th class="text-center"><%= t("Qty") %></th><th class="text-end"><%= t("Basic Rate") %></th><th class="text-end"><%= t("Disc%") %></th>
+          <th class="text-center"><%= t("Tax%") %></th><th class="text-end"><%= t("Tax Amt") %></th><th class="text-end"><%= t("Line Total") %></th>
+        </tr></thead>
+        <tbody>
+          <% items.forEach((it, i) => { %>
+          <tr>
+            <td class="text-muted"><%= i + 1 %></td><td class="font-monospace"><%= it.part_no || '—' %></td>
+            <td class="fw-semibold"><%= it.description %></td><td><%= it.hsn || '—' %></td>
+            <td class="text-center"><%= it.qty %></td><td class="text-end">₹<%= formatINR(it.basic_rate) %></td>
+            <td class="text-end"><%= it.discount_percent %>%</td><td class="text-center"><%= it.tax_rate %>%</td>
+            <td class="text-end">₹<%= formatINR(it.tax_amount) %></td><td class="text-end fw-semibold">₹<%= formatINR(it.line_total) %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (canCancel && !cancelled) { %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="small text-muted mb-2"><%= t("A delivery challan cannot be deleted. If it was made by mistake, cancel it with a reason; it stays on record as cancelled. Parts already dispatched go back into stock.") %></div>
+      <form method="post" action="/challans/<%= c.id %>/cancel" class="d-flex flex-wrap gap-2"
+        onsubmit="return confirm('<%= tjs("Cancel this delivery challan? This cannot be undone.") %>')">
+        <input name="reason" class="form-control form-control-sm" style="max-width:360px" placeholder="<%= t("Reason for cancelling") %>" required>
+        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-octagon me-1"></i><%= t("Cancel Challan") %></button>
+      </form>
+    </div>
+  </div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

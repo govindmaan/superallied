@@ -1,7 +1,19 @@
 const express = require('express');
 const router  = express.Router();
 const { db, getSettings, nextSpareQuotationNumber, formatINR, numberToWords, auditLog, createNotification } = require('../db');
-const { approverIdsFor, canApproveFor } = require('../lib/org');
+const { sparesApprovers, canApproveSpares } = require('../lib/org');
+const challans = require('./challans');
+
+// Approved (or awaiting approval) quotations and those with a delivery challan
+// are locked: no edit, no delete. Change one by cloning it.
+const liveChallan = (qid) => db.prepare("SELECT id, challan_no FROM spare_challans WHERE quotation_id=? AND status<>'cancelled'").get(qid);
+function lockReason(q) {
+  if (!q) return '';
+  if (liveChallan(q.id)) return 'This quotation has a delivery challan and is locked.';
+  if (q.approval_status === 'approved') return 'An approved quotation is locked. Clone it to make changes.';
+  if (q.approval_status === 'pending') return 'This quotation is waiting for approval and is locked.';
+  return '';
+}
 const { generatePDFWithLetterhead } = require('../pdf');
 const path = require('path');
 const fs   = require('fs');
@@ -10,7 +22,8 @@ const { paymentQr } = require('../services/paymentQr');
 
 // ── List ──────────────────────────────────────────────────────────────────────
 router.get('/', (req, res) => {
-  const isAdmin = res.locals.hasPerm('*');
+  // Admin and the Head of Operations (who approves) see everyone's quotations
+  const isAdmin = res.locals.hasPerm('*') || canApproveSpares(req.session.userId, res.locals.user?.role);
   const { status, q, from, to } = req.query;
   const uid = req.session.userId;
 
@@ -125,17 +138,21 @@ router.get('/:id', (req, res) => {
   const q = db.prepare('SELECT sq.*, u.full_name as creator_name FROM spare_quotations sq LEFT JOIN users u ON u.id=sq.created_by WHERE sq.id=?').get(req.params.id);
   if (!q) return res.redirect('/spare-quotations');
   const items = db.prepare('SELECT * FROM spare_quotation_items WHERE quotation_id=?').all(req.params.id);
-  const flash = req.session.flash || {};
-  delete req.session.flash;
-  // Approve panel: admin, or the creator's approver in the organisation chart
-  const isAdmin = canApproveFor(res.locals.user?.id, q.created_by, res.locals.user?.role);
-  res.render('spare-quotations/view', { title: `Quotation ${q.quotation_no}`, q, items, formatINR, flash, isAdmin });
+  const flash = res.locals.flash || {};   // server.js already took it from the session
+  // Approve panel: the Head of Operations or an admin
+  const isAdmin = canApproveSpares(res.locals.user?.id, res.locals.user?.role);
+  const qChallans = db.prepare('SELECT id, challan_no, challan_date, status, dispatched_at, invoiced_at, invoice_no FROM spare_challans WHERE quotation_id=? ORDER BY id DESC').all(q.id);
+  res.render('spare-quotations/view', { title: `Quotation ${q.quotation_no}`, q, items, formatINR, flash, isAdmin,
+    qChallans, live: qChallans.find(c => c.status !== 'cancelled') || null, locked: lockReason(q),
+    canSeeChallan: res.locals.hasPerm('*') || res.locals.hasPerm('challans') || res.locals.hasPerm('spare_quotations') });
 });
 
 // ── Edit form ─────────────────────────────────────────────────────────────────
 router.get('/:id/edit', (req, res) => {
   const quotation = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
   if (!quotation) return res.redirect('/spare-quotations');
+  const why = lockReason(quotation);
+  if (why) { req.session.flash = { error: why }; return res.redirect(`/spare-quotations/${quotation.id}`); }
   const rawItems = db.prepare('SELECT * FROM spare_quotation_items WHERE quotation_id=?').all(req.params.id);
   // Add computed line_basic for the form's JS
   const items = rawItems.map(it => ({
@@ -159,6 +176,10 @@ router.get('/:id/edit', (req, res) => {
 // ── Update ────────────────────────────────────────────────────────────────────
 router.post('/:id/update', (req, res) => {
   const f = req.body;
+  const cur = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
+  if (!cur) return res.redirect('/spare-quotations');
+  const why = lockReason(cur);
+  if (why) { req.session.flash = { error: why }; return res.redirect(`/spare-quotations/${cur.id}`); }
   let items = [];
   try { items = JSON.parse(f.items_json || '[]'); } catch(e) {}
 
@@ -207,6 +228,8 @@ router.post('/:id/update', (req, res) => {
     it.qty||1, it.basic_rate||0, it.discount_percent||0, it.discount_amount||0,
     it.tax_rate||18, it.tax_amount||0, it.net_rate||0, it.line_total||0));
 
+  // A rejected quotation that is corrected goes back to draft, to be submitted again
+  if (cur.approval_status === 'rejected') db.prepare("UPDATE spare_quotations SET approval_status='draft' WHERE id=?").run(cur.id);
   auditLog(req.session.userId, 'SPARE_QTN_UPDATED', 'spare_quotations', req.params.id, '');
   req.session.flash = { success: 'Quotation updated.' };
   res.redirect(`/spare-quotations/${req.params.id}`);
@@ -214,7 +237,12 @@ router.post('/:id/update', (req, res) => {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 router.post('/:id/delete', (req, res) => {
+  const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
+  if (!q) return res.redirect('/spare-quotations');
+  const why = lockReason(q) || (db.prepare('SELECT 1 FROM spare_challans WHERE quotation_id=?').get(q.id) ? 'This quotation has a delivery challan and cannot be deleted.' : '');
+  if (why) { req.session.flash = { error: why }; return res.redirect(`/spare-quotations/${q.id}`); }
   db.prepare('DELETE FROM spare_quotations WHERE id=?').run(req.params.id);
+  auditLog(req.session.userId, 'SPARE_QTN_DELETED', 'spare_quotations', q.id, q.quotation_no);
   req.session.flash = { success: 'Quotation deleted.' };
   res.redirect('/spare-quotations');
 });
@@ -255,6 +283,7 @@ router.post('/:id/status', (req, res) => {
   const { status } = req.body;
   const validStatuses = ['draft','sent','confirmed','cancelled'];
   if (!validStatuses.includes(status)) return res.json({ ok: false, error: 'Invalid status' });
+  if (liveChallan(req.params.id)) return res.json({ ok: false, error: 'This quotation has a delivery challan and is locked.' });
   db.prepare('UPDATE spare_quotations SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(status, req.params.id);
   res.json({ ok: true });
 });
@@ -263,9 +292,12 @@ router.post('/:id/status', (req, res) => {
 router.post('/:id/submit-approval', (req, res) => {
   const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
   if (!q) return res.redirect('/spare-quotations');
+  if (q.approval_status === 'pending' || q.approval_status === 'approved') {
+    req.session.flash = { error: 'Already submitted.' }; return res.redirect(`/spare-quotations/${q.id}`);
+  }
   db.prepare("UPDATE spare_quotations SET approval_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
-  // Notify the approver from the organisation chart (Level 1 while positions above are vacant)
-  approverIdsFor(q.created_by || req.session.userId).forEach(id => createNotification(id, 'Spare quotation to approve',
+  // Notify the Head of Operations (owner/admins while that seat is empty)
+  sparesApprovers().map(a => a.id).forEach(id => createNotification(id, 'Spare quotation to approve',
     `${q.quotation_no} submitted for approval by ${res.locals.user?.full_name || 'salesperson'}.`,
     'approval_request', `/spare-quotations/${q.id}`));
   req.session.flash = { success: 'Submitted for approval. The approver has been notified.' };
@@ -277,7 +309,8 @@ router.post('/:id/approve', (req, res) => {
   const { action, notes } = req.body;
   const q = db.prepare('SELECT * FROM spare_quotations WHERE id=?').get(req.params.id);
   if (!q) return res.redirect('/spare-quotations');
-  if (!canApproveFor(res.locals.user?.id, q.created_by, res.locals.user?.role)) return res.status(403).send('Only the approver can do this.');
+  if (!canApproveSpares(res.locals.user?.id, res.locals.user?.role)) return res.status(403).send('Only the Head of Operations or an admin can approve.');
+  if (q.approval_status !== 'pending') { req.session.flash = { error: 'This quotation is not waiting for approval.' }; return res.redirect(`/spare-quotations/${q.id}`); }
   const newApproval = action === 'approve' ? 'approved' : 'rejected';
   db.prepare('UPDATE spare_quotations SET approval_status=?,approval_notes=?,approved_by=?,approved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?')
     .run(newApproval, notes||'', req.session.userId, req.params.id);
@@ -289,7 +322,18 @@ router.post('/:id/approve', (req, res) => {
   res.redirect(`/spare-quotations/${req.params.id}`);
 });
 
-// ── PDF ───────────────────────────────────────────────────────────────────────
+// ── Convert to delivery challan (cannot be undone or deleted) ─────────────────
+router.post('/:id/challan', (req, res) => {
+  if (req.body.confirm !== 'yes') {
+    req.session.flash = { error: 'Tick the box to confirm the delivery challan.' };
+    return res.redirect(`/spare-quotations/${req.params.id}`);
+  }
+  const out = challans.createFromQuotation(+req.params.id, req.session.userId, req.body);
+  if (out.error) { req.session.flash = { error: out.error }; return res.redirect(`/spare-quotations/${req.params.id}`); }
+  req.session.flash = { success: `Delivery challan ${out.challanNo} created. Accounts and the store have been notified.` };
+  res.redirect(`/challans/${out.id}`);
+});
+
 // ── PDF ───────────────────────────────────────────────────────────────────────
 // One builder for every PDF of a spare quotation. customerCopy: the version sent
 // to customers (never includes internal admin-only details).

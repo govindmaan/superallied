@@ -155,6 +155,14 @@ function migrate() {
       console.error('Travel expense clear skipped (nothing deleted):', e.message);
     }
   }
+
+  // Service Coordinators moved from Service to Operations (the seed moves the
+  // position). People already in the seat follow it: department and app role,
+  // the same as placing them again from the org chart. One-time.
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_service_coord_ops_v1'").get()) {
+    const r = db.prepare("UPDATE users SET department='Operations', role='service_coordinator' WHERE position_code='service_coordinator'").run();
+    db.prepare("INSERT INTO settings (key, value) VALUES ('migr_service_coord_ops_v1', ?)").run(`moved ${r.changes}`);
+  }
 }
 
 module.exports = { migrate };

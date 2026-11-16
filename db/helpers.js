@@ -212,6 +212,13 @@ function nextSpareQuotationNumber() {
   return { quotationNo: `SP-${fy}/${padded}`, financialYear: fy, serialNumber: serial };
 }
 
+function nextChallanNumber() {
+  const fy = getFY();
+  const row = db.prepare('SELECT MAX(serial_number) as max FROM spare_challans WHERE financial_year = ?').get(fy);
+  const serial = (row.max || 0) + 1;
+  return { challanNo: `DC-${fy}/${String(serial).padStart(4, '0')}`, financialYear: fy, serialNumber: serial };
+}
+
 function nextExpenseNumber() {
   const year = new Date().getFullYear();
   const count = db.prepare("SELECT COUNT(*) as c FROM travel_expenses WHERE expense_number LIKE ?").get(`EXP-${year}-%`).c;
@@ -247,4 +254,4 @@ function nextEmployeeCode() {
   return String(Math.max(EMP_CODE_START, (r?.m || 0) + 1));
 }
 
-module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, getPositionPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, nextComplaintNumber, routeLeadByDistrict, EMP_CODE_START };
+module.exports = { nextEmployeeCode, getSettings, getFY, today, nextQuotationNumber, nextSpareQuotationNumber, nextChallanNumber, numberToWords, calcQuotation, formatINR, createNotification, getUserPermissions, getPositionPermissions, auditLog, nextEnquiryNumber, nextEnquiryQuotationNumber, getEnquiryTimeline, checkFollowupNotifications, nextExpenseNumber, nextComplaintNumber, routeLeadByDistrict, EMP_CODE_START };

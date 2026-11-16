@@ -55,6 +55,10 @@ const INDEXES = [
   "CREATE INDEX IF NOT EXISTS idx_complaint_visits_eng ON complaint_visits(engineer_id, visit_date);",
   "CREATE INDEX IF NOT EXISTS idx_attreq_status ON attendance_requests(status);",
   "CREATE INDEX IF NOT EXISTS idx_attreq_user ON attendance_requests(user_id, date);",
+  // One live (not cancelled) challan per spare quotation
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_challan_live_q ON spare_challans(quotation_id) WHERE status <> 'cancelled';",
+  "CREATE INDEX IF NOT EXISTS idx_challan_status ON spare_challans(status, dispatched_at, invoiced_at);",
+  "CREATE INDEX IF NOT EXISTS idx_challan_stock ON spare_challan_stock(challan_id);",
 ];
 
 function createIndexes() {

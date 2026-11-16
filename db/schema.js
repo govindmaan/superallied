@@ -747,6 +747,42 @@ function createTables() {
       review_note   TEXT DEFAULT '',
       created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Delivery challans made from an approved spare quotation. Never deleted:
+    -- a wrong one is cancelled by admin with a reason. Parts, rates and
+    -- customer come from the quotation, which is locked once approved.
+    CREATE TABLE IF NOT EXISTS spare_challans (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      challan_no      TEXT UNIQUE NOT NULL,
+      serial_number   INTEGER NOT NULL,
+      financial_year  TEXT NOT NULL,
+      quotation_id    INTEGER NOT NULL REFERENCES spare_quotations(id),
+      challan_date    DATE NOT NULL,
+      remarks         TEXT DEFAULT '',
+      status          TEXT DEFAULT 'open',          -- open | cancelled
+      created_by      INTEGER REFERENCES users(id),
+      created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+      dispatched_by   INTEGER REFERENCES users(id),
+      dispatched_at   DATETIME,
+      dispatch_notes  TEXT DEFAULT '',
+      invoice_no      TEXT DEFAULT '',
+      invoice_date    DATE,
+      invoiced_by     INTEGER REFERENCES users(id),
+      invoiced_at     DATETIME,
+      cancelled_by    INTEGER REFERENCES users(id),
+      cancelled_at    DATETIME,
+      cancel_reason   TEXT DEFAULT ''
+    );
+
+    -- Stock taken out when a dispatch slip is marked dispatched (put back if
+    -- the challan is cancelled). Parts not tracked in stock have no row.
+    CREATE TABLE IF NOT EXISTS spare_challan_stock (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      challan_id  INTEGER NOT NULL REFERENCES spare_challans(id),
+      part_id     INTEGER NOT NULL REFERENCES spare_parts(id),
+      qty         INTEGER NOT NULL,
+      restored    INTEGER DEFAULT 0
+    );
   `);
 }
 

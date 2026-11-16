@@ -1,7 +1,7 @@
 // Organisation chart from the growth plan v2 (target Dec 2027: 98 people +
 // owner). [code, title, level, section, reports-to code, planned seats,
-// salary band, default app role, note]. Section totals: Sales 38, Service 21,
-// Operations 25, Support 14. Authorised service partners are outside payroll.
+// salary band, default app role, note]. Section totals: Sales 38, Service 18,
+// Operations 28, Support 14. Authorised service partners are outside payroll.
 module.exports = [
   // Level 1
   ['owner', 'Owner / Director', 1, 'Leadership', null, 1, '', 'admin', 'Strategy, Bull relationship, finance, key accounts, guidance of service partners'],
@@ -38,9 +38,9 @@ module.exports = [
   ['sales_officer',       'Sales Officer',                     5, 'Sales',      'area_sales_lead',      22, 'Fresher ₹16k, experienced ₹20k + incentive', 'sales',      '16 West UP, 6 NCR'],
   ['sales_coordinator',   'Sales Coordinator',                 5, 'Sales',      'sales_desk_lead',       5, '₹15k',     'telecaller', ''],
   ['service_engineer',    'Service Engineer / Technician',     5, 'Service',    'senior_engineer',      10, '₹15–18k',  'service',    'Meerut workshop and roving'],
-  ['service_coordinator', 'Service Coordinator',               5, 'Service',    'workshop_mgr',          3, '₹13–15k',  'service',    ''],
   ['loan_rto_exec',       'Loan and RTO Executive',            5, 'Operations', 'documentation_lead',    6, '₹15k',     'office',     ''],
   ['store_parts_exec',    'Store and Parts Executive',         5, 'Operations', 'stock_parts_incharge',  4, '₹13k',     'office',     ''],
+  ['service_coordinator', 'Service Coordinator',               5, 'Operations', 'logistics_parts_mgr',   3, '₹13–15k',  'service_coordinator', 'Spare part quotations and the service desk'],
   ['driver',              'Driver',                            5, 'Operations', 'delivery_pdi_coord',    4, '₹15k',     'employee',   ''],
   ['pdi_helper',          'PDI Helper',                        5, 'Operations', 'delivery_pdi_coord',    3, '₹12k',     'employee',   ''],
   ['accountant',          'Accountant',                        5, 'Support',    'senior_accountant',     3, '₹18k',     'accountant', ''],

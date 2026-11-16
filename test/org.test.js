@@ -19,8 +19,9 @@ test('the chart matches the growth plan: 98 seats + owner, by section', () => {
   const chart = org.chart();
   const seats = (s) => chart.filter(p => p.section === s).reduce((a, p) => a + p.planned, 0);
   assert.equal(seats('Sales'), 38);
-  assert.equal(seats('Service'), 21);
-  assert.equal(seats('Operations'), 25);
+  // Service Coordinators (3 seats) moved from Service to Operations on 2026-11-16
+  assert.equal(seats('Service'), 18);
+  assert.equal(seats('Operations'), 28);
   assert.equal(seats('Support'), 14);
   assert.equal(seats('Leadership'), 1);
   // every position except the owner reports to a position that exists

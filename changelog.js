@@ -4,6 +4,23 @@
 
 module.exports = [
   {
+    date: '2026-11-16',
+    items: [
+      { commit: '', type: 'new', title: 'Spare quotation to delivery challan and dispatch slip',
+        details: ['Spare part quotations are now approved by the Head of Operations (or admin), whoever made them. Submit for Approval sends it to them.',
+                  'Once approved, a quotation is locked: it cannot be edited or deleted. To change it, use Clone and submit the copy. A rejected quotation can be corrected and submitted again.',
+                  'On an approved quotation, tap Convert to Delivery Challan. A popup asks you to confirm, because a delivery challan cannot be deleted once created.',
+                  'The accountant is notified and sees the delivery challan with the agreed price, GST and all details (Accounts → Delivery Challans). After making the invoice in Tally, enter the Tally invoice number on the challan.',
+                  'The store and parts team is notified and gets a dispatch slip with only parts and quantities, no prices (Operations → Dispatch Slips). Print the slip, send the parts and tap Mark Dispatched; the parts are taken out of Stock Availability. If a part is short in stock, update the stock first.',
+                  'Each challan shows where it stands: waiting for dispatch, dispatched, invoiced. If a challan was made by mistake, only admin can cancel it, with a reason; it stays on record and dispatched parts go back into stock.'] },
+      { commit: '', type: 'improved', title: 'Service Coordinators move to Operations',
+        details: ['Service Coordinators are now part of Operations in the organisation chart, reporting to the Logistics and Parts Manager.',
+                  'They can now make spare part quotations, and they keep Machine Complaints as before.'] },
+      { commit: '', type: 'fixed', title: 'Messages on the spare quotation page',
+        details: ['Success and error messages (for example "Quotation updated.") now show on the spare quotation page. Before this they were not shown there.'] },
+    ],
+  },
+  {
     date: '2026-11-15',
     items: [
       { commit: '', type: 'removed', title: 'Travel expenses start afresh',

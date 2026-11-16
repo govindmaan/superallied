@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Tally-style GST layout, printed inside the Super Allied letterhead's writing area */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5px; color: #000; background: transparent; -webkit-print-color-adjust: exact; }
+  .page { width: 100%; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td, th { overflow-wrap: anywhere; word-break: break-word; }
+  .box { border: 1px solid #000; }
+  .bt { border-top: 1px solid #000; } .bb { border-bottom: 1px solid #000; }
+  .bl { border-left: 1px solid #000; } .br { border-right: 1px solid #000; }
+  .r { text-align: right; } .c { text-align: center; } .b { font-weight: 700; } .i { font-style: italic; }
+  .small { font-size: 8.5px; } .mono { font-family: 'Courier New', monospace; }
+
+  .title { position: relative; text-align: center; font-size: 14px; font-weight: 700; letter-spacing: .5px; padding-bottom: 3px; }
+  .title .copy { position: absolute; right: 0; bottom: 4px; font-size: 9px; font-weight: 400; font-style: italic; letter-spacing: 0; }
+
+  /* Header: seller + buyer on the left, reference grid on the right */
+  .hdr > tbody > tr > td { vertical-align: top; }
+  .party { padding: 4px 6px; line-height: 1.45; }
+  .party .name { font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .party .lbl { display: inline-block; width: 80px; }
+  .grid td { border-bottom: 1px solid #000; padding: 2px 5px; vertical-align: top; height: 31px; width: 50%; }
+  .grid td + td { border-left: 1px solid #000; }
+  .grid .k { font-size: 8.5px; }
+  .grid .v { font-weight: 700; font-size: 10px; margin-top: 1px; }
+  .grid tr:last-child td { border-bottom: none; }
+
+  /* Items: vertical rules only, like a Tally invoice */
+  .items th { border: 1px solid #000; border-top: none; font-weight: 400; font-size: 9px; padding: 3px 3px; vertical-align: top; }
+  .items td { border-left: 1px solid #000; border-right: 1px solid #000; padding: 1.5px 4px; vertical-align: top; }
+  .items .desc { font-weight: 700; text-transform: uppercase; }
+  .items .qty { font-weight: 700; white-space: nowrap; }
+  .items .nw { white-space: nowrap; }
+  .items .amt { font-weight: 700; }
+  .items .gap td { height: 6px; }
+  .items .sub td.amtcell { border-top: 1px solid #000; }
+  .items .taxline td { padding-top: 2px; }
+  .items .tot td { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 3px 4px; }
+  .items .tot .grand { font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+  .words { padding: 3px 6px; }
+  .words .val { font-size: 10.5px; font-weight: 700; margin-top: 1px; }
+
+  .taxsum th, .taxsum td { border: 1px solid #000; padding: 2px 4px; }
+  .taxsum th { font-weight: 400; font-size: 9px; }
+  .taxsum tfoot td { font-weight: 700; }
+
+  .foot td { vertical-align: top; padding: 4px 6px; }
+  .foot .head { text-decoration: underline; }
+  .bank > div { display: flex; }
+  .bank .lbl { flex: 0 0 96px; }
+  .bank .lbl + b, .bank .lbl ~ b { flex: 1; }
+  /* Terms follow straight on from the quotation (page 1 onwards) */
+  .terms { margin-top: 8px; border: 1px solid #000; padding: 5px 8px 6px; }
+  .terms h3 { font-size: 10px; text-align: center; letter-spacing: .5px; margin-bottom: 4px; }
+  .terms ol { padding-left: 16px; columns: 2; column-gap: 18px; font-size: 8.6px; line-height: 1.4; }
+  .terms li { break-inside: avoid; margin-bottom: 2.5px; }
+  .sign td { height: 86px; vertical-align: top; padding: 4px 6px; }   /* room to sign and stamp */
+  .after { text-align: center; margin-top: 4px; font-size: 9px; }
+</style>
+</head>
+<body>
+<div class="page">
+<%
+  const n2 = (v) => (parseFloat(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const dt = new Date(String(d).length === 10 ? d + 'T00:00:00' : d);
+    return isNaN(dt) ? String(d) : dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+  };
+  // Delivery challan: the approved quotation's parts and agreed prices
+  const q = c;
+  const qrDataUrl = '';
+  const s = settings;
+  const qDate = q.quotation_date || String(q.created_at || '').slice(0, 10);
+  const isIGST = q.tax_mode === 'IGST';
+  const showDisc = q.show_discount === 1;
+
+  // State name/code: from the GSTIN's first two digits, else from the place of supply
+  const STATES = { '01':'Jammu & Kashmir','02':'Himachal Pradesh','03':'Punjab','04':'Chandigarh','05':'Uttarakhand','06':'Haryana','07':'Delhi','08':'Rajasthan','09':'Uttar Pradesh','10':'Bihar','11':'Sikkim','12':'Arunachal Pradesh','13':'Nagaland','14':'Manipur','15':'Mizoram','16':'Tripura','17':'Meghalaya','18':'Assam','19':'West Bengal','20':'Jharkhand','21':'Odisha','22':'Chhattisgarh','23':'Madhya Pradesh','24':'Gujarat','26':'Dadra & Nagar Haveli and Daman & Diu','27':'Maharashtra','29':'Karnataka','30':'Goa','31':'Lakshadweep','32':'Kerala','33':'Tamil Nadu','34':'Puducherry','35':'Andaman & Nicobar Islands','36':'Telangana','37':'Andhra Pradesh','38':'Ladakh' };
+  const gst = String(q.customer_gstin || '').trim().toUpperCase();
+  let bCode = /^\d{2}/.test(gst) ? gst.slice(0, 2) : '';
+  if (!bCode && q.place_of_supply) bCode = Object.keys(STATES).find(k => STATES[k].toLowerCase() === String(q.place_of_supply).trim().toLowerCase()) || '';
+  const bState = bCode ? STATES[bCode] : (q.place_of_supply || '');
+
+  // Amounts
+  const lines = items.map(it => {
+    const taxable = (parseFloat(it.line_total) || 0) - (parseFloat(it.tax_amount) || 0);
+    return { ...it, taxable, qtyN: parseFloat(it.qty) || 0 };
+  });
+  const taxable = lines.reduce((t, l) => t + l.taxable, 0);
+  const taxAmt  = lines.reduce((t, l) => t + (parseFloat(l.tax_amount) || 0), 0);
+  const grand   = parseFloat(q.grand_total) || (taxable + taxAmt);
+  const round   = Math.round((grand - taxable - taxAmt) * 100) / 100;
+  const totalQty = lines.reduce((t, l) => t + l.qtyN, 0);
+
+  const byRate = {};
+  lines.forEach(l => { const r = parseFloat(l.tax_rate) || 0; (byRate[r] ||= { taxable: 0, tax: 0 }); byRate[r].taxable += l.taxable; byRate[r].tax += parseFloat(l.tax_amount) || 0; });
+  const rates = Object.keys(byRate).map(Number).sort((a, b) => a - b);
+
+  // "INR … and … paise Only"
+  const words = (amt) => {
+    const rs = Math.floor(amt + 1e-6), ps = Math.round((amt - rs) * 100);
+    const w = (x) => numberToWords(x).replace(/\s*Rupees Only$/, '');
+    return 'INR ' + (rs ? w(rs) : 'Zero') + (ps ? ' and ' + w(ps) + ' paise' : '') + ' Only';
+  };
+  const coPan = String(s.company_gstin || '').length >= 12 ? s.company_gstin.slice(2, 12) : '';
+  const cols = showDisc ? 10 : 9;
+%>
+
+<div class="title">DELIVERY CHALLAN<% if (c.status === 'cancelled') { %> — CANCELLED<% } %></div>
+
+<!-- ═══ Seller / Buyer │ Reference grid ═══ -->
+<table class="hdr box">
+  <colgroup><col style="width:52%"><col style="width:48%"></colgroup>
+  <tr>
+    <td style="width:52%" class="br">
+      <div class="party">
+        <div>Buyer (Bill to)</div>
+        <div class="name" style="margin-top:2px"><%= q.customer_name %></div>
+        <% if (q.customer_address) { %><div><%= String(q.customer_address).toUpperCase() %></div><% } %>
+        <div><span class="lbl">GSTIN/UIN</span>: <%= gst || '—' %></div>
+        <div><span class="lbl">State Name</span>: <%= bState || '—' %><%= bCode ? ', Code : ' + bCode : '' %></div>
+        <div><span class="lbl">Place of Supply</span>: <%= q.place_of_supply || bState || '—' %></div>
+        <% if (q.contact_person) { %><div><span class="lbl">Contact person</span>: <%= String(q.contact_person).toUpperCase() %></div><% } %>
+        <% if (q.mobile) { %><div><span class="lbl">Contact</span>: <%= q.mobile %></div><% } %>
+      </div>
+    </td>
+    <td style="width:48%; padding:0">
+      <table class="grid">
+        <tr><td><div class="k">Challan No.</div><div class="v"><%= c.challan_no %></div></td>
+            <td><div class="k">Dated</div><div class="v"><%= fmtDate(c.challan_date) %></div></td></tr>
+        <tr><td><div class="k">Quotation No.</div><div class="v"><%= c.quotation_no %></div></td>
+            <td><div class="k">Quotation Date</div><div class="v"><%= fmtDate(qDate) %></div></td></tr>
+        <tr><td><div class="k">Tax Mode</div><div class="v"><%= isIGST ? 'IGST (Inter-state)' : 'CGST + SGST' %></div></td>
+            <td><div class="k">Invoice No.</div><div class="v"><%= c.invoice_no || '—' %></div></td></tr>
+        <tr><td><div class="k">Machine No.</div><div class="v mono"><%= q.machine_no || '—' %></div></td>
+            <td><div class="k">Machine Model</div><div class="v"><%= machineModel || '—' %></div></td></tr>
+        <tr><td><div class="k">Prepared By</div><div class="v"><%= salesperson.name || '—' %></div></td>
+            <td><div class="k">Contact</div><div class="v"><%= salesperson.phone || s.contact_phone || '—' %></div></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- ═══ Items ═══ -->
+<table class="items" style="border-bottom:1px solid #000">
+  <thead>
+    <tr>
+      <th style="width:4%">Sl<br>No.</th>
+      <th style="width:<%= showDisc ? 25 : 29 %>%">Description of Goods</th>
+      <th style="width:9%">HSN/SAC</th>
+      <th style="width:6%">GST<br>Rate</th>
+      <th style="width:12%">Part No.</th>
+      <th style="width:10%">Quantity</th>
+      <th style="width:10%">Rate</th>
+      <th style="width:5%">per</th>
+      <% if (showDisc) { %><th style="width:4%">Disc.<br>%</th><% } %>
+      <th style="width:15%">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="gap"><% for (let i = 0; i < cols; i++) { %><td></td><% } %></tr>
+    <% lines.forEach((l, i) => { %>
+    <tr>
+      <td class="c"><%= i + 1 %></td>
+      <td class="desc"><%= l.description %></td>
+      <td><%= l.hsn || '' %></td>
+      <td class="r nw"><%= parseFloat(l.tax_rate) || 0 %>%</td>
+      <td class="small"><%= l.part_no || '' %></td>
+      <td class="r qty"><%= l.qtyN.toFixed(2) %> PCS</td>
+      <td class="r nw"><%= n2(l.basic_rate) %></td>
+      <td>PCS</td>
+      <% if (showDisc) { %><td class="r"><%= l.discount_percent ? (+l.discount_percent) + ' %' : '' %></td><% } %>
+      <td class="r amt nw"><%= n2(l.taxable) %></td>
+    </tr>
+    <% }) %>
+    <!-- Subtotal, tax, round off -->
+    <tr class="sub"><% for (let i = 0; i < cols - 1; i++) { %><td></td><% } %><td class="r amtcell"><%= n2(taxable) %></td></tr>
+    <tr class="gap"><% for (let i = 0; i < cols; i++) { %><td></td><% } %></tr>
+    <% if (isIGST) { %>
+    <tr class="taxline"><td></td><td class="r b i">OUTPUT IGST</td><% for (let i = 0; i < cols - 3; i++) { %><td></td><% } %><td class="r b"><%= n2(taxAmt) %></td></tr>
+    <% } else { %>
+    <tr class="taxline"><td></td><td class="r b i">OUTPUT CGST</td><% for (let i = 0; i < cols - 3; i++) { %><td></td><% } %><td class="r b"><%= n2(taxAmt / 2) %></td></tr>
+    <tr class="taxline"><td></td><td class="r b i">OUTPUT SGST</td><% for (let i = 0; i < cols - 3; i++) { %><td></td><% } %><td class="r b"><%= n2(taxAmt / 2) %></td></tr>
+    <% } %>
+    <% if (Math.abs(round) >= 0.005) { %>
+    <tr class="taxline"><td></td><td class="r b i"><span style="float:left;font-weight:400"><%= round < 0 ? 'Less :' : 'Add :' %></span>Round Off</td><% for (let i = 0; i < cols - 3; i++) { %><td></td><% } %><td class="r b"><%= round < 0 ? '(-)' : '' %><%= n2(Math.abs(round)) %></td></tr>
+    <% } %>
+    <tr class="gap"><% for (let i = 0; i < cols; i++) { %><td></td><% } %></tr>
+    <tr class="tot">
+      <td></td><td class="r">Total</td><td></td><td></td><td></td>
+      <td class="r b"><%= totalQty.toFixed(2) %> PCS</td><td></td><td></td><% if (showDisc) { %><td></td><% } %>
+      <td class="r grand">₹ <%= n2(grand) %></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══ Amount in words ═══ -->
+<div class="box words" style="border-top:none">
+  <div style="display:flex; justify-content:space-between"><span>Amount Chargeable (in words)</span><span class="i">E. &amp; O.E</span></div>
+  <div class="val"><%= words(grand) %></div>
+</div>
+
+<!-- ═══ Tax summary ═══ -->
+<table class="taxsum" style="border-top:none">
+  <thead>
+    <tr>
+      <th rowspan="2" style="width:<%= isIGST ? 46 : 34 %>%"></th>
+      <th rowspan="2">Taxable<br>Value</th>
+      <% if (isIGST) { %>
+      <th colspan="2">Integrated Tax</th>
+      <% } else { %>
+      <th colspan="2">Central Tax</th><th colspan="2">State Tax</th>
+      <% } %>
+      <th rowspan="2">Total<br>Tax Amount</th>
+    </tr>
+    <tr>
+      <th>Rate</th><th>Amount</th>
+      <% if (!isIGST) { %><th>Rate</th><th>Amount</th><% } %>
+    </tr>
+  </thead>
+  <tbody>
+    <% rates.forEach(r => { const v = byRate[r]; %>
+    <tr>
+      <td></td>
+      <td class="r"><%= n2(v.taxable) %></td>
+      <% if (isIGST) { %>
+      <td class="r"><%= r %>%</td><td class="r"><%= n2(v.tax) %></td>
+      <% } else { %>
+      <td class="r"><%= r / 2 %>%</td><td class="r"><%= n2(v.tax / 2) %></td>
+      <td class="r"><%= r / 2 %>%</td><td class="r"><%= n2(v.tax / 2) %></td>
+      <% } %>
+      <td class="r"><%= n2(v.tax) %></td>
+    </tr>
+    <% }) %>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td class="r">Total:</td>
+      <td class="r"><%= n2(taxable) %></td>
+      <% if (isIGST) { %>
+      <td></td><td class="r"><%= n2(taxAmt) %></td>
+      <% } else { %>
+      <td></td><td class="r"><%= n2(taxAmt / 2) %></td><td></td><td class="r"><%= n2(taxAmt / 2) %></td>
+      <% } %>
+      <td class="r"><%= n2(taxAmt) %></td>
+    </tr>
+  </tfoot>
+</table>
+
+<!-- ═══ Tax in words, PAN, declaration, bank, signatures ═══ -->
+<table class="box foot" style="border-top:none">
+  <tr>
+    <td colspan="2" style="padding-bottom:2px">
+      Tax Amount (in words) : <b style="font-size:10.5px"><%= words(taxAmt) %></b>
+      <% if (coPan) { %><div style="margin-top:2px">Company's PAN <span style="display:inline-block;width:40px"></span>: <b><%= coPan %></b></div><% } %>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" style="padding:0">
+      <table>
+        <colgroup><col style="width:40%"><col style="width:<%= qrDataUrl ? 43 : 60 %>%"><% if (qrDataUrl) { %><col style="width:17%"><% } %></colgroup>
+        <tr>
+          <td class="br" style="padding:4px 6px">
+            <div class="head">Declaration</div>
+            <div>1. Goods sent as per approved quotation <%= c.quotation_no %> at the agreed price.</div>
+            <div>2. Tax invoice will follow. We are not responsible for transit damage, loss or leakage.</div>
+            <% if (c.remarks) { %><div>Remarks: <%= c.remarks %></div><% } %>
+          </td>
+          <td class="bank" style="padding:4px 6px">
+            <div>Company's Bank Details</div>
+            <div><span class="lbl">A/c Holder's Name</span><b>: <%= String(s.bank_beneficiary || s.company_name || '').toUpperCase() %></b></div>
+            <% if (s.bank_name) { %><div><span class="lbl">Bank Name</span><b>: <%= String(s.bank_name).toUpperCase() %></b></div><% } %>
+            <div><span class="lbl">A/c No.</span><b>: <%= s.bank_account || '' %></b></div>
+            <div><span class="lbl">IFS Code</span><b>: <%= s.bank_ifsc || '' %></b></div>
+            <% if (s.bank_branch) { %><div><span class="lbl">Branch</span><b>: <%= s.bank_branch %></b></div><% } %>
+            <% if (s.company_upi) { %><div><span class="lbl">UPI ID</span><b>: <%= s.company_upi %></b></div><% } %>
+          </td>
+          <% if (qrDataUrl) { %>
+          <td class="bl c" style="vertical-align:middle; padding:4px">
+            <img src="<%= qrDataUrl %>" style="width:76px;height:76px;display:block;margin:0 auto">
+            <div class="small" style="margin-top:2px">Scan to pay</div>
+            <% if (qr && qr.amount) { %><div class="b">₹ <%= n2(qr.amount) %></div><% } %>
+          </td>
+          <% } %>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table class="box sign" style="border-top:none">
+  <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+  <tr>
+    <td class="br" style="position:relative">
+      <div>Received the above goods in good condition</div>
+      <div style="position:absolute; left:6px; bottom:4px">Customer's Seal and Signature</div>
+    </td>
+    <td style="position:relative">
+      <div class="r b">for <%= String(s.company_name || 'SUPER ALLIED').toUpperCase() %></div>
+      <div class="r" style="position:absolute; right:6px; bottom:4px">Authorised Signatory</div>
+    </td>
+  </tr>
+</table>
+<div class="after">SUBJECT TO MEERUT JURISDICTION</div>
+<div class="after" style="margin-top:2px">This is a computer-generated delivery challan.</div>
+
+</div>
+</body>
+</html>

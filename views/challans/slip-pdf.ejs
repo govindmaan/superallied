@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Dispatch slip for the store: parts and quantities only, never prices */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #000; background: transparent; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td, th { overflow-wrap: anywhere; vertical-align: top; }
+  .title { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .5px; padding-bottom: 4px; }
+  .box td { border: 1px solid #000; padding: 4px 6px; }
+  .k { font-size: 9px; } .v { font-weight: 700; font-size: 11px; margin-top: 1px; }
+  .items th, .items td { border: 1px solid #000; padding: 5px 6px; }
+  .items th { font-weight: 700; background: #eee; -webkit-print-color-adjust: exact; }
+  .c { text-align: center; } .mono { font-family: 'Courier New', monospace; }
+  .qty { font-size: 13px; font-weight: 700; text-align: center; }
+  .tick { width: 14px; height: 14px; border: 1px solid #000; display: inline-block; }
+  .sign td { border: 1px solid #000; height: 70px; padding: 4px 6px; position: relative; }
+  .sign .bot { position: absolute; left: 6px; bottom: 4px; }
+  .cancel { text-align: center; font-size: 14px; font-weight: 700; border: 2px solid #000; padding: 4px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<%
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const dt = new Date(String(d).length === 10 ? d + 'T00:00:00' : d);
+    return isNaN(dt) ? String(d) : dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+  };
+  const totalQty = items.reduce((t, it) => t + (parseFloat(it.qty) || 0), 0);
+%>
+<div class="title">DISPATCH SLIP</div>
+<% if (c.status === 'cancelled') { %><div class="cancel">CANCELLED — DO NOT DISPATCH</div><% } %>
+
+<table class="box" style="margin-bottom:6px">
+  <colgroup><col style="width:50%"><col style="width:25%"><col style="width:25%"></colgroup>
+  <tr>
+    <td rowspan="3">
+      <div class="k">Deliver to</div>
+      <div class="v" style="text-transform:uppercase"><%= c.customer_name %></div>
+      <% if (c.customer_address) { %><div><%= c.customer_address %></div><% } %>
+      <% if (c.contact_person || c.mobile) { %><div style="margin-top:2px">Contact: <%= c.contact_person || '' %> <%= c.mobile || '' %></div><% } %>
+    </td>
+    <td><div class="k">Challan No.</div><div class="v"><%= c.challan_no %></div></td>
+    <td><div class="k">Dated</div><div class="v"><%= fmtDate(c.challan_date) %></div></td>
+  </tr>
+  <tr>
+    <td><div class="k">Machine No.</div><div class="v mono"><%= c.machine_no || '—' %></div></td>
+    <td><div class="k">Machine Model</div><div class="v"><%= machineModel || '—' %></div></td>
+  </tr>
+  <tr>
+    <td><div class="k">Quotation No.</div><div class="v"><%= c.quotation_no %></div></td>
+    <td><div class="k">Prepared By</div><div class="v"><%= c.created_by_name || salesperson.name || '—' %></div></td>
+  </tr>
+</table>
+
+<table class="items">
+  <colgroup><col style="width:6%"><col style="width:20%"><col style="width:52%"><col style="width:12%"><col style="width:10%"></colgroup>
+  <thead><tr><th>Sl</th><th>Part No.</th><th>Description</th><th>Qty</th><th>Packed</th></tr></thead>
+  <tbody>
+    <% items.forEach((it, i) => { %>
+    <tr>
+      <td class="c"><%= i + 1 %></td>
+      <td class="mono"><%= it.part_no || '' %></td>
+      <td style="text-transform:uppercase; font-weight:700"><%= it.description %></td>
+      <td class="qty"><%= parseFloat(it.qty) || 0 %></td>
+      <td class="c"><span class="tick"></span></td>
+    </tr>
+    <% }) %>
+    <tr><td></td><td></td><td style="text-align:right; font-weight:700">Total quantity</td><td class="qty"><%= totalQty %></td><td></td></tr>
+  </tbody>
+</table>
+
+<% if (c.remarks) { %><div style="margin-top:6px"><b>Remarks:</b> <%= c.remarks %></div><% } %>
+<% if (c.dispatched_at) { %><div style="margin-top:4px"><b>Dispatched:</b> <%= c.dispatched_by_name || '' %> <%= c.dispatch_notes ? '· ' + c.dispatch_notes : '' %></div><% } %>
+
+<table class="sign" style="margin-top:8px">
+  <tr>
+    <td><div>Packed / issued by (store)</div><div class="bot">Name &amp; Signature</div></td>
+    <td><div>Vehicle / courier / handed to</div><div class="bot">Name &amp; Signature</div></td>
+    <td><div>Received by (customer)</div><div class="bot">Name &amp; Signature</div></td>
+  </tr>
+</table>
+</body>
+</html>

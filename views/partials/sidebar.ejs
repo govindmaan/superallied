@@ -14,7 +14,9 @@
     Support:    ['support'],
   };
   const userSection = user && user.position_section;
-  const allowedSecs = isMgr ? null : (VERT_SECTIONS[userSection] || null);
+  let allowedSecs = isMgr ? null : (VERT_SECTIONS[userSection] || null);
+  // Service Coordinators sit in Operations but still run the complaint desk
+  if (allowedSecs && can('service_complaints') && !allowedSecs.includes('service')) allowedSecs = [...allowedSecs, 'service'];
   // null = unrestricted (admin/manager/unplaced); array = only these divisions shown
   const secAllowed  = (id) => !allowedSecs || allowedSecs.includes(id);
 
@@ -76,6 +78,7 @@
       ]},
       { label: t('Spares'), items: [
         { href: '/spare-quotations',                 icon: 'bi-receipt-cutoff',      label: t('Spare Quotations'),   show: can('spare_quotations'), keys: ['spare-quotations'] },
+        { href: '/challans',                         icon: 'bi-truck',               label: can('spare_quotations') || can('challans') ? t('Delivery Challans') : t('Dispatch Slips'), show: can('spare_quotations') || can('dispatch'), keys: ['challans'] },
         { href: '/part-orders',                      icon: 'bi-cart-fill',           label: t('Part Orders'),        show: can('spare_parts'),      keys: ['part-orders'] },
         { href: '/spare-parts',                      icon: 'bi-boxes',               label: t('Parts Master'),       show: can('spare_parts'),      keys: ['spare-parts'] },
         { href: '/stock',                            icon: 'bi-clipboard-data',      label: t('Stock Availability'), show: can('stock'),            keys: ['stock'] },
@@ -95,6 +98,9 @@
         { href: '/salary',        icon: 'bi-cash-coin',                   label: t('My Salary'),     show: true,                    keys: ['salary'] },
         { href: '/id-card',       icon: 'bi-credit-card-2-front-fill',    label: t('ID Card'),       show: true,                    keys: ['id-card'] },
         { href: '/profile',       icon: 'bi-person-circle',               label: t('My Profile'),    show: true,                    keys: ['profile'] },
+      ]},
+      { label: t('Accounts'), items: [
+        { href: '/challans', icon: 'bi-truck', label: t('Delivery Challans'), show: can('challans') && !can('spare_quotations') && !can('dispatch'), keys: ['challans'] },
       ]},
       { label: t('Expenses'), items: [
         { href: '/travel-expenses/new',         icon: 'bi-truck',             label: t('New Travel Expense'),  show: can('expense_claim') },

@@ -46,6 +46,19 @@ function seed() {
     ['service','attendance'],['service','field_visit'],['service','route_map'],['service','expense_claim'],
     ['service','service_complaints'],['manager','service_complaints'],
 
+    // service coordinator (Operations, under Logistics and Parts Manager):
+    // the service desk's complaints plus spare part quotations
+    ['service_coordinator','attendance'],['service_coordinator','field_visit'],['service_coordinator','route_map'],
+    ['service_coordinator','expense_claim'],['service_coordinator','service_complaints'],
+    ['service_coordinator','spare_quotations'],['service_coordinator','sold_machines'],['service_coordinator','spare_parts'],
+    ['service_coordinator','stock'],
+
+    // Delivery challans: accountant / accounts manager see the priced challan and
+    // enter the Tally invoice number; office (store and parts staff) marks dispatch
+    // slips dispatched. Managers do both. Admin has '*'.
+    ['accountant','challans'],['accounts_manager','challans'],['manager','challans'],
+    ['office','dispatch'],['manager','dispatch'],
+
     // hr
     ['hr','attendance'],['hr','hr_admin'],['hr','leave_approval'],['hr','attendance_admin'],['hr','reports'],
 

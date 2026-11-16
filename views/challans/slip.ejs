@@ -1,0 +1,85 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'challans', user }) %>
+<%
+  const fmt = (v) => { const d = dbTime(v); return d ? d.toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; };
+  const cancelled = c.status === 'cancelled';
+  const short = lines.filter(l => l.tracked && (l.in_stock || 0) < Math.ceil(parseFloat(l.qty) || 0));
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2 text-success"></i><%= t("Dispatch Slip") %> <span class="font-monospace"><%= c.challan_no %></span></h4>
+      <small class="text-muted"><%= c.challan_date %></small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="/challans/<%= c.id %>/slip/pdf" target="_blank" class="btn btn-sm btn-danger"><i class="bi bi-printer me-1"></i><%= t("Print Slip") %></a>
+      <% if (prices) { %><a href="/challans/<%= c.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-truck me-1"></i><%= t("Delivery Challan") %></a><% } %>
+      <a href="/challans" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i><%= t("Back") %></a>
+    </div>
+  </div>
+
+  <% if (flash && flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash && flash.error) { %><div class="alert alert-danger alert-dismissible"><%= flash.error %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <% if (cancelled) { %>
+  <div class="alert alert-danger"><i class="bi bi-x-octagon-fill me-2"></i><b><%= t("Cancelled — do not send these parts.") %></b> <%= c.cancel_reason %></div>
+  <% } %>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body small">
+      <dl class="row mb-0">
+        <dt class="col-sm-3 text-muted"><%= t("Customer") %></dt><dd class="col-sm-9 fw-semibold"><%= c.customer_name %></dd>
+        <dt class="col-sm-3 text-muted"><%= t("Deliver to") %></dt><dd class="col-sm-9"><%= c.customer_address || '—' %></dd>
+        <dt class="col-sm-3 text-muted"><%= t("Contact") %></dt><dd class="col-sm-9"><%= c.contact_person || '—' %> <% if (c.mobile) { %><a href="tel:<%= c.mobile %>"><%= c.mobile %></a><% } %></dd>
+        <dt class="col-sm-3 text-muted"><%= t("Machine No") %></dt><dd class="col-sm-9 font-monospace"><%= c.machine_no || '—' %></dd>
+        <% if (c.remarks) { %><dt class="col-sm-3 text-muted"><%= t("Remarks") %></dt><dd class="col-sm-9"><%= c.remarks %></dd><% } %>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold small"><%= t("Parts to send") %> (<%= lines.length %>)</div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered mb-0 align-middle">
+        <thead class="table-light"><tr>
+          <th>#</th><th><%= t("Part No") %></th><th><%= t("Description") %></th><th class="text-center"><%= t("Qty") %></th>
+          <% if (!c.dispatched_at && !cancelled) { %><th class="text-center"><%= t("In Stock") %></th><% } %>
+        </tr></thead>
+        <tbody>
+          <% lines.forEach((l, i) => { const low = l.tracked && (l.in_stock || 0) < Math.ceil(parseFloat(l.qty) || 0); %>
+          <tr class="<%= low ? 'table-danger' : '' %>">
+            <td class="text-muted"><%= i + 1 %></td>
+            <td class="font-monospace"><%= l.part_no || '—' %></td>
+            <td class="fw-semibold"><%= l.description %></td>
+            <td class="text-center fs-6 fw-bold"><%= l.qty %></td>
+            <% if (!c.dispatched_at && !cancelled) { %>
+            <td class="text-center small"><%= l.tracked ? l.in_stock : t("not tracked") %></td>
+            <% } %>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (c.dispatched_at) { %>
+  <div class="alert alert-success small"><i class="bi bi-check-circle-fill me-2"></i><b><%= t("Dispatched") %></b> — <%= c.dispatched_by_name || '' %> · <%= fmt(c.dispatched_at) %>
+    <% if (c.dispatch_notes) { %><div class="mt-1"><%= c.dispatch_notes %></div><% } %></div>
+  <% } else if (canDispatch && !cancelled) { %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <% if (short.length) { %>
+      <div class="alert alert-danger small mb-2"><%= t("Some parts are short in stock (marked red). Update Stock Availability before dispatching.") %></div>
+      <% } %>
+      <form method="post" action="/challans/<%= c.id %>/dispatch" onsubmit="return confirm('<%= tjs("Mark these parts as dispatched? Stock will be reduced.") %>')">
+        <label class="form-label small mb-1" for="dn"><%= t("Vehicle / courier / handed to (optional)") %></label>
+        <input id="dn" name="dispatch_notes" class="form-control form-control-sm mb-2" maxlength="300">
+        <button class="btn btn-success" <%= short.length ? 'disabled' : '' %>><i class="bi bi-check2-circle me-1"></i><%= t("Mark Dispatched") %></button>
+        <div class="small text-muted mt-2"><%= t("Parts marked “not tracked” have no stock record, so stock is not reduced for them.") %></div>
+      </form>
+    </div>
+  </div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

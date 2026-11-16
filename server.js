@@ -30,6 +30,7 @@ const enquiriesRoutes       = require('./routes/enquiries');
 const soldMachinesRoutes    = require('./routes/sold-machines');
 const sparePartsRoutes      = require('./routes/spare-parts');
 const spareQuotationsRoutes = require('./routes/spare-quotations');
+const challansRoutes = require('./routes/challans');
 const salespersonsRoutes    = require('./routes/salespersons');
 const stockRoutes           = require('./routes/stock');
 const form22Routes          = require('./routes/form22');
@@ -175,6 +176,7 @@ app.use('/enquiries',         requireLogin, requirePerm('enquiries'),        enq
 app.use('/sold-machines',     requireLogin, requirePerm('sold_machines'),    soldMachinesRoutes);
 app.use('/spare-parts',       requireLogin, requirePerm('spare_parts'),       sparePartsRoutes);
 app.use('/spare-quotations',  requireLogin, requirePerm('spare_quotations'),  spareQuotationsRoutes);
+app.use('/challans',          requireLogin,                                   challansRoutes);   // own permission check (challans / dispatch / spare_quotations)
 app.use('/salespersons',      requireLogin, requirePerm('salespersons_admin'), salespersonsRoutes);
 app.use('/stock',             requireLogin, requirePerm('stock'),             stockRoutes);
 app.use('/form-22',           requireLogin, requirePerm('quotations'),        form22Routes);
