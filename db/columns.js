@@ -54,6 +54,9 @@ const COLUMNS = {
     ["old_employee_code", "TEXT DEFAULT ''"],
     ["language", "TEXT DEFAULT ''"],
     ["position_code", "TEXT DEFAULT ''"],
+    // Field travel allowance: 1 = allowed (km + meter photo at attendance, travel
+    // claims); 0 = not allowed (no km step, no claims). Set by admin per person.
+    ["ta_allowed", "INTEGER DEFAULT 1"],
   ],
   machines: [
     ["purchase_price", "INTEGER DEFAULT 0"],

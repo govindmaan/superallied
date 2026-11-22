@@ -92,6 +92,8 @@ router.post('/employees', (req, res) => {
       mobile||'', emergency_contact||'', date_of_joining||null,
       manager_id ? +manager_id : null, vehicle_type||'', vehicle_number||'', pos.code);
 
+  if (res.locals.hasPerm('*') && [].concat(req.body.ta_allowed ?? '1').pop() === '0')
+    db.prepare('UPDATE users SET ta_allowed=0 WHERE id=?').run(result.lastInsertRowid);
   auditLog(req.session.userId, 'user_created', 'user', result.lastInsertRowid, `Created "${full_name}" (${safeRole})`);
   req.session.flash = { success: `Employee "${full_name}" created.` };
   res.redirect('/hr/employees/' + result.lastInsertRowid);
@@ -142,6 +144,15 @@ router.post('/employees/:id', (req, res) => {
       photo_path||'', vehicle_type||'', vehicle_number||'', pos ? pos.code : '',
       req.params.id);
 
+  // Travel allowance: admin only (hidden 0 + checkbox 1 → last value wins)
+  if (res.locals.hasPerm('*')) {
+    const v = [].concat(req.body.ta_allowed ?? '1').pop() === '1' ? 1 : 0;
+    const was = db.prepare('SELECT ta_allowed FROM users WHERE id=?').get(req.params.id)?.ta_allowed ?? 1;
+    if (v !== was) {
+      db.prepare('UPDATE users SET ta_allowed=? WHERE id=?').run(v, req.params.id);
+      auditLog(req.session.userId, 'ta_allowed_set', 'user', req.params.id, `${full_name}: travel allowance ${v ? 'allowed' : 'not allowed'}`);
+    }
+  }
   auditLog(req.session.userId, 'user_updated', 'user', req.params.id, `Updated "${full_name}"`);
   req.session.flash = { success: 'Employee updated.' };
   res.redirect('/hr/employees/' + req.params.id);

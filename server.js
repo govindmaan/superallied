@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   let u = req.session.userId
     ? db.prepare(`SELECT u.id, u.username, u.full_name, u.role, u.position_code, u.databank_access,
-        u.must_change_password, u.sessions_valid_after, u.language,
+        u.must_change_password, u.sessions_valid_after, u.language, u.ta_allowed,
         p.title AS position_title, p.level AS position_level, p.section AS position_section
       FROM users u LEFT JOIN org_positions p ON p.code = u.position_code
       WHERE u.id = ?`).get(req.session.userId)

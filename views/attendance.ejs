@@ -218,9 +218,9 @@
           <div id="s3StartKmInfo" class="alert alert-info py-2 small d-none"></div>
           <div class="d-flex gap-2">
             <button class="btn btn-primary flex-grow-1 fw-bold" onclick="goToVehicleCamera()" id="vehiclePhotoBtn">
-              <i class="bi bi-camera-fill me-1"></i><%= meterRequired ? t("Take Meter Photo") : t("Take Vehicle Photo") %>
+              <i class="bi bi-camera-fill me-1"></i><%= meterStep === 'required' ? t("Take Meter Photo") : t("Take Vehicle Photo") %>
             </button>
-            <% if (!meterRequired) { %><button class="btn btn-outline-secondary" onclick="skipJourney()"><%= t("Skip") %></button><% } %>
+            <% if (meterStep !== 'required') { %><button class="btn btn-outline-secondary" onclick="skipJourney()"><%= t("Skip") %></button><% } %>
           </div>
         </div>
       </div>
@@ -231,14 +231,14 @@
           <h5 class="modal-title fw-bold"><%= t("📷 Vehicle Photo") %></h5>
         </div>
         <div class="modal-body text-center pb-2">
-          <p class="text-muted small mb-2"><%= meterRequired ? t("Point the camera at the odometer so the reading is clear") : t("Point camera at your vehicle (odometer visible is better)") %></p>
+          <p class="text-muted small mb-2"><%= meterStep === 'required' ? t("Point the camera at the odometer so the reading is clear") : t("Point camera at your vehicle (odometer visible is better)") %></p>
           <video id="vehicleVideo" autoplay playsinline style="width:100%;border-radius:10px;max-height:280px;background:#000"></video>
           <div class="mt-3 d-flex gap-2 justify-content-center">
             <button class="btn btn-primary px-5 fw-bold" onclick="snapVehicle()" id="vehicleSnapBtn">
               <i class="bi bi-camera-fill me-1"></i><%= t("Snap Vehicle") %>
             </button>
           </div>
-          <% if (!meterRequired) { %><button class="btn btn-link text-muted btn-sm mt-1" onclick="skipJourney()"><%= t("Skip vehicle photo") %></button><% } %>
+          <% if (meterStep !== 'required') { %><button class="btn btn-link text-muted btn-sm mt-1" onclick="skipJourney()"><%= t("Skip vehicle photo") %></button><% } %>
         </div>
       </div>
 
@@ -275,7 +275,8 @@
 <script>
 // Check-in / check-out: selfie → odometer (+ meter photo) → one save.
 // Location is required; sales and service must give the meter photo.
-const METER_REQUIRED = <%= meterRequired ? 'true' : 'false' %>;
+const METER_REQUIRED = <%= meterStep === 'required' ? 'true' : 'false' %>;
+const METER_STEP = '<%= meterStep %>';   // 'none' = no travel allowance: selfie and location only
 let _type, _selfieStream, _vehicleStream, _lat = null, _lng = null, _selfiePhoto, _vehiclePhoto;
 
 function showStep(n) {
@@ -335,6 +336,7 @@ async function snapSelfie() {
   canvas.getContext('2d').drawImage(video, 0, 0, 480, 480);
   _selfiePhoto = canvas.toDataURL('image/jpeg', 0.75);
   if (_selfieStream) { _selfieStream.getTracks().forEach(t => t.stop()); _selfieStream = null; }
+  if (METER_STEP === 'none') return submitAll(null);   // no odometer for staff without travel allowance
 
   const isCheckin = _type === 'checkin';
   document.getElementById('s3Title').textContent = isCheckin ? T('🏍 Journey Start') : T('🏍 Journey End');

@@ -208,3 +208,12 @@ test('a correction on a closed week adds the missing claim to the weekly bill', 
   assert.deepEqual({ ...c }, { distance_km: 40, rate_per_km: 2.5, total_claim: 100, auto: 1 });
   assert.equal(bill().total_amount, before.total_amount + 100);
 });
+
+test('no travel allowance: meter km never becomes an automatic claim', () => {
+  const noTa = mk('ta_nota', 'sales', 'Sales');
+  db.prepare('UPDATE users SET ta_allowed=0 WHERE id=?').run(noTa);
+  db.prepare("INSERT INTO expense_journeys (user_id, date, start_km, end_km, total_km) VALUES (?, '2026-11-10', 100, 150, 50)").run(noTa);
+  te.closeLockedWeeks();
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM travel_expenses WHERE user_id=?').get(noTa).c, 0);
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM ta_bills WHERE user_id=?').get(noTa).c, 0);
+});

@@ -90,3 +90,15 @@ test('check-out follows the same rules (and the 2 PM lock, by the clock)', async
   assert.equal(r.ok, true);
   assert.equal(r.journey.totalKm, '80.0');
 });
+
+test('no travel allowance: check-in needs no km or meter photo, and none is kept', async () => {
+  const svc2 = mk('svc2', 'service');
+  assert.equal(rules.meterStep(svc2, 'service'), 'required');
+  db.prepare('UPDATE users SET ta_allowed=0 WHERE id=?').run(svc2);
+  assert.equal(rules.meterStep(svc2, 'service'), 'none');
+  assert.equal(rules.meterStep(office, 'office'), 'optional');
+  const r = await post('/api/checkin', svc2, { ...GPS, ...METER });   // km sent anyway is ignored
+  assert.equal(r.ok, true);
+  assert.equal(r.km, null);
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM expense_journeys WHERE user_id=?').get(svc2).c, 0);
+});

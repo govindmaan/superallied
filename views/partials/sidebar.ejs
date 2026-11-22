@@ -4,6 +4,8 @@
   const can     = (p) => isAdmin || (typeof hasPerm === 'function' && hasPerm(p));
   // Route map: everyone who records visits sees their own; admin sees everyone's
   const routeMap = isAdmin || can('field_visit') || can('route_map') || can('enquiries');
+  // Travel allowance switched off for this person (admin, Employee form): no claim links
+  const taOn = !(user && user.ta_allowed === 0);
 
   // Vertical section filtering: employees see only their division + support
   // Leadership / managers / admins see everything
@@ -103,9 +105,9 @@
         { href: '/challans', icon: 'bi-truck', label: t('Delivery Challans'), show: can('challans') && !can('spare_quotations') && !can('dispatch'), keys: ['challans'] },
       ]},
       { label: t('Expenses'), items: [
-        { href: '/travel-expenses/new',         icon: 'bi-truck',             label: t('New Travel Expense'),  show: can('expense_claim') },
-        { href: '/travel-expenses/my',          icon: 'bi-receipt-cutoff',    label: t('My Travel Expenses'),  show: can('expense_claim'),                    keys: ['travel-expenses'] },
-        { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: can('expense_approval') ? t('Weekly Travel Reports') : t('TA Bills'), show: can('expense_claim') || can('expense_approval') },
+        { href: '/travel-expenses/new',         icon: 'bi-truck',             label: t('New Travel Expense'),  show: can('expense_claim') && taOn },
+        { href: '/travel-expenses/my',          icon: 'bi-receipt-cutoff',    label: t('My Travel Expenses'),  show: can('expense_claim') && taOn,                    keys: ['travel-expenses'] },
+        { href: '/travel-expenses/bills',       icon: 'bi-file-earmark-text', label: can('expense_approval') ? t('Weekly Travel Reports') : t('TA Bills'), show: (can('expense_claim') && taOn) || can('expense_approval') },
         { href: '/travel-expenses/queue',       icon: 'bi-check2-square',     label: t('Expense Approvals'),   show: can('expense_approval') },
         { href: '/travel-expenses/km-grid',     icon: 'bi-speedometer',       label: t('Correct KM'),          show: can('expense_approval'), keys: ['km-grid'] },
         { href: '/travel-expenses/admin/rates', icon: 'bi-sliders',           label: t('Expense Rate Config'), show: isMgr || can('expense_approval') },

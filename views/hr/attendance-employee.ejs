@@ -34,6 +34,7 @@
     <div class="fw-semibold"><%= emp.full_name || emp.username %></div>
     <% if (emp.employee_code) { %><span class="badge bg-light text-dark border font-monospace"><%= emp.employee_code %></span><% } %>
     <% if (emp.designation) { %><span class="small text-muted"><%= emp.designation %></span><% } %>
+    <% if (emp.ta_allowed === 0) { %><span class="badge bg-secondary"><%= t("No travel allowance") %></span><% } %>
     <% if (canEdit) { %>
     <form method="POST" action="/attendance/staff/<%= emp.id %>/vehicle" class="d-flex align-items-center gap-1">
       <label class="small text-muted" for="veh"><%= t("Vehicle") %></label>

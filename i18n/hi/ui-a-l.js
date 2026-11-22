@@ -746,4 +746,12 @@ module.exports = {
   "Remarks for store / accounts (optional)": "स्टोर / अकाउंट्स के लिए टिप्पणी (वैकल्पिक)",
   "I have checked the parts, quantities and agreed price.": "मैंने पार्ट्स, मात्रा और तय कीमत जाँच ली है।",
   "Create Delivery Challan": "डिलीवरी चालान बनाएँ",
+
+  // Travel allowance on / off per person (Employee form)
+  "Field travel allowance (TA) allowed": "फ़ील्ड यात्रा भत्ता (TA) की अनुमति",
+  "When off, attendance does not ask for km or the meter photo, and this person cannot claim travel expenses.": "बंद होने पर उपस्थिति में km या मीटर फ़ोटो नहीं माँगी जाती, और यह व्यक्ति यात्रा खर्च क्लेम नहीं कर सकता।",
+  "Only an admin can change this.": "इसे केवल एडमिन बदल सकते हैं।",
+  "Travel Allowance": "यात्रा भत्ता",
+  "Allowed": "अनुमति है",
+  "No travel allowance": "यात्रा भत्ता नहीं",
 };

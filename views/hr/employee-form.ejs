@@ -123,6 +123,16 @@
         <div class="card border-0 shadow-sm mb-3">
           <div class="card-header bg-white fw-semibold"><%= t("Vehicle Details") %></div>
           <div class="card-body">
+            <% const taOn = !emp || emp.ta_allowed !== 0; %>
+            <div class="form-check form-switch mb-1">
+              <input type="hidden" name="ta_allowed" value="0">
+              <input class="form-check-input" type="checkbox" role="switch" id="taAllowed" name="ta_allowed" value="1" <%= taOn ? 'checked' : '' %> <%= hasPerm('*') ? '' : 'disabled' %>>
+              <label class="form-check-label fw-semibold" for="taAllowed"><%= t("Field travel allowance (TA) allowed") %></label>
+            </div>
+            <div class="small text-muted mb-3">
+              <%= t("When off, attendance does not ask for km or the meter photo, and this person cannot claim travel expenses.") %>
+              <% if (!hasPerm('*')) { %><br><i class="bi bi-lock-fill me-1"></i><%= t("Only an admin can change this.") %><% } %>
+            </div>
             <div class="row g-2">
               <div class="col-md-6">
                 <label class="form-label fw-semibold"><%= t("Vehicle Type") %></label>

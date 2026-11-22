@@ -4,6 +4,16 @@
 
 module.exports = [
   {
+    date: '2026-11-22',
+    items: [
+      { commit: '', type: 'new', title: 'Travel allowance on or off for each person',
+        details: ['Admin: HR → Employees → Edit → Vehicle Details has a new switch, "Field travel allowance (TA) allowed". It is on for everyone to start with, so nothing changes until you switch it off for someone.',
+                  'When it is off, check-in and check-out only ask for the selfie and location. There is no km reading and no meter photo.',
+                  'People without travel allowance do not see New Travel Expense, My Travel Expenses or TA Bills, cannot submit a travel claim, and get no automatic weekly claims.',
+                  'The employee profile shows Travel Allowance: Allowed or Not allowed, and Employee Attendance shows "No travel allowance" next to their name.'] },
+    ],
+  },
+  {
     date: '2026-11-16',
     items: [
       { commit: '', type: 'new', title: 'Spare quotation to delivery challan and dispatch slip',

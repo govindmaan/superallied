@@ -29,6 +29,13 @@ function requireClaimApprover(req, res, next) {
   res.redirect('/travel-expenses/' + req.params.id);
 }
 function canClaim(res) { return res.locals.hasPerm('*') || res.locals.hasPerm('expense_claim'); }
+// New claims only for people whose travel allowance is on (admin, Employee form)
+const taOn = (uid) => (db.prepare('SELECT ta_allowed FROM users WHERE id=?').get(uid)?.ta_allowed ?? 1) !== 0;
+function requireTaAllowed(req, res, next) {
+  if (taOn(req.session.userId)) return next();
+  req.session.flash = { error: 'Travel allowance is not on for you. Ask the admin if you travel for work.' };
+  res.redirect('/');
+}
 
 function requireClaimAccess(req, res, next) {
   if (canClaim(res)) return next();
@@ -89,7 +96,8 @@ function nextBillNo(year) {
 function autoClaims() {
   const days = db.prepare(`SELECT j.* FROM expense_journeys j
     WHERE j.date >= ? AND j.total_km > 0
-      AND NOT EXISTS (SELECT 1 FROM travel_expenses te WHERE te.user_id=j.user_id AND te.date=j.date)`).all(TA_AUTO_START)
+      AND NOT EXISTS (SELECT 1 FROM travel_expenses te WHERE te.user_id=j.user_id AND te.date=j.date)
+      AND COALESCE((SELECT ta_allowed FROM users u WHERE u.id=j.user_id), 1) <> 0`).all(TA_AUTO_START)
     .filter(j => isLocked(j.date) && ['Sales', 'Service'].includes(sectionOf(j.user_id)))
     .filter(j => !db.prepare('SELECT 1 FROM ta_bills WHERE user_id=? AND week_start=?').get(j.user_id, weekOf(j.date).start));
   days.forEach(addAutoClaim);
@@ -97,7 +105,7 @@ function autoClaims() {
 // After a km correction on a closed week: a sales / service day that now has km
 // but no claim gets one, so it is counted in the weekly bill
 function claimAfterCorrection(uid, date) {
-  if (date < TA_AUTO_START || !isLocked(date) || !['Sales', 'Service'].includes(sectionOf(uid))) return;
+  if (date < TA_AUTO_START || !isLocked(date) || !['Sales', 'Service'].includes(sectionOf(uid)) || !taOn(uid)) return;
   const j = db.prepare('SELECT * FROM expense_journeys WHERE user_id=? AND date=? AND total_km > 0').get(uid, date);
   if (!j || db.prepare('SELECT 1 FROM travel_expenses WHERE user_id=? AND date=?').get(uid, date)) return;
   addAutoClaim(j);
@@ -181,7 +189,7 @@ const formLocals = (uid, date) => {
     todaysVisits: db.prepare("SELECT * FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(uid, date) };
 };
 
-router.get('/new', requireClaimAccess, (req, res) => {
+router.get('/new', requireClaimAccess, requireTaAllowed, (req, res) => {
   const uid = req.session.userId;
   let date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') && req.query.date <= today() ? req.query.date : today();
   if (isLocked(date)) { req.session.flash = { error: lockedMsg(date) }; date = today(); }
@@ -213,7 +221,7 @@ router.get('/:id/edit', requireClaimAccess, (req, res) => {
 });
 
 // ── Create / update (always saved as draft) ───────────────────────────────────
-router.post('/', requireClaimAccess, (req, res) => {
+router.post('/', requireClaimAccess, requireTaAllowed, (req, res) => {
   const uid = req.session.userId;
   const { id, date, purpose, start_odo, end_odo, remarks, visit_ids } = req.body;
   const travel_type = ta.vehicleOf(uid);   // from the profile, never from the form

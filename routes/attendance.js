@@ -65,7 +65,7 @@ router.get('/', (req, res) => {
   res.render('attendance', { title: 'My Attendance', todayRec, todayJourney, history, stats, todayStr: todayR,
     cal: monthCalendar(uid, req.query.m, todayR), staffAttendance, canEdit: rules.canEdit(res), canViewStaff: canViewStaff(res),
     pendingRequests: rules.canEdit(res) ? db.prepare("SELECT COUNT(*) c FROM attendance_requests WHERE status='pending'").get().c : 0,
-    checkoutOpen: rules.checkoutOpen(), meterRequired: rules.needsMeter(res.locals.user?.role) });
+    checkoutOpen: rules.checkoutOpen(), meterStep: rules.meterStep(uid, res.locals.user?.role) });
 });
 
 // Month calendar: present / absent / leave / off (Sunday) for one user
@@ -139,8 +139,9 @@ router.post('/api/checkin', (req, res) => {
   }
   const loc = rules.location(req.body.lat, req.body.lng);
   if (!loc) return res.json({ ok: false, message: 'Location is required. Turn on GPS / location and try again.' });
-  const m = rules.meter(req.body);
-  if (rules.needsMeter(res.locals.user?.role) && (!m.km || !m.photo)) {
+  const step = rules.meterStep(uid, res.locals.user?.role);
+  const m = step === 'none' ? { km: null, photo: null } : rules.meter(req.body);   // no travel allowance: no km kept
+  if (step === 'required' && (!m.km || !m.photo)) {
     return res.json({ ok: false, message: 'Odometer reading and meter photo are required.' });
   }
   const { lat, lng } = loc;
@@ -179,8 +180,9 @@ router.post('/api/checkout', (req, res) => {
   }
   const loc = rules.location(req.body.lat, req.body.lng);
   if (!loc) return res.json({ ok: false, message: 'Location is required. Turn on GPS / location and try again.' });
-  const m = rules.meter(req.body);
-  if (rules.needsMeter(res.locals.user?.role) && (!m.km || !m.photo)) {
+  const step = rules.meterStep(uid, res.locals.user?.role);
+  const m = step === 'none' ? { km: null, photo: null } : rules.meter(req.body);   // no travel allowance: no km kept
+  if (step === 'required' && (!m.km || !m.photo)) {
     return res.json({ ok: false, message: 'Odometer reading and meter photo are required.' });
   }
   const { lat, lng } = loc;
@@ -204,7 +206,7 @@ function requireStaffView(req, res, next) {
   req.session.flash = { error: 'Only the Head of Finance, HR or an admin can see staff attendance.' };
   res.redirect('/attendance');
 }
-const activeStaff = () => db.prepare(`SELECT u.id, u.full_name, u.username, u.employee_code, u.designation
+const activeStaff = () => db.prepare(`SELECT u.id, u.full_name, u.username, u.employee_code, u.designation, u.ta_allowed
   FROM users u WHERE COALESCE(u.is_hr_active,1)=1 ORDER BY u.full_name`).all();
 
 router.get('/staff', requireStaffView, (req, res) => {

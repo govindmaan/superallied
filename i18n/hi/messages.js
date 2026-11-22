@@ -302,4 +302,7 @@ module.exports = {
   "Delivery challan {no} created. Accounts and the store have been notified.": "डिलीवरी चालान {no} बना। अकाउंट्स और स्टोर को सूचना भेज दी गई।",
   "Could not change the status.": "स्थिति नहीं बदली जा सकी।",
   "Only store and parts staff can mark a slip dispatched.": "केवल स्टोर और पार्ट्स स्टाफ़ स्लिप को डिस्पैच चिह्नित कर सकते हैं।",
+
+  // Travel allowance on / off
+  "Travel allowance is not on for you. Ask the admin if you travel for work.": "आपके लिए यात्रा भत्ता चालू नहीं है। अगर आप काम के लिए यात्रा करते हैं तो एडमिन से कहें।",
 };

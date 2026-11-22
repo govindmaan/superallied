@@ -64,6 +64,8 @@
             <dt class="col-5 text-muted small"><%= t("Username") %></dt><dd class="col-7 font-monospace small"><%= emp.username %></dd>
             <dt class="col-5 text-muted small"><%= t("Status") %></dt>
             <dd class="col-7"><span class="badge <%= emp.is_hr_active!==0?'bg-success':'bg-secondary' %>"><%= emp.is_hr_active!==0?t('Active'):t('Inactive') %></span></dd>
+            <dt class="col-5 text-muted small"><%= t("Travel Allowance") %></dt>
+            <dd class="col-7"><span class="badge <%= emp.ta_allowed !== 0 ? 'bg-success' : 'bg-secondary' %>"><%= emp.ta_allowed !== 0 ? t('Allowed') : t('Not allowed') %></span></dd>
           </dl>
         </div>
       </div>
