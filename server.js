@@ -171,6 +171,7 @@ app.use('/org-chart',     requireLogin, orgRoutes);
 app.use('/visits',        requireLogin, visitsRoutes);
 app.use('/expenses',      requireLogin, requirePerm('expense_claim'), expensesRoutes);
 app.use('/travel-expenses', requireLogin, travelExpensesRoutes);
+app.use('/extra-expenses',  requireLogin, require('./routes/extra-expenses'));   // own permission checks
 app.use('/machines',          requireLogin, requireManagerOrAdmin, machinesRoutes);
 app.use('/enquiries',         requireLogin, requirePerm('enquiries'),        enquiriesRoutes);
 app.use('/sold-machines',     requireLogin, requirePerm('sold_machines'),    soldMachinesRoutes);

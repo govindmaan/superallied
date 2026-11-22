@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
 const express = require('express');
-const { setupDb } = require('./helpers');
+const { setupDb, draftClaim } = require('./helpers');
 
 const T = setupDb();
 const { db, users, dbmod } = T;
@@ -87,7 +87,7 @@ test('service TA is blocked without a complaint visit that day', async () => {
   // A second engineer with a complete day but NO complaint visit today
   const eng2 = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('eng2','x','Engineer Two','service','Service')").run().lastInsertRowid);
   completeDay(eng2);
-  await post('/travel-expenses/', { id: eng2 }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'service', start_odo: '10', end_odo: '60' });
+  draftClaim(eng2, { date: today, purpose: 'service', start_odo: 10, end_odo: 60 });
   const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(eng2);
   await post(`/travel-expenses/${e.id}/submit`, { id: eng2 }, {});
   assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'draft'); // no visit → blocked
@@ -95,7 +95,7 @@ test('service TA is blocked without a complaint visit that day', async () => {
 
 test('service TA is allowed when the engineer visited a complaint that day', async () => {
   completeDay(eng);   // eng recorded a plate-photo visit on `today` in the earlier test
-  await post('/travel-expenses/', { id: eng }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'service call', start_odo: '10', end_odo: '60' });
+  draftClaim(eng, { date: today, purpose: 'service call', start_odo: 10, end_odo: 60 });
   const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? AND date=? ORDER BY id DESC LIMIT 1").get(eng, today);
   await post(`/travel-expenses/${e.id}/submit`, { id: eng }, {});
   assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'submitted');

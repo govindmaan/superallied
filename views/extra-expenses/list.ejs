@@ -1,0 +1,46 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'extra-expenses', user }) %>
+<%
+  const BADGE = { submitted: 'bg-warning text-dark', approved: 'bg-success', rejected: 'bg-danger', withdrawn: 'bg-secondary' };
+  const LABEL = { submitted: t('Pending'), approved: t('Approved'), rejected: t('Rejected'), withdrawn: t('Withdrawn') };
+  const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-danger"></i><%= t("My Extra Expenses") %></h4>
+    <a href="/extra-expenses/new" class="btn btn-danger"><i class="bi bi-plus-lg me-1"></i><%= t("New Extra Expense") %></a>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <p class="small text-muted mb-3"><%= t("Your km travel allowance is calculated automatically from your meter photos. Use this for anything else you paid for work, such as food, stay, toll or fares, with a photo or PDF of the receipt. The Head of Finance approves it.") %></p>
+
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm"><div class="card-body py-2">
+      <div class="small text-muted"><%= t("Pending this month") %></div><div class="fw-bold text-warning"><%= inr(summary.pending) %></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card border-0 shadow-sm"><div class="card-body py-2">
+      <div class="small text-muted"><%= t("Approved this month") %></div><div class="fw-bold text-success"><%= inr(summary.approved) %></div></div></div></div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="list-group list-group-flush">
+      <% if (!rows.length) { %><div class="list-group-item text-center text-muted py-4"><%= t("No extra expenses yet.") %></div><% } %>
+      <% rows.forEach(x => { %>
+      <a href="/extra-expenses/<%= x.id %>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2">
+        <div>
+          <div class="fw-semibold"><%= t(x.category) %></div>
+          <div class="small text-muted"><span class="font-monospace"><%= x.expense_no %></span> · <%= x.date %></div>
+          <% if (x.status === 'rejected' && x.decision_note) { %><div class="small text-danger"><%= x.decision_note %></div><% } %>
+        </div>
+        <div class="text-end">
+          <div class="fw-bold"><%= inr(x.amount) %></div>
+          <span class="badge <%= BADGE[x.status] %>"><%= LABEL[x.status] %></span>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

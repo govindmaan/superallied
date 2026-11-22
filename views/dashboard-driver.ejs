@@ -63,8 +63,8 @@
         <div class="fw-bold"><i class="bi bi-truck me-2 text-warning"></i>Travel Expenses</div>
         <span class="text-muted small">₹<%= parseFloat(monthClaim||0).toFixed(0) %> this month</span>
       </div>
-      <a href="/travel-expenses/new" class="btn btn-primary w-100 fw-bold mb-2">
-        <i class="bi bi-plus-circle me-1"></i>New Expense Claim
+      <a href="/extra-expenses/new" class="btn btn-primary w-100 fw-bold mb-2">
+        <i class="bi bi-receipt me-1"></i><%= t("New Extra Expense") %>
       </a>
       <% if (recentExpenses.length) { %>
         <div class="mt-2">

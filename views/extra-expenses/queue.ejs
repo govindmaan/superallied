@@ -1,0 +1,87 @@
+<%- include('../partials/head', { title }) %>
+<%- include('../partials/sidebar', { active: 'extra-expenses-queue', user }) %>
+<%
+  const TABS = [['submitted', t('Pending')], ['approved', t('Approved')], ['rejected', t('Rejected')], ['all', t('All')]];
+  const BADGE = { submitted: 'bg-warning text-dark', approved: 'bg-success', rejected: 'bg-danger' };
+  const LABEL = { submitted: t('Pending'), approved: t('Approved'), rejected: t('Rejected') };
+  const q = (over) => { const p = { status: filter.status, user: filter.user || '', m: filter.month, ...over };
+    return '/extra-expenses/queue?' + Object.entries(p).filter(([, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&'); };
+  const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  const isPdf = (p) => /\.pdf$/i.test(p || '');
+%>
+<div class="main-content">
+  <div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff me-2 text-danger"></i><%= t("Extra Expense Approvals") %></h4>
+  </div>
+
+  <% if (flash.success) { %><div class="alert alert-success alert-dismissible"><%= flash.success %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+  <% if (flash.error)   { %><div class="alert alert-danger  alert-dismissible"><%= flash.error   %><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><% } %>
+
+  <ul class="nav nav-pills mb-3 gap-1 flex-nowrap overflow-auto">
+    <% TABS.forEach(([k, label]) => { %>
+    <li class="nav-item"><a class="nav-link py-1 px-3 <%= filter.status === k ? 'active bg-danger' : 'text-dark border' %>" href="<%= q({ status: k }) %>">
+      <%= label %> <span class="badge <%= filter.status === k ? 'bg-light text-dark' : 'bg-secondary' %>"><%= counts[k] || 0 %></span></a></li>
+    <% }) %>
+  </ul>
+
+  <form method="GET" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="status" value="<%= filter.status %>">
+    <div class="col-7 col-md-4">
+      <label class="form-label small mb-1" for="fUser"><%= t("Employee") %></label>
+      <select name="user" id="fUser" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value=""><%= t("All employees") %></option>
+        <% employees.forEach(e => { %><option value="<%= e.id %>" <%= e.id === filter.user ? 'selected' : '' %>><%= e.name %></option><% }) %>
+      </select>
+    </div>
+    <div class="col-5 col-md-3">
+      <label class="form-label small mb-1" for="fMonth"><%= t("Month") %></label>
+      <input type="month" name="m" id="fMonth" class="form-control form-control-sm" value="<%= filter.month %>" onchange="this.form.submit()">
+    </div>
+    <% if (filter.user || filter.month) { %><div class="col-auto"><a href="<%= q({ user: '', m: '' }) %>" class="btn btn-sm btn-link"><%= t("Clear") %></a></div><% } %>
+    <div class="col-12 col-md text-md-end small text-muted"><%= rows.length %> · <strong class="text-dark"><%= inr(total) %></strong></div>
+  </form>
+
+  <div class="card border-0 shadow-sm">
+    <div class="list-group list-group-flush">
+      <% if (!rows.length) { %><div class="list-group-item text-center text-muted py-4"><%= t("Nothing here.") %></div><% } %>
+      <% rows.forEach(x => { %>
+      <div class="list-group-item">
+        <div class="d-flex flex-wrap gap-3">
+          <a href="<%= x.receipt_path %>" target="_blank" rel="noopener" class="flex-shrink-0" title="<%= t("Open receipt") %>">
+            <% if (isPdf(x.receipt_path)) { %><div class="d-flex align-items-center justify-content-center bg-light rounded" style="width:64px;height:64px"><i class="bi bi-file-earmark-pdf fs-3 text-danger"></i></div>
+            <% } else { %><img src="<%= x.receipt_path %>" alt="<%= t("Receipt") %>" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:6px"><% } %>
+          </a>
+          <a href="/extra-expenses/<%= x.id %>" class="text-decoration-none text-dark flex-grow-1" style="min-width:200px">
+            <div class="fw-semibold"><%= x.full_name || x.username %> <span class="text-muted small"><%= x.employee_code || '' %></span></div>
+            <div class="small"><%= t(x.category) %> · <%= x.date %></div>
+            <div class="small text-muted"><%= x.description %></div>
+            <% if (x.status !== 'submitted' && x.decided_by_name) { %><div class="small"><%= LABEL[x.status] %> <%= t("by") %> <%= x.decided_by_name %><%= x.decision_note ? ': ' + x.decision_note : '' %></div><% } %>
+          </a>
+          <div class="text-end">
+            <div class="fw-bold"><%= inr(x.amount) %></div>
+            <span class="badge <%= BADGE[x.status] %>"><%= LABEL[x.status] %></span>
+            <% if (x.status === 'submitted' && x.user_id !== user.id) { %>
+            <form method="POST" action="/extra-expenses/<%= x.id %>/decide" class="d-flex gap-1 mt-2 justify-content-end">
+              <input type="hidden" name="back" value="<%= back %>">
+              <button name="action" value="approve" class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i> <%= t("Approve") %></button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="reject(<%= x.id %>)"><i class="bi bi-x-lg"></i> <%= t("Reject") %></button>
+            </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<form method="POST" id="rejForm" class="d-none"><input type="hidden" name="back" value="<%= back %>"><input type="hidden" name="action" value="reject"><input type="hidden" name="note"></form>
+<script>
+function reject(id) {
+  const note = prompt(T('Reason for rejecting (the employee will see this):'));
+  if (!note || !note.trim()) return;
+  const f = document.getElementById('rejForm');
+  f.action = '/extra-expenses/' + id + '/decide'; f.note.value = note.trim(); f.submit();
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

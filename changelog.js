@@ -6,6 +6,12 @@ module.exports = [
   {
     date: '2026-11-22',
     items: [
+      { commit: '', type: 'new', title: 'Extra expenses with a receipt, in place of hand-made travel claims',
+        details: ['Travel claims are no longer entered by hand. Your km travel allowance is made automatically from your check-in and check-out meter photos, and the weekly report goes to the Head of Finance as before.',
+                  'For anything else you pay for work, such as food, stay, toll, parking, bus or taxi fare, courier or a small purchase, use Expenses → New Extra Expense. Enter the date, amount, what it was for and the details, and take a photo of the receipt or attach a photo or PDF.',
+                  'It goes to the Head of Finance, who approves or rejects it (with a reason). You get a notification either way, and you can see each one under My Extra Expenses. You can withdraw an expense until it is decided.',
+                  'Head of Finance and admin: Expenses → Extra Expense Approvals lists them with the receipt, with tabs for pending, approved and rejected, and filters by employee and month. The Finance home page and the admin to-do list show how many are waiting.',
+                  'The Travel Expense tile on the home page is now Extra Expense.'] },
       { commit: '', type: 'new', title: 'Travel allowance on or off for each person',
         details: ['Admin: HR → Employees → Edit → Vehicle Details has a new switch, "Field travel allowance (TA) allowed". It is on for everyone to start with, so nothing changes until you switch it off for someone.',
                   'When it is off, check-in and check-out only ask for the selfie and location. There is no km reading and no meter photo.',

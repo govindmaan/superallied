@@ -71,6 +71,7 @@ function adminDashboardData(locale = 'en-IN') {
     { label: 'Follow-ups due or overdue',      count: overdueCount, href: '/enquiries/dashboard',      icon: 'bi-telephone-forward' },
     { label: 'Spare quotations to approve',    count: db.prepare("SELECT COUNT(*) AS c FROM spare_quotations WHERE approval_status='pending'").get().c, href: '/spare-quotations', icon: 'bi-receipt-cutoff' },
     { label: 'Travel expenses to approve',     count: db.prepare("SELECT COUNT(*) AS c FROM travel_expenses WHERE status='submitted'").get().c, href: '/travel-expenses/queue', icon: 'bi-truck' },
+    { label: 'Extra expenses to approve',      count: db.prepare("SELECT COUNT(*) AS c FROM extra_expenses WHERE status='submitted'").get().c, href: '/extra-expenses/queue', icon: 'bi-receipt' },
     { label: 'Leave requests to approve',      count: db.prepare("SELECT COUNT(*) AS c FROM leaves WHERE status='pending'").get().c, href: '/hr/leaves', icon: 'bi-calendar-x' },
     { label: 'Spare part orders pending',      count: db.prepare("SELECT COUNT(*) AS c FROM part_orders WHERE status='pending'").get().c, href: '/part-orders', icon: 'bi-box-seam' },
     { label: 'Quotations cancelled this month', count: db.prepare("SELECT COUNT(*) AS c FROM quotations WHERE strftime('%Y-%m', cancelled_at)=?").get(month).c, href: '/quotations?status=cancelled', icon: 'bi-x-circle' },
@@ -139,7 +140,8 @@ router.get('/', requireLogin, (req, res) => {
     const staff = db.prepare("SELECT COUNT(*) c FROM users WHERE COALESCE(is_hr_active,1)=1 AND role NOT IN ('admin')").get().c;
     const recent = db.prepare(`SELECT te.*, u.full_name FROM travel_expenses te JOIN users u ON u.id=te.user_id
       WHERE te.status='submitted' ORDER BY te.submitted_at ASC LIMIT 8`).all();
-    return res.render('dashboard-finance', { title: 'Finance', pendingExpenses, pendingAmount, approvedToday,
+    const pendingExtra = db.prepare("SELECT COUNT(*) c, COALESCE(SUM(amount),0) t FROM extra_expenses WHERE status='submitted'").get();
+    return res.render('dashboard-finance', { title: 'Finance', pendingExpenses, pendingAmount, approvedToday, pendingExtra,
       present: att?.present || 0, stillOut: att?.still_out || 0, staff, recent, formatINR });
   }
 

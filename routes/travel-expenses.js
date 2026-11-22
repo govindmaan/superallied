@@ -173,15 +173,7 @@ setInterval(() => { try { closeLockedWeeks(); } catch (e) { console.error('TA we
 
 router.get('/', (req, res) => res.redirect('/travel-expenses/my'));
 
-// ── New expense form ──────────────────────────────────────────────────────────
-// Start / end km filled in from the day's meter readings (start falls back to the last reading)
-function prefillKm(uid, date) {
-  const j = db.prepare('SELECT start_km, end_km FROM expense_journeys WHERE user_id=? AND date=?').get(uid, date) || {};
-  const p = { start: j.start_km > 0 ? j.start_km : '', end: j.end_km > 0 ? j.end_km : '', startFrom: '' };
-  if (p.start) p.startFrom = 'From your check-in meter reading';
-  else { const last = ta.lastKm(uid, date); if (last) { p.start = last.km; p.startFrom = `Your last reading (${fmtD(last.date)})`; } }
-  return p;
-}
+// ── Claim form (editing an existing claim that was sent back) ────────────────
 const formLocals = (uid, date) => {
   const vehicle = ta.vehicleOf(uid);
   return { vehicle, rate: ta.rateFor(vehicle, sectionOf(uid)), today: today(),
@@ -189,18 +181,12 @@ const formLocals = (uid, date) => {
     todaysVisits: db.prepare("SELECT * FROM field_visits WHERE user_id=? AND date(visit_time,'+330 minutes')=? ORDER BY visit_time").all(uid, date) };
 };
 
-router.get('/new', requireClaimAccess, requireTaAllowed, (req, res) => {
-  const uid = req.session.userId;
-  let date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') && req.query.date <= today() ? req.query.date : today();
-  if (isLocked(date)) { req.session.flash = { error: lockedMsg(date) }; date = today(); }
-  const existing = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? AND date=? AND status IN ('draft','rejected')").get(uid, date);
-  if (existing) return res.redirect(`/travel-expenses/${existing.id}/edit`);
-  res.render('travel-expenses/new', {
-    title: 'New Travel Expense', expense: null, docs: [], linkedVisitIds: [],
-    ...formLocals(uid, date), prefill: prefillKm(uid, date), todayStr: date,
-  });
+// Travel claims are no longer entered by hand: the km allowance is made from the
+// meter photos automatically (weekly). Anything else goes to Extra Expenses.
+router.get('/new', requireClaimAccess, (req, res) => {
+  req.session.flash = { info: 'Your km travel allowance is calculated automatically from your meter photos. For any other expense, add it here with the receipt.' };
+  res.redirect('/extra-expenses/new');
 });
-
 // ── Edit an existing draft/rejected expense ───────────────────────────────────
 router.get('/:id/edit', requireClaimAccess, (req, res) => {
   const uid = req.session.userId;
@@ -224,6 +210,8 @@ router.get('/:id/edit', requireClaimAccess, (req, res) => {
 router.post('/', requireClaimAccess, requireTaAllowed, (req, res) => {
   const uid = req.session.userId;
   const { id, date, purpose, start_odo, end_odo, remarks, visit_ids } = req.body;
+  // Only an existing claim (e.g. one sent back) can still be corrected; no new ones
+  if (!id) { req.session.flash = { info: 'Your km travel allowance is calculated automatically from your meter photos. For any other expense, add it here with the receipt.' }; return res.redirect('/extra-expenses/new'); }
   const travel_type = ta.vehicleOf(uid);   // from the profile, never from the form
   const department = sectionOf(uid);
 

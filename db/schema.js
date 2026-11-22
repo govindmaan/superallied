@@ -783,6 +783,24 @@ function createTables() {
       qty         INTEGER NOT NULL,
       restored    INTEGER DEFAULT 0
     );
+
+    -- Extra expenses: costs beyond the km travel allowance (food, stay, toll,
+    -- fares, courier…), each with a receipt; approved by the Head of Finance.
+    CREATE TABLE IF NOT EXISTS extra_expenses (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      expense_no    TEXT UNIQUE NOT NULL,
+      user_id       INTEGER NOT NULL REFERENCES users(id),
+      date          DATE NOT NULL,
+      category      TEXT NOT NULL,
+      amount        REAL NOT NULL,
+      description   TEXT DEFAULT '',
+      receipt_path  TEXT NOT NULL,
+      status        TEXT DEFAULT 'submitted',   -- submitted | approved | rejected | withdrawn
+      decided_by    INTEGER REFERENCES users(id),
+      decided_at    DATETIME,
+      decision_note TEXT DEFAULT '',
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 }
 

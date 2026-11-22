@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
 const express = require('express');
-const { setupDb } = require('./helpers');
+const { setupDb, draftClaim } = require('./helpers');
 
 const T = setupDb();
 const { db, users, dbmod } = T;
@@ -50,8 +50,8 @@ const post = (u, who, body) => fetch(base + u, { method: 'POST', redirect: 'manu
 
 const today = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 
-test('a sales user can submit a claim; it is stamped with the department', async () => {
-  await post('/travel-expenses/', users.sales, { date: today, travel_type: 'Own Two Wheeler', purpose: 'Field visit', start_odo: '1000', end_odo: '1040' });
+test('a claim on file can be submitted; it is stamped with the department', async () => {
+  draftClaim(users.sales.id, { date: today, purpose: 'Field visit', start_odo: 1000, end_odo: 1040 });
   const e = db.prepare("SELECT * FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(users.sales.id);
   assert.ok(e, 'claim created');
   assert.equal(e.department, 'Sales');
@@ -75,7 +75,7 @@ test('the Head of Finance can approve it', async () => {
 
 test('a manager no longer approves expenses (routes to HoF only)', async () => {
   assert.ok(!getUserPermissions('manager').includes('expense_approval'));
-  await post('/travel-expenses/', users.sales, { date: today, travel_type: 'Own Two Wheeler', purpose: 'x', start_odo: '1', end_odo: '5' });
+  draftClaim(users.sales.id, { date: today, purpose: 'x', start_odo: 1, end_odo: 5 });
   const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(users.sales.id);
   await post(`/travel-expenses/${e.id}/submit`, users.sales, {});
   const r = await post(`/travel-expenses/${e.id}/approve`, users.manager, { comment: 'nope' });
@@ -86,14 +86,14 @@ test('a manager no longer approves expenses (routes to HoF only)', async () => {
 test('an employee (operations/support) can also submit', async () => {
   const emp = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('drv','x','Driver','employee','Operations')").run().lastInsertRowid);
   assert.ok(getUserPermissions('employee').includes('expense_claim'));
-  await post('/travel-expenses/', { id: emp }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'delivery', start_odo: '10', end_odo: '30' });
+  draftClaim(emp, { date: today, purpose: 'delivery', start_odo: 10, end_odo: 30 });
   const e = db.prepare("SELECT department FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(emp);
   assert.equal(e.department, 'Operations');
 });
 
 test('a sales claim cannot be submitted without a complete day (selfies + odometer)', async () => {
   const s2 = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('sales2','x','Sales Two','sales','Sales')").run().lastInsertRowid);
-  await post('/travel-expenses/', { id: s2 }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'Field work', start_odo: '100', end_odo: '150' });
+  draftClaim(s2, { date: today, purpose: 'Field work', start_odo: 100, end_odo: 150 });
   const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(s2);
   await post(`/travel-expenses/${e.id}/submit`, { id: s2 }, {});
   assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'draft'); // blocked, no day
@@ -109,7 +109,7 @@ test('a sales claim cannot be submitted without a complete day (selfies + odomet
 
 test('operations claims are not day-gated (paid on every expense)', async () => {
   const ops = Number(db.prepare("INSERT INTO users (username,password_hash,full_name,role,department) VALUES ('ops1','x','Runner','employee','Operations')").run().lastInsertRowid);
-  await post('/travel-expenses/', { id: ops }, { date: today, travel_type: 'Own Two Wheeler', purpose: 'parts run', start_odo: '5', end_odo: '25' });
+  draftClaim(ops, { date: today, purpose: 'parts run', start_odo: 5, end_odo: 25 });
   const e = db.prepare("SELECT id FROM travel_expenses WHERE user_id=? ORDER BY id DESC LIMIT 1").get(ops);
   await post(`/travel-expenses/${e.id}/submit`, { id: ops }, {});
   assert.equal(db.prepare('SELECT status FROM travel_expenses WHERE id=?').get(e.id).status, 'submitted'); // no gate

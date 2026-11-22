@@ -28,4 +28,16 @@ function setupDb() {
   return { db, dbmod, users, customer, today, dbPath: process.env.DB_PATH };
 }
 
-module.exports = { setupDb };
+// A travel claim already on file as a draft (claims are no longer entered by
+// hand; older drafts and claims sent back can still be corrected and submitted)
+function draftClaim(uid, { date, purpose = '', start_odo = 0, end_odo = 0 }) {
+  const { db, nextExpenseNumber } = require('../db');
+  const { sectionOf } = require('../lib/org');
+  const ta = require('../lib/ta');
+  const km = Math.max(0, end_odo - start_odo), rate = ta.rateOfUser(uid), amt = Math.round(km * rate * 100) / 100;
+  return Number(db.prepare(`INSERT INTO travel_expenses (expense_number,user_id,date,travel_type,purpose,start_odo,end_odo,
+      distance_km,rate_per_km,travel_amount,total_claim,department,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'draft')`)
+    .run(nextExpenseNumber(), uid, date, ta.vehicleOf(uid), purpose, start_odo, end_odo, km, rate, amt, amt, sectionOf(uid)).lastInsertRowid);
+}
+
+module.exports = { setupDb, draftClaim };

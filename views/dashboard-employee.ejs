@@ -112,10 +112,10 @@
     <% } %>
 
     <% if (hasPerm('expense_claim')) { %>
-    <a href="/travel-expenses/new" class="tile tile-expense">
-      <div class="tile-icon"><i class="bi bi-truck"></i></div>
-      <div class="tile-label"><%= t("Travel Expense") %></div>
-      <div class="tile-sub">₹<%= monthClaim.toFixed(0) %> <%= t("this month") %></div>
+    <a href="/extra-expenses/new" class="tile tile-expense">
+      <div class="tile-icon"><i class="bi bi-receipt"></i></div>
+      <div class="tile-label"><%= t("Extra Expense") %></div>
+      <div class="tile-sub"><%= t("Add a receipt") %></div>
     </a>
     <% } %>
 

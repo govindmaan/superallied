@@ -305,4 +305,21 @@ module.exports = {
 
   // Travel allowance on / off
   "Travel allowance is not on for you. Ask the admin if you travel for work.": "आपके लिए यात्रा भत्ता चालू नहीं है। अगर आप काम के लिए यात्रा करते हैं तो एडमिन से कहें।",
+
+  // Extra expenses
+  "Extra Expense {no}": "अतिरिक्त खर्च {no}",
+  "Choose the date of the expense (not a future date).": "खर्च की तारीख चुनें (आगे की तारीख नहीं)।",
+  "Choose what the expense was for.": "चुनें कि खर्च किसलिए था।",
+  "Enter the amount paid.": "चुकाई गई राशि लिखें।",
+  "Write what the expense was for (customer, place, reason).": "लिखें कि खर्च किसलिए था (ग्राहक, जगह, कारण)।",
+  "The receipt file is too large (more than {n} MB).": "रसीद की फ़ाइल बहुत बड़ी है ({n} MB से ज़्यादा)।",
+  "The receipt file is not a valid PDF.": "रसीद की फ़ाइल सही PDF नहीं है।",
+  "Expense {no} submitted to the Head of Finance.": "खर्च {no} हेड ऑफ फाइनेंस को जमा हुआ।",
+  "You cannot approve your own expense.": "आप अपना खर्च स्वयं स्वीकृत नहीं कर सकते।",
+  "{no} approved.": "{no} स्वीकृत हुआ।",
+  "{no} rejected.": "{no} अस्वीकार हुआ।",
+  "{no} withdrawn.": "{no} वापस लिया गया।",
+  "Give a reason for rejecting.": "अस्वीकार करने का कारण लिखें।",
+  "You don't have permission to access Extra Expenses.": "आपको अतिरिक्त खर्च देखने की अनुमति नहीं है।",
+  "Your km travel allowance is calculated automatically from your meter photos. For any other expense, add it here with the receipt.": "आपका km यात्रा भत्ता मीटर फ़ोटो से अपने-आप गणना होता है। किसी और खर्च के लिए, रसीद के साथ यहाँ जोड़ें।",
 };

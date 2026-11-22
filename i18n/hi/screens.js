@@ -441,4 +441,7 @@ module.exports = {
   'From the organisation chart. Sets designation and department.': 'संगठन चार्ट से। पदनाम और विभाग अपने आप भर जाते हैं।',
   'Filled in from the position; change it if needed.': 'पद से भरा गया; ज़रूरत हो तो बदलें।',
   'From the organisation chart. Approvals go to the nearest filled position above; Level 1 while vacant.': 'संगठन चार्ट से। स्वीकृति ऊपर वाले सबसे नज़दीकी भरे पद पर जाती है; खाली होने पर लेवल 1 पर।',
+
+  // Extra expenses
+  "Extra expenses to approve": "स्वीकृति के लिए अतिरिक्त खर्च",
 };

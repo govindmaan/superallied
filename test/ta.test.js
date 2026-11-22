@@ -148,13 +148,15 @@ test('only HoF / admin decide the week; rejecting needs a reason; approving appr
   assert.match(ta.editKm(salesP, '2026-11-05', { start_km: 1150, end_km: 1200, note: 'late fix' }, hof).message, /already approved/);
 });
 
-test('the claim form is filled in from the meter and the profile vehicle', async () => {
-  att.saveJourneyStart(svcP, T.today, { km: 500, photo: '/uploads/j/s.jpg' });
-  att.saveJourneyEnd(svcP, T.today, { km: 535, photo: '/uploads/j/t.jpg' });
-  const html = await (await get('/travel-expenses/new?date=' + T.today, svcP)).text();
-  assert.match(html, /name="start_odo"[^>]*value="500"/);
-  assert.match(html, /name="end_odo"[^>]*value="535"/);
-  assert.match(html, /data-rate="2.5"/);
+test('travel claims are not entered by hand any more: the form sends people to Extra Expenses', async () => {
+  const r = await get('/travel-expenses/new?date=' + T.today, svcP);
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/extra-expenses/new');
+  const before = db.prepare('SELECT COUNT(*) c FROM travel_expenses').get().c;
+  const p = await fetch(base + '/travel-expenses', { method: 'POST', redirect: 'manual',
+    headers: { 'x-user': svcP, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'date=' + T.today + '&start_odo=1&end_odo=50' });
+  assert.equal(p.headers.get('location'), '/extra-expenses/new');
+  assert.equal(db.prepare('SELECT COUNT(*) c FROM travel_expenses').get().c, before);
 });
 
 // ── Correct KM page: many days, by employee or by day ─────────────────────────
