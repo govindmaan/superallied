@@ -4,6 +4,19 @@
 
 module.exports = [
   {
+    date: '2026-11-27',
+    items: [
+      { commit: '', type: 'improved', title: 'Site punch-in now records a voice note instead of typed remarks',
+        details: [
+          'The site punch-in form has been redesigned. After entering the customer name and phone number (both now required), you record a short voice note describing what happened at the visit — just like a WhatsApp voice message.',
+          'Phone number is now mandatory when punching in (10-digit mobile number).',
+          'The site photo is now optional. After recording the voice note you can either skip the photo or take one.',
+          'Voice notes can be listened to from My Field Visits. Managers and admins can listen from All Site Visits (new page under the Visits menu).',
+          'Audio is stored as a small file (about 50–100 KB), not in the database, so it does not increase database size.',
+        ] },
+    ],
+  },
+  {
     date: '2026-11-22',
     items: [
       { commit: '', type: 'new', title: 'Extra expenses with a receipt, in place of hand-made travel claims',

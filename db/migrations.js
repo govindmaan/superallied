@@ -163,6 +163,9 @@ function migrate() {
     const r = db.prepare("UPDATE users SET department='Operations', role='service_coordinator' WHERE position_code='service_coordinator'").run();
     db.prepare("INSERT INTO settings (key, value) VALUES ('migr_service_coord_ops_v1', ?)").run(`moved ${r.changes}`);
   }
+
+  // Add voice_note column to field_visits (site punch-in voice remarks).
+  try { db.exec("ALTER TABLE field_visits ADD COLUMN voice_note TEXT DEFAULT ''"); } catch (_) { /* already exists */ }
 }
 
 module.exports = { migrate };

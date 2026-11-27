@@ -9,19 +9,23 @@
   <div class="card border-0 shadow-sm">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="table-light"><tr><th><%= t("Visit ID") %></th><th><%= t("Date & Time") %></th><th><%= t("Customer / Site") %></th><th><%= t("Contact") %></th><th><%= t("Purpose") %></th><th><%= t("Location") %></th><th><%= t("Remarks") %></th></tr></thead>
+        <thead class="table-light"><tr><th><%= t("Visit ID") %></th><th><%= t("Date & Time") %></th><th><%= t("Customer / Site") %></th><th><%= t("Contact") %></th><th><%= t("Purpose") %></th><th><%= t("Location") %></th><th><%= t("Voice Note") %></th></tr></thead>
         <tbody>
           <% visits.forEach(v => { %>
           <tr>
-            <td class="font-monospace small text-muted"><%= t("VIS-") %><%= String(v.id).padStart(5,'0') %></td>
+            <td class="font-monospace small text-muted">VIS-<%= String(v.id).padStart(5,'0') %></td>
             <td class="small"><%= dbTime(v.visit_time).toLocaleString(locale,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) %></td>
-            <td class="fw-semibold"><%= v.customer_name %></td>
-            <td class="small"><%= v.contact_person || '—' %><% if (v.phone) { %><div><a href="tel:<%= v.phone %>"><%= v.phone %></a></div><% } %></td>
+            <td class="fw-semibold small"><%= v.customer_name %><% if (v.phone) { %><div><a href="tel:<%= v.phone %>" class="text-muted small"><%= v.phone %></a></div><% } %></td>
+            <td class="small"><%= v.contact_person || '—' %></td>
             <td class="small"><%= v.purpose || '—' %></td>
             <td class="small">
               <% if (v.lat) { %><a href="https://maps.google.com/?q=<%= v.lat %>,<%= v.lng %>" target="_blank" class="text-decoration-none"><i class="bi bi-geo-alt-fill text-danger"></i> <%= t("Map") %></a><% } else if (v.address) { %><span class="text-warning-emphasis" title="<%= t("No GPS — typed address") %>"><%= v.address %></span><% } else { %>—<% } %>
             </td>
-            <td class="small text-muted"><%= v.remarks || '—' %></td>
+            <td style="min-width:180px">
+              <% if (v.voice_note) { %>
+                <audio controls src="<%= v.voice_note %>" style="height:32px;width:170px;max-width:100%"></audio>
+              <% } else { %><span class="text-muted small">—</span><% } %>
+            </td>
           </tr>
           <% }) %>
           <% if (!visits.length) { %><tr><td colspan="7" class="text-center text-muted py-4"><%= t("No field visits yet.") %></td></tr><% } %>

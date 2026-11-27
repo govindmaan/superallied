@@ -194,15 +194,28 @@ router.get('/api/search', requireLogin, (req, res) => {
   }
 });
 
-// ── Photo upload API ──────────────────────────────────────────────────────────
+// ── Photo / audio upload API ──────────────────────────────────────────────────
 router.post('/api/upload', requireLogin, (req, res) => {
   const { data, folder } = req.body;
-  if (!data?.startsWith('data:image')) return res.status(400).json({ error: 'Invalid image data' });
-  const allowedFolders = ['attendance', 'employees', 'visits', 'expenses', 'enquiries'];
-  const safe = allowedFolders.includes(folder) ? folder : 'misc';
-  const dir  = path.join(UPLOADS_DIR, safe);
+  const isImage = !!data?.startsWith('data:image');
+  const isAudio = !!data?.startsWith('data:audio/');
+  if (!isImage && !isAudio) return res.status(400).json({ error: 'Invalid file data' });
+
+  const imgFolders   = ['attendance', 'employees', 'visits', 'expenses', 'enquiries'];
+  const audioFolders = ['visits-audio'];
+
+  let safe;
+  if (isImage) {
+    safe = imgFolders.includes(folder) ? folder : 'misc';
+  } else {
+    if (!audioFolders.includes(folder)) return res.status(400).json({ error: 'Invalid folder for audio' });
+    safe = folder;
+  }
+
+  const dir   = path.join(UPLOADS_DIR, safe);
   fs.mkdirSync(dir, { recursive: true });
-  const fname = `${Date.now()}-${req.session.userId}-${Math.random().toString(36).slice(2)}.jpg`;
+  const ext   = isAudio ? '.webm' : '.jpg';
+  const fname = `${Date.now()}-${req.session.userId}-${Math.random().toString(36).slice(2)}${ext}`;
   fs.writeFileSync(path.join(dir, fname), Buffer.from(data.split(',')[1], 'base64'));
   res.json({ ok: true, path: `/uploads/${safe}/${fname}` });
 });

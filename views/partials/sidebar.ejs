@@ -49,9 +49,10 @@
         { href: '/databank/access', icon: 'bi-shield-lock', label: t('Databank Access'),  show: isAdmin,         keys: ['databank-access'] },
       ]},
       { label: t('Field'), items: [
-        { href: '/visits',            icon: 'bi-geo-alt-fill', label: t('Site Visits'),   show: can('field_visit'),                    keys: ['visits'] },
-        { href: '/route-map',         icon: 'bi-map-fill',     label: isAdmin ? t('Route Maps') : t('My Route Map'), show: routeMap, keys: ['route'] },
-        { href: '/route-map/heatmap', icon: 'bi-fire',         label: t('Visit Heatmap'), show: isAdmin || can('expense_approval') },
+        { href: '/visits',            icon: 'bi-geo-alt-fill',    label: t('Site Visits'),     show: can('field_visit'),                    keys: ['visits'] },
+        { href: '/visits/admin',      icon: 'bi-collection-fill', label: t('All Site Visits'), show: isMgr,                                 keys: ['visits-admin'] },
+        { href: '/route-map',         icon: 'bi-map-fill',        label: isAdmin ? t('Route Maps') : t('My Route Map'), show: routeMap, keys: ['route'] },
+        { href: '/route-map/heatmap', icon: 'bi-fire',            label: t('Visit Heatmap'),   show: isAdmin || can('expense_approval') },
       ]},
       { label: t('Sales Team'), items: [
         { href: '/salespersons',                 icon: 'bi-person-badge-fill', label: t('Salespersons'),      show: isMgr, keys: ['salespersons'] },
