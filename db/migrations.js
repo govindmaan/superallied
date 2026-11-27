@@ -165,7 +165,10 @@ function migrate() {
   }
 
   // Add voice_note column to field_visits (site punch-in voice remarks).
-  try { db.exec("ALTER TABLE field_visits ADD COLUMN voice_note TEXT DEFAULT ''"); } catch (_) { /* already exists */ }
+  if (!db.prepare("SELECT 1 FROM settings WHERE key='migr_voice_note_v1'").get()) {
+    try { db.exec("ALTER TABLE field_visits ADD COLUMN voice_note TEXT DEFAULT ''"); } catch (_) { /* already exists */ }
+    db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('migr_voice_note_v1', '1')").run();
+  }
 }
 
 module.exports = { migrate };

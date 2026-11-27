@@ -67,8 +67,18 @@ app.get('/i18n/:lang.js', (req, res) => {
   res.type('application/javascript').set('Cache-Control', 'public, max-age=31536000, immutable');
   res.send(i18n.clientScript(lang));
 });
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  // A missing secret in production would let anyone forge session cookies.
+  // Copy .env.example → .env and fill in SESSION_SECRET before starting the server.
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start in production.');
+    process.exit(1);
+  }
+  console.warn('WARNING: SESSION_SECRET is not set. Using an insecure default for development only.');
+}
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'superallied-secret-2026',
+  secret: SESSION_SECRET || 'superallied-dev-only-secret',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 8 * 60 * 60 * 1000 }, // 8 hours

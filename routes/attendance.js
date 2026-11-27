@@ -2,8 +2,9 @@ const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 const router  = express.Router();
-const { db, createNotification, today } = require('../db');
+const { db, createNotification, auditLog, today } = require('../db');
 const rules = require('../lib/attendance');
+const ta    = require('../lib/ta');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function savePhoto(base64, folder, uploadsDir) {
@@ -124,7 +125,7 @@ router.get('/api/day/:date', (req, res) => {
 
 // Last odometer reading (yesterday's end km) to prefill today's start
 router.get('/api/last-km', (req, res) => {
-  res.json(require('../lib/ta').lastKm(req.session.userId, today()) || {});
+  res.json(ta.lastKm(req.session.userId, today()) || {});
 });
 
 // ── API: check-in ─────────────────────────────────────────────────────────────
@@ -218,19 +219,18 @@ router.get('/staff', requireStaffView, (req, res) => {
     employees, emp, todayStr, base: '/attendance/staff',
     canRouteMap: !!(res.locals.hasPerm('*') || res.locals.user?.role === 'head_of_finance'),
     cal: emp ? monthCalendar(emp.id, req.query.m, todayStr) : null,
-    canEdit: rules.canEdit(res), vehicles: require('../lib/ta').VEHICLES,
-    vehicle: emp ? require('../lib/ta').vehicleOf(emp.id) : '', rate: emp ? require('../lib/ta').rateOfUser(emp.id) : 0,
+    canEdit: rules.canEdit(res), vehicles: ta.VEHICLES,
+    vehicle: emp ? ta.vehicleOf(emp.id) : '', rate: emp ? ta.rateOfUser(emp.id) : 0,
   });
 });
 
 // Head of Finance / admin: set the vehicle a person is paid for (sets their km rate)
 router.post('/staff/:uid/vehicle', (req, res) => {
   if (!rules.canEdit(res)) { req.session.flash = { error: 'Only the Head of Finance or an admin can change this.' }; return res.redirect('/attendance'); }
-  const { VEHICLES } = require('../lib/ta');
   const uid = +req.params.uid, v = req.body.vehicle_type;
-  if (VEHICLES.includes(v) && db.prepare('SELECT 1 FROM users WHERE id=?').get(uid)) {
+  if (ta.VEHICLES.includes(v) && db.prepare('SELECT 1 FROM users WHERE id=?').get(uid)) {
     db.prepare('UPDATE users SET vehicle_type=? WHERE id=?').run(v, uid);
-    require('../db').auditLog(req.session.userId, 'vehicle_set', 'users', uid, v);
+    auditLog(req.session.userId, 'vehicle_set', 'users', uid, v);
     req.session.flash = { success: 'Vehicle updated. New claims use the new rate.' };
   }
   res.redirect(`/attendance/staff?user=${uid}`);

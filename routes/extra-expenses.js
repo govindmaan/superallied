@@ -7,7 +7,7 @@ const express = require('express');
 const router  = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { db, auditLog, createNotification, formatINR } = require('../db');
+const { db, auditLog, createNotification, formatINR, today } = require('../db');
 const { financeApproverIds } = require('../lib/org');
 
 const CATEGORIES = ['Food', 'Lodging / Stay', 'Toll / Parking', 'Bus / Train / Taxi fare', 'Fuel (company vehicle)',
@@ -21,11 +21,11 @@ const deny = (req, res, msg) => { req.session.flash = { error: msg }; res.redire
 const requireClaim   = (req, res, next) => canClaim(res) ? next() : deny(req, res, "You don't have permission to access Extra Expenses.");
 const requireApprove = (req, res, next) => canApprove(res) ? next() : deny(req, res, 'Only the Head of Finance can approve expenses.');
 
-const today = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 function nextNo() {
-  const y = today().slice(0, 4);
-  const n = db.prepare("SELECT COUNT(*) c FROM extra_expenses WHERE expense_no LIKE ?").get(`XE-${y}-%`).c + 1;
-  return `XE-${y}-${String(n).padStart(5, '0')}`;
+  const prefix = `XE-${today().slice(0, 4)}-`;
+  const row = db.prepare(`SELECT MAX(CAST(SUBSTR(expense_no, ?) AS INTEGER)) AS max FROM extra_expenses WHERE expense_no LIKE ?`)
+    .get(prefix.length + 1, prefix + '%');
+  return `${prefix}${String((row.max || 0) + 1).padStart(5, '0')}`;
 }
 
 // Receipt from the form: a data URL (photo or PDF) → saved under /uploads/expenses
