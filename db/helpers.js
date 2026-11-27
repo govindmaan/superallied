@@ -7,8 +7,9 @@ function getSettings() {
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
 
-// Today's date as YYYY-MM-DD in server local time, shared by attendance and expense routes
-function today() { return new Date().toLocaleDateString('en-CA'); }
+// Today's date as YYYY-MM-DD in India time (+5:30), explicit offset so this is
+// correct even if the host's TZ env var is not honored.
+function today() { return new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10); }
 
 function getFY(date = new Date()) {
   const m = date.getMonth() + 1;
@@ -113,9 +114,13 @@ function createNotification(userId, title, body = '', type = 'info', link = '') 
 }
 
 function nextEnquiryNumber() {
-  const ym = new Date().toLocaleDateString('en-CA').slice(0, 7).replace('-', '');
-  const count = db.prepare("SELECT COUNT(*) as c FROM enquiries WHERE enquiry_number LIKE ?").get(`ENQ-${ym}-%`).c;
-  return `ENQ-${ym}-${String(count + 1).padStart(4, '0')}`;
+  // Use MAX of the serial suffix, not COUNT — enquiries can be hard-deleted by admin,
+  // so COUNT can produce a number that already exists (UNIQUE constraint violation).
+  const ym = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 7).replace('-', '');
+  const prefix = `ENQ-${ym}-`;
+  const row = db.prepare(`SELECT MAX(CAST(SUBSTR(enquiry_number, ?) AS INTEGER)) AS max FROM enquiries WHERE enquiry_number LIKE ?`)
+    .get(prefix.length + 1, prefix + '%');
+  return `${prefix}${String((row.max || 0) + 1).padStart(4, '0')}`;
 }
 
 function nextEnquiryQuotationNumber() {
@@ -220,15 +225,17 @@ function nextChallanNumber() {
 }
 
 function nextExpenseNumber() {
-  const year = new Date().getFullYear();
-  const count = db.prepare("SELECT COUNT(*) as c FROM travel_expenses WHERE expense_number LIKE ?").get(`EXP-${year}-%`).c;
-  return `EXP-${year}-${String(count + 1).padStart(6, '0')}`;
+  const prefix = `EXP-${new Date(Date.now() + 330 * 60000).getUTCFullYear()}-`;
+  const row = db.prepare(`SELECT MAX(CAST(SUBSTR(expense_number, ?) AS INTEGER)) AS max FROM travel_expenses WHERE expense_number LIKE ?`)
+    .get(prefix.length + 1, prefix + '%');
+  return `${prefix}${String((row.max || 0) + 1).padStart(6, '0')}`;
 }
 
 function nextComplaintNumber() {
-  const year = new Date().getFullYear();
-  const count = db.prepare("SELECT COUNT(*) as c FROM complaints WHERE complaint_number LIKE ?").get(`CMP-${year}-%`).c;
-  return `CMP-${year}-${String(count + 1).padStart(5, '0')}`;
+  const prefix = `CMP-${new Date(Date.now() + 330 * 60000).getUTCFullYear()}-`;
+  const row = db.prepare(`SELECT MAX(CAST(SUBSTR(complaint_number, ?) AS INTEGER)) AS max FROM complaints WHERE complaint_number LIKE ?`)
+    .get(prefix.length + 1, prefix + '%');
+  return `${prefix}${String((row.max || 0) + 1).padStart(5, '0')}`;
 }
 
 function auditLog(userId, action, entity = '', entityId = '', details = '') {

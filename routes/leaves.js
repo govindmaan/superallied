@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { db, createNotification } = require('../db');
 const { approverIdsFor } = require('../lib/org');
+const { ensureBalance } = require('../lib/attendance');
 
 function workingDays(start, end) {
   let d = new Date(start), e = new Date(end), count = 0;
@@ -10,12 +11,6 @@ function workingDays(start, end) {
     d.setDate(d.getDate() + 1);
   }
   return count;
-}
-
-function ensureBalance(userId, leaveTypeId, year) {
-  db.prepare(`INSERT OR IGNORE INTO leave_balances (user_id, leave_type_id, year, allocated, used)
-    SELECT ?, ?, ?, days_per_year, 0 FROM leave_types WHERE id=?`)
-    .run(userId, leaveTypeId, year, leaveTypeId);
 }
 
 // ── Employee: my leaves ───────────────────────────────────────────────────────

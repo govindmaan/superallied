@@ -7,7 +7,7 @@
 const express = require('express');
 const router  = express.Router();
 const path = require('path');
-const { db, getSettings, nextChallanNumber, formatINR, numberToWords, auditLog, createNotification } = require('../db');
+const { db, getSettings, nextChallanNumber, formatINR, numberToWords, auditLog, createNotification, today } = require('../db');
 const { accountsDesk, storeDesk } = require('../lib/org');
 const { generatePDFWithLetterhead } = require('../pdf');
 const LETTERHEAD_PATH = path.join(__dirname, '..', 'Super Allied Letterhead.pdf');
@@ -24,8 +24,6 @@ const tx = (fn) => () => {
   try { const out = fn(); db.exec('COMMIT'); return out; }
   catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} throw e; }
 };
-
-const today = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 
 function load(id) {
   const c = db.prepare(`SELECT c.*, q.quotation_no, q.quotation_date, q.customer_name, q.customer_address, q.customer_gstin,
